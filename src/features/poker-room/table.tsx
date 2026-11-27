@@ -241,8 +241,7 @@ function Num({ v }: { v: number }) {
 }
 
 const at = (x: number, y: number) => ({ left: x + '%', top: y + '%' });
-const POT = { x: 51, y: 33 };
-const DECK_POS = { x: 38.5, y: 33 };
+const POT = { x: 50, y: 33 };
 
 // Contorno da mesa: estádio com recorte suave no topo (lugar do dealer).
 function shape(x0: number, x1: number, y0: number, y1: number, nd: number, nw: number, sh: number) {
@@ -634,8 +633,7 @@ export default function Table({
           y: Math.max(-0.6, Math.min(1, ((tgt.y / 100) * dim.h - zy) / 260)),
         };
 
-  const deckPos = compact ? { x: 29, y: 33 } : DECK_POS;
-  const potPos = compact ? { x: 56, y: 33 } : POT;
+  const potPos = POT;
   const toPot = (b: Point) => (settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, potPos));
   const displayPot = settled ? winners.reduce((a, w) => a + w[1], 0) : pot;
 
@@ -733,21 +731,6 @@ export default function Table({
 
       <span className="felt-mark">PokerFlow</span>
 
-      {/* Baralho à esquerda da linha do pote (sem colidir com o board) */}
-      <div className="spot deck-spot" style={at(deckPos.x, deckPos.y)}>
-        <motion.div
-          key={s.hand}
-          className="deck pc deck-sz"
-          initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
-          animate={{ rotate: 0, scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-        >
-          <div className="pc-back" style={{ transform: 'translate(-4px,-4px)' }} />
-          <div className="pc-back" style={{ transform: 'translate(-2px,-2px)' }} />
-          <div id="deck" className="pc-back" />
-        </motion.div>
-      </div>
-
       {/* Pote centralizado na linha superior */}
       <div className="spot pot-spot" style={at(potPos.x, potPos.y)}>
         <ChipStack
@@ -767,8 +750,21 @@ export default function Table({
         </motion.div>
       </div>
 
-      {/* Cartas comunitárias (Board) */}
+      {/* Cartas comunitárias (Board) com baralho ancorado à esquerda */}
       <div className="spot board" style={at(50, compact ? 52 : 50)}>
+        <div className="deck-anchor">
+          <motion.div
+            key={s.hand}
+            className="deck pc deck-sz"
+            initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
+            animate={{ rotate: 0, scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 240, damping: 20 }}
+          >
+            <div className="pc-back" style={{ transform: 'translate(-4px,-4px)' }} />
+            <div className="pc-back" style={{ transform: 'translate(-2px,-2px)' }} />
+            <div id="deck" className="pc-back" />
+          </motion.div>
+        </div>
         {[0, 1, 2, 3, 4].map((i) => {
           const card = s.board[i];
           const hasShowdown = settled && s.reveal && card != null && winCore.size > 0;

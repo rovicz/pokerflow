@@ -1059,7 +1059,7 @@ export default function Table({
           const f = isTopSeat ? 0.25 : compact ? 0.36 : 0.3;
           const b =
             j === me
-              ? { x: compact ? 70 : 63, y: compact ? 78 : 74 }
+              ? { x: compact ? 50 : 63, y: compact ? 72 : 74 } // mobile: acima das suas cartas, nunca atrás delas
               : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
           return (
             <div key={'b' + j} className="spot bet" style={at(b.x, b.y)}>

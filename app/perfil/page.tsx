@@ -160,10 +160,12 @@ export default function ProfilePage() {
           <div className="game-meta">
             <span className="meta-pill accent">Perfil</span>
             {username && <span className="meta-pill">@{username}</span>}
-            {joinedAt && <span className="meta-pill hide-sm">Desde {joinedAt}</span>}
           </div>
         </div>
         <div className="profile-topbar-right">
+          <Link href="/ranking" className="outline profile-back-btn">
+            Ranking
+          </Link>
           <Link href="/" className="outline profile-back-btn">
             ← Voltar para a mesa
           </Link>
@@ -176,7 +178,7 @@ export default function ProfilePage() {
                 router.push('/');
               }}
             >
-              Sair da conta
+              Sair
             </button>
           )}
         </div>
@@ -200,252 +202,254 @@ export default function ProfilePage() {
             </Link>
           </section>
         ) : (
-          <div className="profile-grid">
-            {/* Coluna 1: Identidade & Avatar */}
-            <section className="panel profile-card profile-identity-card">
-              <div className="profile-card-head">
-                <div>
-                  <div className="eyebrow">IDENTIDADE NA MESA</div>
-                  <h2>Perfil e avatar</h2>
+          <div className="profile-layout">
+            {/* Hero Banner: Identidade + 4 KPIs horizontais + atalho direto para o Ranking */}
+            <section className="panel profile-banner">
+              <div className="pb-identity">
+                <div className="pb-avatar-ring">
+                  <Avatar
+                    a={{ style: avatarStyle, seed: avatarSeed || displayName || 'player' }}
+                    name={displayName || username || 'Jogador'}
+                    size={72}
+                  />
                 </div>
-                <p>Escolha como seus amigos te veem em todas as salas.</p>
-              </div>
-
-              <div className="profile-preview-box">
-                <Avatar
-                  a={{ style: avatarStyle, seed: avatarSeed || displayName || 'player' }}
-                  name={displayName || username || 'Jogador'}
-                  size={66}
-                />
-                <div className="profile-preview-meta">
-                  <strong>{displayName || username}</strong>
-                  <span>@{username}</span>
-                  <small>{user.email}</small>
-                </div>
-              </div>
-
-              <form className="auth-form profile-identity-form" onSubmit={handleSaveProfile}>
-                <div className="profile-name-fields">
-                  <label>
-                    Nome de exibição
-                    <input
-                      type="text"
-                      required
-                      minLength={2}
-                      maxLength={24}
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Apelido único (@)
-                    <input
-                      type="text"
-                      required
-                      minLength={3}
-                      maxLength={20}
-                      pattern="[a-zA-Z0-9_]{3,20}"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
-                  </label>
-                </div>
-
-                <div className="profile-avatar-picker">
-                  <div className="between">
-                    <span className="field-lbl">Estilo do avatar</span>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => setSeeds(mkSeeds())}
-                    >
-                      Sortear outros
-                    </button>
+                <div className="pb-meta">
+                  <div className="pb-title-row">
+                    <h1>{displayName || username}</h1>
+                    <span className="pb-verified">● Verificado</span>
                   </div>
-
-                  <div className="seg" role="tablist" aria-label="Estilo do avatar">
-                    {AVATAR_STYLES.map((st) => (
-                      <button
-                        key={st}
-                        type="button"
-                        role="tab"
-                        aria-selected={avatarStyle === st}
-                        className={avatarStyle === st ? 'on' : ''}
-                        onClick={() => setAvatarStyle(st)}
-                      >
-                        {AVATAR_LABELS[st]}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="profile-av-grid" role="radiogroup" aria-label="Opções de avatar">
-                    {seeds.map((sd) => {
-                      const selected = avatarSeed === sd;
-                      return (
-                        <button
-                          key={sd}
-                          type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          className={'av-opt' + (selected ? ' on' : '')}
-                          onClick={() => setAvatarSeed(sd)}
-                        >
-                          <Avatar
-                            a={{ style: avatarStyle, seed: sd }}
-                            name={displayName}
-                            size={54}
-                          />
-                        </button>
-                      );
-                    })}
+                  <div className="pb-sub-row">
+                    <span className="pb-handle">@{username}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{user.email}</span>
+                    {joinedAt && (
+                      <>
+                        <span className="hide-sm" aria-hidden="true">
+                          ·
+                        </span>
+                        <span className="hide-sm">Membro desde {joinedAt}</span>
+                      </>
+                    )}
                   </div>
                 </div>
-
-                {profileErr && (
-                  <p className="error" role="alert">
-                    {profileErr}
-                  </p>
-                )}
-                {profileOk && (
-                  <p className="notice" role="status">
-                    {profileOk}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  className="primary wide profile-save-btn"
-                  disabled={savingProfile}
-                >
-                  {savingProfile ? 'Salvando…' : 'Salvar alterações'}
-                </button>
-              </form>
-            </section>
-
-            {/* Coluna 2: Estatísticas & Resumo da Conta */}
-            <section className="panel profile-card profile-stats-card">
-              <div className="profile-card-head">
-                <div className="eyebrow">DESEMPENHO</div>
-                <h2>Suas estatísticas</h2>
-                <p>Base para futuros leaderboards e histórico permanente do clube.</p>
               </div>
-              <div className="profile-stats-grid">
-                <div className="pstat">
+
+              <div className="pb-kpis">
+                <div className="pb-kpi">
                   <small>Mãos jogadas</small>
                   <b>{fmt(stats?.hands_played ?? 0)}</b>
                 </div>
-                <div className="pstat">
+                <div className="pb-kpi">
                   <small>Mãos vencidas</small>
                   <b>{fmt(stats?.hands_won ?? 0)}</b>
                 </div>
-                <div className="pstat">
+                <div className="pb-kpi">
                   <small>Partidas vencidas</small>
                   <b>{fmt(stats?.matches_won ?? 0)}</b>
                 </div>
-                <div className="pstat">
+                <div className="pb-kpi">
                   <small>Maior pote</small>
                   <b>{fmt(stats?.biggest_pot ?? 0)}</b>
                 </div>
-              </div>
-              <div className="profile-account-meta">
-                <div className="pam-row">
-                  <span>Status da conta</span>
-                  <strong className="pam-verified">● E-mail confirmado</strong>
-                </div>
-                <div className="pam-row">
-                  <span>E-mail</span>
-                  <strong>{user.email}</strong>
-                </div>
-                {joinedAt && (
-                  <div className="pam-row">
-                    <span>Membro desde</span>
-                    <strong>{joinedAt}</strong>
-                  </div>
-                )}
+                <Link href="/ranking" className="pb-ranking-cta">
+                  <span>Ver Ranking</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
               </div>
             </section>
 
-            {/* Coluna 3: Segurança & Zona de Perigo */}
-            <div className="profile-side-col">
-              <section className="panel profile-card profile-pw-card">
+            {/* Grid principal balanceado em 2 colunas (sem buracos vazios) */}
+            <div className="profile-columns">
+              <section className="panel profile-card">
                 <div className="profile-card-head">
-                  <div className="eyebrow">SEGURANÇA</div>
-                  <h2>Alterar senha</h2>
-                  <p>Confirme sua senha atual antes de escolher uma nova.</p>
+                  <div className="eyebrow">IDENTIDADE NA MESA</div>
+                  <h2>Personalizar perfil e avatar</h2>
+                  <p>Seu nome e avatar aparecem automaticamente ao criar ou entrar em salas.</p>
                 </div>
-                <form className="auth-form profile-pw-form" onSubmit={handleChangePassword}>
-                  <label>
-                    Senha atual
-                    <input
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Nova senha (mínimo 8 caracteres)
-                    <input
-                      type="password"
-                      required
-                      minLength={8}
-                      maxLength={72}
-                      autoComplete="new-password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Confirmar nova senha
-                    <input
-                      type="password"
-                      required
-                      minLength={8}
-                      maxLength={72}
-                      autoComplete="new-password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                  </label>
-                  {pwErr && (
+
+                <form className="auth-form" onSubmit={handleSaveProfile}>
+                  <div className="profile-name-fields">
+                    <label>
+                      Nome de exibição
+                      <input
+                        type="text"
+                        required
+                        minLength={2}
+                        maxLength={24}
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Apelido único (@)
+                      <input
+                        type="text"
+                        required
+                        minLength={3}
+                        maxLength={20}
+                        pattern="[a-zA-Z0-9_]{3,20}"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="profile-avatar-picker">
+                    <div className="between">
+                      <span className="field-lbl">Estilo do avatar</span>
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() => setSeeds(mkSeeds())}
+                      >
+                        Sortear outros
+                      </button>
+                    </div>
+
+                    <div
+                      className="profile-style-tabs"
+                      role="tablist"
+                      aria-label="Estilo do avatar"
+                    >
+                      {AVATAR_STYLES.map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          role="tab"
+                          aria-selected={avatarStyle === st}
+                          className={avatarStyle === st ? 'on' : ''}
+                          onClick={() => setAvatarStyle(st)}
+                        >
+                          {AVATAR_LABELS[st]}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div
+                      className="profile-av-grid"
+                      role="radiogroup"
+                      aria-label="Opções de avatar"
+                    >
+                      {seeds.map((sd) => {
+                        const selected = avatarSeed === sd;
+                        return (
+                          <button
+                            key={sd}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            className={'av-opt' + (selected ? ' on' : '')}
+                            onClick={() => setAvatarSeed(sd)}
+                          >
+                            <Avatar
+                              a={{ style: avatarStyle, seed: sd }}
+                              name={displayName}
+                              size={52}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {profileErr && (
                     <p className="error" role="alert">
-                      {pwErr}
+                      {profileErr}
                     </p>
                   )}
-                  {pwOk && (
+                  {profileOk && (
                     <p className="notice" role="status">
-                      {pwOk}
+                      {profileOk}
                     </p>
                   )}
-                  <button
-                    type="submit"
-                    className="outline wide profile-save-btn"
-                    disabled={savingPw}
-                  >
-                    {savingPw ? 'Atualizando…' : 'Atualizar senha'}
+                  <button type="submit" className="primary wide" disabled={savingProfile}>
+                    {savingProfile ? 'Salvando…' : 'Salvar alterações'}
                   </button>
                 </form>
               </section>
 
-              <section className="panel profile-card profile-danger-card">
-                <div className="profile-card-head">
-                  <h2>Zona de perigo</h2>
-                  <p>
-                    Remove permanentemente seu perfil, avatar e estatísticas. Ação irreversível.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="lm-danger wide"
-                  onClick={() => {
-                    setDeleteInput('');
-                    setDeleteErr('');
-                    deleteDialog.current?.showModal();
-                  }}
-                >
-                  Excluir minha conta
-                </button>
-              </section>
+              <div className="profile-security-col">
+                <section className="panel profile-card">
+                  <div className="profile-card-head">
+                    <div className="eyebrow">SEGURANÇA</div>
+                    <h2>Alterar senha</h2>
+                    <p>Confirme sua senha atual antes de escolher uma nova.</p>
+                  </div>
+                  <form className="auth-form" onSubmit={handleChangePassword}>
+                    <label>
+                      Senha atual
+                      <input
+                        type="password"
+                        required
+                        autoComplete="current-password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                      />
+                    </label>
+                    <div className="profile-name-fields">
+                      <label>
+                        Nova senha (8+ chars)
+                        <input
+                          type="password"
+                          required
+                          minLength={8}
+                          maxLength={72}
+                          autoComplete="new-password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Confirmar nova senha
+                        <input
+                          type="password"
+                          required
+                          minLength={8}
+                          maxLength={72}
+                          autoComplete="new-password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                      </label>
+                    </div>
+                    {pwErr && (
+                      <p className="error" role="alert">
+                        {pwErr}
+                      </p>
+                    )}
+                    {pwOk && (
+                      <p className="notice" role="status">
+                        {pwOk}
+                      </p>
+                    )}
+                    <button type="submit" className="outline wide" disabled={savingPw}>
+                      {savingPw ? 'Atualizando…' : 'Atualizar senha'}
+                    </button>
+                  </form>
+                </section>
+
+                <section className="panel profile-card profile-danger-card">
+                  <div className="profile-danger-row">
+                    <div className="profile-card-head">
+                      <h2>Zona de perigo</h2>
+                      <p>
+                        Apaga permanentemente sua conta, avatar salvo e estatísticas do ranking.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="lm-danger"
+                      onClick={() => {
+                        setDeleteInput('');
+                        setDeleteErr('');
+                        deleteDialog.current?.showModal();
+                      }}
+                    >
+                      Excluir conta
+                    </button>
+                  </div>
+                </section>
+              </div>
             </div>
           </div>
         )}

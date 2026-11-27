@@ -20,7 +20,19 @@ import { isEmoteId, pushEmote } from '../../../src/poker/emotes.ts';
 import { createBotPlayer, isBotDifficulty } from '../../../src/poker/bot-ai.ts';
 import { castBanVote, projectBanVote, publicPlayerUid } from '../../../src/poker/moderation.ts';
 import { createBlindSchedule } from '../../../src/poker/blinds.ts';
+import { createServerSupabase } from '../../../src/lib/supabase/server.ts';
 export const runtime = 'nodejs';
+
+async function readAuthUserId(): Promise<string | undefined> {
+  try {
+    const sb = await createServerSupabase();
+    if (!sb) return undefined;
+    const { data } = await sb.auth.getUser();
+    return data.user?.id;
+  } catch {
+    return undefined;
+  }
+}
 
 const MAX_SPECTATORS = 30;
 const reply = (x: unknown, status = 200) =>
@@ -89,8 +101,18 @@ export async function POST(req: Request) {
         throw Error('Configuração inválida');
       const blinds =
         blindsMode === 'fixed' ? null : createBlindSchedule(blindsMode, blindsEvery, bb);
+      const authUserId = await readAuthUserId();
       const players: Player[] = [
-        { id, name, stack, cards: [], bet: 0, total: 0, avatar: cleanAvatar(b.avatar, name) },
+        {
+          id,
+          ...(authUserId ? { userId: authUserId } : {}),
+          name,
+          stack,
+          cards: [],
+          bet: 0,
+          total: 0,
+          avatar: cleanAvatar(b.avatar, name),
+        },
       ];
       for (let i = 0; i < bots; i++) {
         players.push(createBotPlayer(players, stack, botDifficulty));
@@ -138,9 +160,19 @@ export async function POST(req: Request) {
     if (b.op === 'join' && !member && !watcher) {
       if (!name) throw Error('Informe seu nome');
       const avatar = cleanAvatar(b.avatar, name);
-      if (s.phase === 'waiting' && s.players.length < 8)
-        s.players.push({ id, name, stack: s.initial, cards: [], bet: 0, total: 0, avatar });
-      else {
+      if (s.phase === 'waiting' && s.players.length < 8) {
+        const authUserId = await readAuthUserId();
+        s.players.push({
+          id,
+          ...(authUserId ? { userId: authUserId } : {}),
+          name,
+          stack: s.initial,
+          cards: [],
+          bet: 0,
+          total: 0,
+          avatar,
+        });
+      } else {
         // Sala cheia ou partida em andamento: entra como espectador.
         if ((s.spectators?.length ?? 0) >= MAX_SPECTATORS) throw Error('A sala está lotada.');
         (s.spectators ??= []).push({ id, name, avatar });
@@ -158,8 +190,10 @@ export async function POST(req: Request) {
           if (s.phase !== 'waiting' || s.players.length >= 8)
             throw Error('Não há lugar livre agora.');
           s.spectators = s.spectators!.filter((p) => p.id !== id);
+          const authUserId = await readAuthUserId();
           s.players.push({
             id,
+            ...(authUserId ? { userId: authUserId } : {}),
             name: watcher.name,
             stack: s.initial,
             cards: [],

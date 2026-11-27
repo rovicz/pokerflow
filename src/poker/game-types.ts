@@ -18,6 +18,7 @@ export type BlindSchedule = {
 };
 export type Player = {
   id: string;
+  userId?: string;
   name: string;
   stack: number;
   cards: number[];
@@ -134,10 +135,11 @@ export type GameState = {
   touched?: number;
   emotes?: EmoteEvent[];
 };
-export type PublicPlayer = Omit<Player, 'id'> & {
+export type PublicPlayer = Omit<Player, 'id' | 'userId'> & {
   uid: string;
   self: boolean;
   isHost?: boolean;
+  verified?: boolean;
   hand: Hand | null;
 };
 export type PublicSpectator = { name: string; avatar?: AvatarInfo; self: boolean };

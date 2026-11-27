@@ -593,8 +593,9 @@ export function view(s: GameState, id: string) {
   const { deck, removed, banned, banVote, voteCooldowns, spectators, ...safe } = s;
   return {
     ...safe,
-    players: s.players.map(({ cards, ...p }) => ({
+    players: s.players.map(({ cards, userId, ...p }) => ({
       ...p,
+      ...(userId ? { verified: true } : {}),
       cards:
         p.id === id || (s.phase === 'settled' && s.reveal && !p.fold)
           ? cards

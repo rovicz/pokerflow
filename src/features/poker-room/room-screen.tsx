@@ -6,20 +6,24 @@ import { useRoom } from './use-room';
 import { useMutedPlayers } from './use-muted-players';
 import Topbar from './topbar';
 import ChampionDialog from './champion-dialog';
+import AuthModal from '../auth/auth-modal';
 import EntryScreen from './entry-screen';
 import LobbyScreen from './lobby-screen';
 import GameScreen from './game-screen';
 
 // Coordena a sala: sessão e rede (useRoom), preferências de som, convite, celebração e a tela certa para cada fase.
 export default function Page() {
-  const { game, error, setError, notice, conn, pending, now, send, sendEmote, leave } = useRoom();
+  const { game, error, setError, notice, setNotice, conn, pending, now, send, sendEmote, leave } =
+    useRoom();
   const { mutedUids, toggleMute: togglePlayerMute } = useMutedPlayers(game?.code);
   const [muted, setMutedState] = useState(false);
   const [emotesMuted, setEmotesMuted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const prev = useRef<{ code: string; s: PublicState } | null>(null);
   const celebration = useRef<HTMLDialogElement>(null);
   const leaveDialog = useRef<HTMLDialogElement>(null);
+  const authDialog = useRef<HTMLDialogElement>(null);
   const celebrated = useRef('');
 
   useEffect(() => {
@@ -29,7 +33,27 @@ export default function Page() {
     setEmotesMuted(localStorage.getItem('pf-emotes-mute') === '1');
     addEventListener('pointerdown', unlock, { once: true });
     addEventListener('keydown', unlock, { once: true });
+
+    const params = new URLSearchParams(location.search);
+    const authStatus = params.get('auth');
+    if (authStatus) {
+      if (authStatus === 'confirmed') {
+        setNotice('E-mail confirmado! Sua conta PokerFlow está ativa.');
+      } else if (authStatus === 'expired') {
+        setNotice('O link de confirmação expirou. Tente entrar e reenviar um novo e-mail.');
+      } else if (authStatus === 'invalid') {
+        setNotice('Link de confirmação inválido.');
+      }
+      params.delete('auth');
+      const qs = params.toString();
+      history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+    }
   }, []);
+
+  function openAuth(view: 'login' | 'register' = 'login') {
+    setAuthView(view);
+    authDialog.current?.showModal();
+  }
 
   const s = game?.state;
   const inGame = !!s && s.phase !== 'waiting';
@@ -120,7 +144,9 @@ export default function Page() {
         copied={copied}
         onInvite={invite}
         onExit={handleExit}
+        onOpenAuth={openAuth}
       />
+      <AuthModal dialogRef={authDialog} initialView={authView} />
       {conn === 'offline' && (
         <p className="conn-banner" role="status">
           Sem conexão. Tentando reconectar…
@@ -192,6 +218,7 @@ export default function Page() {
           error={error}
           notice={notice}
           setError={setError}
+          onOpenAuth={openAuth}
         />
       ) : inLobby && game ? (
         <LobbyScreen

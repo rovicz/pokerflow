@@ -11,6 +11,7 @@ import {
 import type { SendExtra } from './use-room.ts';
 import { PlayingCard, fmt } from './table';
 import { Tip } from './ui';
+import { useAuth } from '../auth/use-auth';
 
 type Props = {
   send: (op: GameOperation, extra?: SendExtra) => void;
@@ -18,11 +19,13 @@ type Props = {
   error: string;
   notice: string;
   setError: (e: string) => void;
+  onOpenAuth?: (view?: 'login' | 'register') => void;
 };
 
 // Tela de entrada: convite recebido (só entrar) ou começar (criar mesa / entrar com código).
-export default function EntryScreen({ send, pending, error, notice, setError }: Props) {
+export default function EntryScreen({ send, pending, error, notice, setError, onOpenAuth }: Props) {
   const reducedMotion = useReducedMotion();
+  const { enabled: authEnabled, user, profile } = useAuth();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [stack, setStack] = useState(2000);
@@ -142,6 +145,10 @@ export default function EntryScreen({ send, pending, error, notice, setError }: 
     setName(localStorage.getItem('pf-name') || '');
   }, []);
 
+  useEffect(() => {
+    if (profile?.display_name) setName((cur) => cur || profile.display_name);
+  }, [profile?.display_name]);
+
   function leaveInvite() {
     setInvited(false);
     setCode('');
@@ -245,6 +252,19 @@ export default function EntryScreen({ send, pending, error, notice, setError }: 
               )}
               <div className="eyebrow">Começar</div>
               <h2>Entre no clube</h2>
+              {authEnabled && !user && onOpenAuth && (
+                <p className="auth-entry-hint">
+                  Jogue como convidado ou{' '}
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => onOpenAuth('register')}
+                  >
+                    crie sua conta
+                  </button>{' '}
+                  para salvar seu perfil.
+                </p>
+              )}
               <label>
                 Seu apelido
                 <input

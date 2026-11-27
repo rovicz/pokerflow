@@ -411,15 +411,16 @@ main.in-lobby {
   color: var(--muted);
 }
 
-.vacant-av {
-  display: grid;
-  place-items: center;
+.lobby-seat .vacant-av {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
   width: clamp(40px, 4.2vw, 56px);
   height: clamp(40px, 4.2vw, 56px);
-  border: 1px dashed rgba(246, 246, 243, .2);
-  background: rgba(10, 100, 255, .08);
+  border: 1px dashed rgba(143, 184, 255, .34);
+  background: rgba(10, 100, 255, .1);
   color: var(--brand-300);
-  font-size: 20px;
   border-radius: 10px;
 }
 
@@ -952,14 +953,91 @@ header.game-topbar {
 .dock-end {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+
+.victory-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(245, 158, 11, .16) 0%, rgba(245, 158, 11, .04) 100%);
+  border: 1px solid rgba(245, 158, 11, .34);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fef3c7;
+}
+.vb-icon {
+  color: #fbbf24;
+  font-size: 13px;
+  flex: none;
+}
+
+/* Faixa visual de ranking 1º (Melhor) -> 10º (Pior) */
+.rank-strip {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+}
+.rank-strip > .tip {
+  display: block;
+  min-width: 0;
+}
+
+.rank-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 3px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid rgba(255, 255, 255, .07);
+  color: rgba(246, 246, 243, .42);
+  text-align: center;
+  transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.rp-ord {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.rp-name {
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.rank-pill.is-other-rank {
+  background: rgba(10, 100, 255, .14);
+  border-color: rgba(102, 161, 255, .45);
+  color: var(--brand-200);
+}
+
+.rank-pill.is-win-rank {
+  background: linear-gradient(180deg, rgba(251, 191, 36, .28) 0%, rgba(245, 158, 11, .18) 100%);
+  border-color: rgba(251, 191, 36, .85);
+  color: #fef3c7;
+  box-shadow: 0 0 14px rgba(245, 158, 11, .28);
+  transform: translateY(-1px);
+}
+.rank-pill.is-win-rank .rp-ord {
+  color: #fbbf24;
 }
 
 .showdown-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   gap: 8px;
-  max-height: 118px;
+  max-height: 108px;
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -969,7 +1047,7 @@ header.game-topbar {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 11px;
+  padding: 7px 11px;
   border-radius: 9px;
   background: rgba(255, 255, 255, .04);
   border: 1px solid rgba(255, 255, 255, .08);
@@ -983,9 +1061,32 @@ header.game-topbar {
 .sd-who {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   min-width: 0;
 }
+
+.sd-rank {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .14);
+  color: rgba(246, 246, 243, .85);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.sd-rank.is-win {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-color: #fde68a;
+  color: #141414;
+}
+
+.sd-meta { min-width: 0; }
 .sd-who b {
   display: flex;
   align-items: center;
@@ -995,7 +1096,14 @@ header.game-topbar {
   color: var(--bg-light);
   white-space: nowrap;
 }
-.sd-who small { display: block; font-size: 11.5px; color: var(--muted); }
+.sd-who small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .sd-badge {
   font-size: 10px;
@@ -1021,7 +1129,7 @@ header.game-topbar {
   justify-content: center;
   gap: 1px;
   min-width: 28px;
-  height: 24px;
+  height: 25px;
   padding: 0 4px;
   border-radius: 5px;
   background: #f6f6f3;
@@ -1032,6 +1140,16 @@ header.game-topbar {
   box-shadow: 0 2px 4px rgba(0, 0, 0, .35);
 }
 .mini-card.red { color: #e11d48; }
+.mini-card.is-core {
+  box-shadow: 0 0 0 1.5px rgba(251, 191, 36, .65), 0 3px 6px rgba(0, 0, 0, .4);
+}
+.sd-card:not(.is-winner) .mini-card.is-core {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .45), 0 2px 4px rgba(0, 0, 0, .35);
+}
+.mini-card.is-kicker {
+  opacity: .46;
+  filter: saturate(.6);
+}
 
 .fold-win-msg {
   font-size: 14px;
@@ -1102,6 +1220,37 @@ header.game-topbar {
 .gitem { border-top: 1px solid var(--line); padding: 14px 0 0; margin-top: 14px; }
 .gitem h3 { font: 600 15px var(--sans); color: var(--bg-light); }
 .gitem p { margin-top: 4px; font-size: 13.5px; }
+
+.guide-ranks {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.guide-ranks li {
+  display: grid;
+  grid-template-columns: 34px 124px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid rgba(255, 255, 255, .06);
+  font-size: 13px;
+}
+.guide-ranks .gr-ord {
+  display: inline-grid;
+  place-items: center;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: rgba(10, 100, 255, .2);
+  color: var(--brand-200);
+  font-size: 11px;
+  font-weight: 800;
+}
+.guide-ranks b { color: var(--bg-light); font-weight: 600; }
+.guide-ranks small { font-size: 12px; color: var(--muted); }
 
 /* Celebração de Campeão */
 .celebration {
@@ -1288,7 +1437,11 @@ header.game-topbar {
   .action { min-height: 44px; padding: 6px 8px; font-size: 12.5px; }
   .action-main small { font-size: 10px; }
   .presets button { padding: 5px 8px; font-size: 11.5px; }
+  .rank-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .showdown-grid { grid-template-columns: 1fr; }
+  .sd-card { flex-wrap: wrap; }
+  .guide-ranks li { grid-template-columns: 32px 1fr; }
+  .guide-ranks small { grid-column: 1 / -1; }
 }
 
 @media (max-height: 740px) and (min-width: 681px) {

@@ -5,6 +5,7 @@ import {animate} from 'motion';
 import {AnimatePresence, motion} from 'motion/react';
 import Avatar from './avatar';
 import Zake from './zake';
+import {describeHand, HAND_RANKINGS} from '../lib/hands.mjs';
 
 export const fmt = n => Number(n || 0).toLocaleString('pt-BR');
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -12,7 +13,7 @@ const SUITS = ['♠', '♥', '♦', '♣'];
 const calm = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Carta: voa do baralho (#deck) até o lugar, com leve rotação, e depois vira em 3D.
-export function PlayingCard({c, delay = 0, flipDelay = 0, className = '', highlight = false, dim = false, tilt = 0}) {
+export function PlayingCard({c, delay = 0, flipDelay = 0, className = '', highlight = false, kicker = false, dim = false, tilt = 0}) {
   const box = useRef(null), face = useRef(null), ready = useRef(null), side = useRef(180), up = c >= 0;
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export function PlayingCard({c, delay = 0, flipDelay = 0, className = '', highli
   return (
     <div
       ref={box}
-      className={'pc ' + className + (highlight ? ' is-win' : '') + (dim ? ' is-dim' : '')}
+      className={'pc ' + className + (highlight ? ' is-win' : kicker ? ' is-kicker' : '') + (dim ? ' is-dim' : '')}
       role="img"
       aria-label={up ? r + ' de ' + s : 'Carta virada'}
     >
@@ -155,7 +156,7 @@ function shape(x0, x1, y0, y1, nd, nw, sh) {
   return `M${x0 + r},${y0} L${a - sh},${y0} C${a - sh / 2},${y0} ${a - sh / 2},${y0 + nd} ${a},${y0 + nd} L${b},${y0 + nd} C${b + sh / 2},${y0 + nd} ${b + sh / 2},${y0} ${b + sh},${y0} L${x1 - r},${y0} A${r},${r} 0 0 1 ${x1 - r},${y1} L${x0 + r},${y1} A${r},${r} 0 0 1 ${x0 + r},${y0} Z`;
 }
 
-function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, rb, winCards, settled}) {
+function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, rb, winCore, winKickers, settled}) {
   const N = s.players.length, order = (j - s.dealer - 1 + N) % N;
   const isAllIn = !p.fold && p.cards.length > 0 && p.stack === 0 && s.phase !== 'settled';
   const state = p.fold
@@ -178,8 +179,10 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
     >
       <motion.div className="hand" animate={state} transition={{duration: .45, ease: [.22, 1, .36, 1]}}>
         {p.cards.map((c, k) => {
-          const isWinCard = settled && s.reveal && win && winCards.has(c);
-          const isDimCard = settled && s.reveal && winCards.size > 0 && !isWinCard && !p.fold;
+          const hasShowdown = settled && s.reveal && winCore.size > 0;
+          const isWinCard = hasShowdown && win && winCore.has(c);
+          const isKickerCard = hasShowdown && win && !isWinCard && winKickers.has(c);
+          const isDimCard = hasShowdown && !isWinCard && !isKickerCard && !p.fold;
           const cardTilt = self ? (k === 0 ? -3.5 : 3.5) : (k === 0 ? -4 : 4);
           return (
             <PlayingCard
@@ -189,6 +192,7 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
               flipDelay={self ? .18 + k * .18 : rb + (order * 2 + k) * .15}
               className={self ? 'lg' : 'sm'}
               highlight={isWinCard}
+              kicker={isKickerCard}
               dim={isDimCard}
               tilt={cardTilt}
             />
@@ -325,16 +329,20 @@ export default function Table({s, pot, winners, left}) {
   const bets = s.players.reduce((a, q) => a + q.bet, 0);
   const won = winners.map(w => w[0]);
 
-  // Conjunto de cartas que compõem a mão vencedora no showdown
-  const winCards = useMemo(() => {
-    const set = new Set();
-    if (!settled || !s.reveal) return set;
+  // Conjuntos de cartas da combinação principal (core) e kickers da mão vencedora no showdown
+  const {winCore, winKickers} = useMemo(() => {
+    const core = new Set(), kickers = new Set();
+    if (!settled || !s.reveal) return {winCore: core, winKickers: kickers};
     for (const q of s.players) {
       if (won.includes(q.name) && q.hand?.cards) {
-        for (const c of q.hand.cards) set.add(c);
+        const nCore = q.hand.coreCount ?? q.hand.cards.length;
+        q.hand.cards.forEach((c, idx) => {
+          if (idx < nCore) core.add(c);
+          else kickers.add(c);
+        });
       }
     }
-    return set;
+    return {winCore: core, winKickers: kickers};
   }, [settled, s.reveal, s.players, won.join('|')]);
 
   const tgt = settled ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null;
@@ -460,8 +468,10 @@ export default function Table({s, pot, winners, left}) {
       <div className="spot board" style={at(50, compact ? 52 : 50)}>
         {[0, 1, 2, 3, 4].map(i => {
           const card = s.board[i];
-          const isWinCard = settled && s.reveal && card != null && winCards.has(card);
-          const isDimCard = settled && s.reveal && card != null && winCards.size > 0 && !isWinCard;
+          const hasShowdown = settled && s.reveal && card != null && winCore.size > 0;
+          const isWinCard = hasShowdown && winCore.has(card);
+          const isKickerCard = hasShowdown && !isWinCard && winKickers.has(card);
+          const isDimCard = hasShowdown && !isWinCard && !isKickerCard;
           return (
             <div className={'slot' + (card != null ? ' filled' : '')} key={i}>
               {card != null && (
@@ -472,6 +482,7 @@ export default function Table({s, pot, winners, left}) {
                   flipDelay={.1 + Math.max(0, i - seen.current) * .13}
                   className="md"
                   highlight={isWinCard}
+                  kicker={isKickerCard}
                   dim={isDimCard}
                 />
               )}
@@ -492,14 +503,28 @@ export default function Table({s, pot, winners, left}) {
               exit={{opacity: 0, y: -6, scale: .92}}
               transition={{type: 'spring', stiffness: 320, damping: 22}}
             >
-              {winners.map(([n, v]) => (
-                <span key={n}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
-                  </svg>
-                  {n} <b>+{fmt(v)}</b>
-                </span>
-              ))}
+              {winners.map(([n, v]) => {
+                const wp = s.players.find(q => q.name === n);
+                const h = s.reveal ? wp?.hand : null;
+                const rInfo = h ? HAND_RANKINGS[h.rank - 1] : null;
+                return (
+                  <span key={n} className="winner-chip">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                    </svg>
+                    <strong>{n}</strong>
+                    <b className="win-amt">+{fmt(v)}</b>
+                    {h && rInfo ? (
+                      <em className="win-hand">
+                        <i className="win-rank">{rInfo.ordinal}</i>
+                        {describeHand(h)}
+                      </em>
+                    ) : (
+                      <em className="win-hand">Por desistência</em>
+                    )}
+                  </span>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
@@ -544,7 +569,8 @@ export default function Table({s, pot, winners, left}) {
           dealer={j === s.dealer}
           left={j === s.turn ? Math.min(100, left / s.seconds * 100) : 0}
           win={settled && won.includes(q.name)}
-          winCards={winCards}
+          winCore={winCore}
+          winKickers={winKickers}
           settled={settled}
           rb={s.board.length > seen.current ? .65 + (s.board.length - seen.current) * .2 + .25 : .18}
           toCenter={vec(pos[j], {x: 50, y: 50})}

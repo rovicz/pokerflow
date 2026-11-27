@@ -4,17 +4,14 @@ import {AnimatePresence, motion, useReducedMotion} from 'motion/react';
 import Table, {PlayingCard, fmt} from './table';
 import Avatar from './avatar';
 import {AVATAR_STYLES, AVATAR_LABELS} from '../lib/avatars.mjs';
+import {HAND_RANKINGS, RANKS, SUITS, describeHand, explainVictory} from '../lib/hands.mjs';
 import {sfx, setMuted, unlock, playTransition} from '../lib/sound';
 
-const handNames = ['Royal Flush', 'Straight Flush', 'Quadra', 'Full House', 'Flush', 'Sequência', 'Trinca', 'Dois pares', 'Par', 'Carta alta'];
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-const SUITS = ['♠', '♥', '♦', '♣'];
 const phases = [['preflop', 'Pré-flop'], ['flop', 'Flop'], ['turn', 'Turn'], ['river', 'River'], ['settled', 'Resultado']];
 const GUIDE = [
   ['Pré-flop', 'Cada jogador recebe duas cartas privadas.'],
   ['Flop, Turn e River', 'São reveladas 3, 1 e 1 cartas comunitárias.'],
   ['Melhor mão', 'Escolha as melhores cinco cartas entre suas duas e as cinco da mesa.'],
-  ['Ranking das mãos', 'Royal Flush, Straight Flush, Quadra, Full House, Flush, Sequência, Trinca, Dois pares, Par e Carta alta.'],
   ['Showdown', 'A melhor mão elegível ganha cada pote; empates dividem o prêmio.'],
   ['Atalhos de teclado', 'Na sua vez: F para Desistir, C para Passar/Pagar, R para Apostar/Aumentar e A para All-in.'],
 ];
@@ -40,12 +37,15 @@ function Tip({text, children}) {
   return <span className="tip" tabIndex={0} data-tip={text}>{children}</span>;
 }
 
-function MiniCard({c}) {
+function MiniCard({c, isCore = true}) {
   const rank = RANKS[c % 13];
   const suit = SUITS[Math.floor(c / 13)];
   const red = suit === '♥' || suit === '♦';
   return (
-    <span className={'mini-card' + (red ? ' red' : '')} aria-label={rank + ' de ' + suit}>
+    <span
+      className={'mini-card' + (red ? ' red' : '') + (isCore ? ' is-core' : ' is-kicker')}
+      aria-label={rank + ' de ' + suit + (isCore ? '' : ' (kicker)')}
+    >
       {rank}<span>{suit}</span>
     </span>
   );
@@ -328,6 +328,11 @@ export default function Page() {
   const showdownRows = s?.reveal
     ? s.players.filter(q => q.hand).sort((a, b) => b.hand.score - a.hand.score)
     : [];
+  const winnerRows = showdownRows.filter(q => winners.some(([wname]) => wname === q.name));
+  const runnerUpRow = showdownRows.find(q => !winners.some(([wname]) => wname === q.name));
+  const victorySummary = s?.reveal ? explainVictory(winnerRows, runnerUpRow) : '';
+  const winRankSet = new Set(winnerRows.map(q => q.hand.rank));
+  const otherRankSet = new Set(showdownRows.filter(q => !winRankSet.has(q.hand.rank)).map(q => q.hand.rank));
 
   return (
     <main className={inGame ? 'in-game' : inLobby ? 'in-lobby' : ''}>
@@ -515,6 +520,18 @@ export default function Page() {
             <p>{t}</p>
           </div>
         ))}
+        <div className="gitem">
+          <h3>Classificação das mãos (1º ao 10º)</h3>
+          <ol className="guide-ranks">
+            {HAND_RANKINGS.map(r => (
+              <li key={r.rank}>
+                <span className="gr-ord">{r.ordinal}</span>
+                <b>{r.name}</b>
+                <small>{r.hint}</small>
+              </li>
+            ))}
+          </ol>
+        </div>
       </dialog>
 
       {/* Tela Inicial (Landing) */}
@@ -648,7 +665,14 @@ export default function Page() {
                     animate={{opacity: 1, scale: 1}}
                     transition={{duration: .25, delay: i * .03}}
                   >
-                    {q ? <Avatar a={q.avatar} name={q.name} size={52}/> : <span className="avatar vacant-av">+</span>}
+                    {q ? <Avatar a={q.avatar} name={q.name} size={52}/> : (
+                      <span className="vacant-av" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                          <line x1="12" y1="5" x2="12" y2="19"/>
+                          <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                      </span>
+                    )}
                     <b>{q ? q.name : 'Lugar disponível'}{q?.self && <span className="you-tag">Você</span>}</b>
                     <small>{q ? fmt(q.stack) + ' fichas' : 'Aguardando convite'}</small>
                     {s.host && q && !q.self && (
@@ -897,34 +921,72 @@ export default function Page() {
                   transition={{duration: .22}}
                 >
                   {s.reveal && showdownRows.length > 0 ? (
-                    <div className="showdown-grid">
-                      {showdownRows.map((q, i) => {
-                        const isWinner = winners.some(([wname]) => wname === q.name);
-                        return (
-                          <motion.div
-                            key={q.name + '-' + i}
-                            className={'sd-card' + (isWinner ? ' is-winner' : '')}
-                            initial={reducedMotion ? false : {opacity: 0, y: 8}}
-                            animate={{opacity: 1, y: 0}}
-                            transition={{delay: i * .06, duration: .25}}
-                          >
-                            <div className="sd-who">
-                              <Avatar a={q.avatar} name={q.name} size={28}/>
-                              <div>
-                                <b>
-                                  {q.name}
-                                  {isWinner && <span className="sd-badge">Vencedor</span>}
-                                </b>
-                                <small>{handNames[q.hand.rank - 1]}</small>
+                    <>
+                      {victorySummary && (
+                        <div className="victory-banner">
+                          <span className="vb-icon" aria-hidden="true">★</span>
+                          <span>{victorySummary}</span>
+                        </div>
+                      )}
+
+                      {/* Escala visual de classificação 1º (Melhor) até 10º (Pior) */}
+                      <div className="rank-strip" role="list" aria-label="Ranking das mãos de 1º a 10º">
+                        {HAND_RANKINGS.map(item => {
+                          const isWinR = winRankSet.has(item.rank);
+                          const isOtherR = otherRankSet.has(item.rank);
+                          return (
+                            <Tip key={item.rank} text={`${item.ordinal} ${item.name}: ${item.hint}`}>
+                              <span
+                                role="listitem"
+                                className={
+                                  'rank-pill' +
+                                  (isWinR ? ' is-win-rank' : isOtherR ? ' is-other-rank' : '')
+                                }
+                              >
+                                <i className="rp-ord">{item.ordinal}</i>
+                                <span className="rp-name">{item.shortName}</span>
+                              </span>
+                            </Tip>
+                          );
+                        })}
+                      </div>
+
+                      <div className="showdown-grid">
+                        {showdownRows.map((q, i) => {
+                          const isWinner = winners.some(([wname]) => wname === q.name);
+                          const rInfo = HAND_RANKINGS[q.hand.rank - 1];
+                          const coreCount = q.hand.coreCount ?? 5;
+                          return (
+                            <motion.div
+                              key={q.name + '-' + i}
+                              className={'sd-card' + (isWinner ? ' is-winner' : '')}
+                              initial={reducedMotion ? false : {opacity: 0, y: 8}}
+                              animate={{opacity: 1, y: 0}}
+                              transition={{delay: i * .06, duration: .25}}
+                            >
+                              <div className="sd-who">
+                                <span className={'sd-rank' + (isWinner ? ' is-win' : '')} title={`${rInfo.ordinal} de 10 — ${rInfo.name}`}>
+                                  {rInfo.ordinal}
+                                </span>
+                                <Avatar a={q.avatar} name={q.name} size={28}/>
+                                <div className="sd-meta">
+                                  <b>
+                                    {q.name}
+                                    {isWinner && <span className="sd-badge">{winners.length > 1 ? 'Empate' : 'Vencedor'}</span>}
+                                  </b>
+                                  <small>{describeHand(q.hand)}</small>
+                                </div>
                               </div>
-                            </div>
-                            <div className="sd-cards">
-                              {q.hand.cards.map((c, ci) => <MiniCard key={ci} c={c}/>)}
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
+                              <div className="sd-cards" aria-label={`Sequência de 5 cartas: ${describeHand(q.hand)}`}>
+                                {q.hand.cards.map((c, ci) => (
+                                  <MiniCard key={ci} c={c} isCore={ci < coreCount}/>
+                                ))}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : (
                     <p className="fold-win-msg">
                       <strong>{winners.map(([wname]) => wname).join(', ')}</strong> venceu por desistência dos adversários.

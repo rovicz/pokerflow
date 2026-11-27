@@ -4,7 +4,7 @@ import {AnimatePresence, motion, useReducedMotion} from 'motion/react';
 import Table, {PlayingCard, fmt} from './table';
 import Avatar from './avatar';
 import {AVATAR_STYLES, AVATAR_LABELS} from '../lib/avatars.mjs';
-import {HAND_RANKINGS, RANKS, SUITS, describeHand, explainVictory} from '../lib/hands.mjs';
+import {HAND_RANKINGS, RANKS, SUITS, analyzeShowdown, describeHand} from '../lib/hands.mjs';
 import {sfx, setMuted, unlock, playTransition} from '../lib/sound';
 
 const phases = [['preflop', 'Pré-flop'], ['flop', 'Flop'], ['turn', 'Turn'], ['river', 'River'], ['settled', 'Resultado']];
@@ -37,14 +37,15 @@ function Tip({text, children}) {
   return <span className="tip" tabIndex={0} data-tip={text}>{children}</span>;
 }
 
-function MiniCard({c, isCore = true}) {
+function MiniCard({c, tone = 'core'}) {
   const rank = RANKS[c % 13];
   const suit = SUITS[Math.floor(c / 13)];
   const red = suit === '♥' || suit === '♦';
+  const suffix = tone === 'decisive' ? ' (carta decisiva)' : tone === 'kicker' ? ' (kicker)' : '';
   return (
     <span
-      className={'mini-card' + (red ? ' red' : '') + (isCore ? ' is-core' : ' is-kicker')}
-      aria-label={rank + ' de ' + suit + (isCore ? '' : ' (kicker)')}
+      className={'mini-card' + (red ? ' red' : '') + ' tone-' + tone}
+      aria-label={rank + ' de ' + suit + suffix}
     >
       {rank}<span>{suit}</span>
     </span>
@@ -330,12 +331,14 @@ export default function Page() {
     : [];
   const winnerRows = showdownRows.filter(q => winners.some(([wname]) => wname === q.name));
   const runnerUpRow = showdownRows.find(q => !winners.some(([wname]) => wname === q.name));
-  const victorySummary = s?.reveal ? explainVictory(winnerRows, runnerUpRow) : '';
+  const showdown = s?.reveal ? analyzeShowdown(winnerRows, runnerUpRow) : {headline: '', decisiveIndex: null};
   const winRankSet = new Set(winnerRows.map(q => q.hand.rank));
   const otherRankSet = new Set(showdownRows.filter(q => !winRankSet.has(q.hand.rank)).map(q => q.hand.rank));
+  const wonPotTotal = winners.reduce((a, w) => a + w[1], 0);
+  const winnerNames = winners.map(([wname]) => wname).join(' e ');
 
   return (
-    <main className={inGame ? 'in-game' : inLobby ? 'in-lobby' : ''}>
+    <main className={inGame ? 'in-game' : inLobby ? 'in-lobby' : 'in-landing'}>
       {/* Topbar: unificada no modo jogo e lobby, clássica na entrada */}
       <header className={inApp ? 'game-topbar' : ''}>
         <div className="header-left">
@@ -536,6 +539,7 @@ export default function Page() {
 
       {/* Tela Inicial (Landing) */}
       {!s ? (
+        <>
         <section className="landing">
           <motion.div
             className="hero"
@@ -638,6 +642,11 @@ export default function Page() {
             )}
           </motion.div>
         </section>
+        <footer className="landing-foot">
+          <span>PokerFlow · Texas Hold’em privado entre amigos</span>
+          <span>Apenas fichas virtuais</span>
+        </footer>
+        </>
       ) : s.phase === 'waiting' ? (
         /* Sala de Espera (Lobby 100% responsivo à viewport) */
         <div className="lobby-arena">
@@ -765,41 +774,37 @@ export default function Page() {
           </div>
 
           <section className={'dock ' + (mine && live ? 'your-turn' : !live ? 'is-settled' : 'is-waiting')}>
-            {/* Barra superior do Dock: status + métricas + timer */}
-            <div className="dock-head">
-              <div className="dock-status">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={live ? (mine ? 'mine' : 'turn-' + s.turn) : 'settled'}
-                    className={'turn-pill ' + (live ? (mine ? 'is-mine' : 'is-other') : 'is-end')}
-                    initial={{opacity: 0, y: 6}}
-                    animate={{opacity: 1, y: 0}}
-                    exit={{opacity: 0, y: -6}}
-                    transition={{duration: .18}}
-                  >
-                    <span className="turn-dot" aria-hidden="true"/>
-                    <strong>
-                      {live
-                        ? (mine ? 'Sua vez de agir' : 'Vez de ' + (turnPlayer?.name || '…'))
-                        : 'Resultado da mão'}
-                    </strong>
-                  </motion.div>
-                </AnimatePresence>
+            {/* Barra superior do Dock: durante a mão = turno + métricas + timer; no showdown = manchete única clara */}
+            {live ? (
+              <div className="dock-head">
+                <div className="dock-status">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={mine ? 'mine' : 'turn-' + s.turn}
+                      className={'turn-pill ' + (mine ? 'is-mine' : 'is-other')}
+                      initial={{opacity: 0, y: 6}}
+                      animate={{opacity: 1, y: 0}}
+                      exit={{opacity: 0, y: -6}}
+                      transition={{duration: .18}}
+                    >
+                      <span className="turn-dot" aria-hidden="true"/>
+                      <strong>{mine ? 'Sua vez de agir' : 'Vez de ' + (turnPlayer?.name || '…')}</strong>
+                    </motion.div>
+                  </AnimatePresence>
 
-                <div className="dock-metrics">
-                  <span className="metric">Fichas <b>{fmt(p?.stack)}</b></span>
-                  <span className="metric-sep" aria-hidden="true">·</span>
-                  <span className="metric">Pote <b>{fmt(pot)}</b></span>
-                  {due > 0 && mine && live && (
-                    <>
-                      <span className="metric-sep" aria-hidden="true">·</span>
-                      <span className="metric call-due">Para pagar <b>{fmt(Math.min(due, p.stack))}</b></span>
-                    </>
-                  )}
+                  <div className="dock-metrics">
+                    <span className="metric">Fichas <b>{fmt(p?.stack)}</b></span>
+                    <span className="metric-sep" aria-hidden="true">·</span>
+                    <span className="metric">Pote <b>{fmt(pot)}</b></span>
+                    {due > 0 && mine && (
+                      <>
+                        <span className="metric-sep" aria-hidden="true">·</span>
+                        <span className="metric call-due">Para pagar <b>{fmt(Math.min(due, p.stack))}</b></span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {live && (
                 <div className={'timer' + (left <= 5 ? ' urgent' : left <= 10 ? ' warn' : '')}>
                   <div className="timer-row">
                     <small>Tempo</small>
@@ -809,8 +814,28 @@ export default function Page() {
                     <div style={{width: timePct + '%'}}/>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="dock-head showdown-head">
+                <div className="showdown-headline">
+                  <span className="sh-win">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                    </svg>
+                    <strong>{winnerNames || 'Fim da mão'}</strong>
+                    {winners.length > 0 && (
+                      <span>{winners.length > 1 ? 'dividiram' : 'venceu'} <b>+{fmt(wonPotTotal)}</b></span>
+                    )}
+                  </span>
+                  {showdown.headline ? (
+                    <span className="sh-reason">{showdown.headline}</span>
+                  ) : (
+                    <span className="sh-reason">Vitória por desistência</span>
+                  )}
+                </div>
+                <span className="metric sh-stack">Suas fichas <b>{fmt(p?.stack)}</b></span>
+              </div>
+            )}
 
             {/* Corpo do Dock */}
             <AnimatePresence mode="wait">
@@ -922,40 +947,12 @@ export default function Page() {
                 >
                   {s.reveal && showdownRows.length > 0 ? (
                     <>
-                      {victorySummary && (
-                        <div className="victory-banner">
-                          <span className="vb-icon" aria-hidden="true">★</span>
-                          <span>{victorySummary}</span>
-                        </div>
-                      )}
-
-                      {/* Escala visual de classificação 1º (Melhor) até 10º (Pior) */}
-                      <div className="rank-strip" role="list" aria-label="Ranking das mãos de 1º a 10º">
-                        {HAND_RANKINGS.map(item => {
-                          const isWinR = winRankSet.has(item.rank);
-                          const isOtherR = otherRankSet.has(item.rank);
-                          return (
-                            <Tip key={item.rank} text={`${item.ordinal} ${item.name}: ${item.hint}`}>
-                              <span
-                                role="listitem"
-                                className={
-                                  'rank-pill' +
-                                  (isWinR ? ' is-win-rank' : isOtherR ? ' is-other-rank' : '')
-                                }
-                              >
-                                <i className="rp-ord">{item.ordinal}</i>
-                                <span className="rp-name">{item.shortName}</span>
-                              </span>
-                            </Tip>
-                          );
-                        })}
-                      </div>
-
                       <div className="showdown-grid">
                         {showdownRows.map((q, i) => {
                           const isWinner = winners.some(([wname]) => wname === q.name);
                           const rInfo = HAND_RANKINGS[q.hand.rank - 1];
                           const coreCount = q.hand.coreCount ?? 5;
+                          const hasTiebreak = showdown.decisiveIndex != null;
                           return (
                             <motion.div
                               key={q.name + '-' + i}
@@ -965,33 +962,56 @@ export default function Page() {
                               transition={{delay: i * .06, duration: .25}}
                             >
                               <div className="sd-who">
-                                <span className={'sd-rank' + (isWinner ? ' is-win' : '')} title={`${rInfo.ordinal} de 10 — ${rInfo.name}`}>
-                                  {rInfo.ordinal}
-                                </span>
-                                <Avatar a={q.avatar} name={q.name} size={28}/>
+                                <Avatar a={q.avatar} name={q.name} size={30}/>
                                 <div className="sd-meta">
                                   <b>
                                     {q.name}
                                     {isWinner && <span className="sd-badge">{winners.length > 1 ? 'Empate' : 'Vencedor'}</span>}
                                   </b>
-                                  <small>{describeHand(q.hand)}</small>
+                                  <small>{describeHand(q.hand)} · <span>Força {rInfo.ordinal}/10</span></small>
                                 </div>
                               </div>
                               <div className="sd-cards" aria-label={`Sequência de 5 cartas: ${describeHand(q.hand)}`}>
-                                {q.hand.cards.map((c, ci) => (
-                                  <MiniCard key={ci} c={c} isCore={ci < coreCount}/>
-                                ))}
+                                {q.hand.cards.map((c, ci) => {
+                                  const tone = hasTiebreak
+                                    ? (ci === showdown.decisiveIndex ? (isWinner ? 'decisive' : 'compared') : 'neutral')
+                                    : (ci < coreCount ? 'core' : 'kicker');
+                                  return <MiniCard key={ci} c={c} tone={tone}/>;
+                                })}
                               </div>
                             </motion.div>
                           );
                         })}
                       </div>
+
+                      {/* Régua compacta de força: Mais forte (1º) -> Mais fraca (10º) */}
+                      <div className="rank-ruler" role="list" aria-label="Força das mãos de 1º (mais forte) a 10º (mais fraca)">
+                        <span className="ruler-edge">Mais forte</span>
+                        <div className="ruler-steps">
+                          {HAND_RANKINGS.map(item => {
+                            const isWinR = winRankSet.has(item.rank);
+                            const isOtherR = otherRankSet.has(item.rank);
+                            const showName = isWinR || isOtherR;
+                            return (
+                              <Tip key={item.rank} text={`${item.ordinal} ${item.name}: ${item.hint}`}>
+                                <span
+                                  role="listitem"
+                                  className={
+                                    'ruler-step' +
+                                    (isWinR ? ' is-win-rank' : isOtherR ? ' is-other-rank' : '')
+                                  }
+                                >
+                                  <i>{item.ordinal}</i>
+                                  {showName && <span>{item.name}</span>}
+                                </span>
+                              </Tip>
+                            );
+                          })}
+                        </div>
+                        <span className="ruler-edge">Mais fraca</span>
+                      </div>
                     </>
-                  ) : (
-                    <p className="fold-win-msg">
-                      <strong>{winners.map(([wname]) => wname).join(', ')}</strong> venceu por desistência dos adversários.
-                    </p>
-                  )}
+                  ) : null}
 
                   <div className="end-footer">
                     {!hasNext ? (

@@ -132,6 +132,8 @@ export type GameState = {
   roomNotice?: RoomNotice | null;
   handLog?: HandLogEntry[];
   history?: HandRecord[];
+  statsRecordedHand?: number;
+  statsRecordedMatch?: boolean;
   touched?: number;
   emotes?: EmoteEvent[];
 };
@@ -145,7 +147,16 @@ export type PublicPlayer = Omit<Player, 'id' | 'userId'> & {
 export type PublicSpectator = { name: string; avatar?: AvatarInfo; self: boolean };
 export type PublicState = Omit<
   GameState,
-  'host' | 'deck' | 'players' | 'spectators' | 'removed' | 'banned' | 'banVote' | 'voteCooldowns'
+  | 'host'
+  | 'deck'
+  | 'players'
+  | 'spectators'
+  | 'removed'
+  | 'banned'
+  | 'banVote'
+  | 'voteCooldowns'
+  | 'statsRecordedHand'
+  | 'statsRecordedMatch'
 > & {
   host: boolean;
   role: 'player' | 'spectator';

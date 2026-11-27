@@ -321,6 +321,8 @@ export function rematch(s: GameState, id: string, mode: unknown) {
   delete s.last;
   delete s.nextHandAt;
   delete s.pausedFor;
+  delete s.statsRecordedHand;
+  delete s.statsRecordedMatch;
   s.deadline = null;
   s.botActAt = null;
   if (s.blinds) {
@@ -590,7 +592,17 @@ export function act(s: GameState, id: string, type: unknown, amount?: unknown) {
   return s;
 }
 export function view(s: GameState, id: string) {
-  const { deck, removed, banned, banVote, voteCooldowns, spectators, ...safe } = s;
+  const {
+    deck,
+    removed,
+    banned,
+    banVote,
+    voteCooldowns,
+    spectators,
+    statsRecordedHand,
+    statsRecordedMatch,
+    ...safe
+  } = s;
   return {
     ...safe,
     players: s.players.map(({ cards, userId, ...p }) => ({

@@ -20,6 +20,8 @@ import { isEmoteId, pushEmote } from '../../../src/poker/emotes.ts';
 import { createBotPlayer, isBotDifficulty } from '../../../src/poker/bot-ai.ts';
 import { castBanVote, projectBanVote, publicPlayerUid } from '../../../src/poker/moderation.ts';
 import { createBlindSchedule } from '../../../src/poker/blinds.ts';
+import { computeHandStatDeltas } from '../../../src/poker/leaderboard.ts';
+import { persistHandStats } from '../../../src/server/stats-recorder.ts';
 import { createServerSupabase } from '../../../src/lib/supabase/server.ts';
 export const runtime = 'nodejs';
 
@@ -66,8 +68,10 @@ type Row = { code: string; state: GameState; version: number };
 // Aplica prazos vencidos (jogada automática, próxima mão) antes de qualquer operação.
 async function settleDue(store: Store, code: string, data: Row): Promise<Row> {
   if (!resolveDue(data.state)) return data;
+  const deltas = computeHandStatDeltas(data.state);
   data.state.touched = Date.now();
   if (await store.update(code, data.version, data.state)) {
+    if (deltas.length) await persistHandStats(deltas);
     await notifyRoom(code, data.version + 1);
     return { ...data, version: data.version + 1 };
   }
@@ -338,9 +342,11 @@ export async function POST(req: Request) {
         else throw Error('Comando inválido');
       }
     }
+    const deltas = computeHandStatDeltas(s);
     s.touched = Date.now();
     if (!(await store.update(code, data.version, s)))
       return reply({ error: 'Conflito; tente novamente' }, 409);
+    if (deltas.length) await persistHandStats(deltas);
     await notifyRoom(code, data.version + 1);
     return reply(ok(code, s, id, data.version + 1));
   } catch (e) {

@@ -169,6 +169,11 @@ export default function Topbar({
 
         <div className="header-right">
           {!inApp && <span className="private">● Mesa privada</span>}
+          {!inGame && (
+            <Link href="/ranking" className="outline auth-enter-btn" title="Ver ranking do clube">
+              Ranking
+            </Link>
+          )}
           {authEnabled &&
             !inApp &&
             (user ? (

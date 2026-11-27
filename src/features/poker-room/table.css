@@ -38,8 +38,6 @@
 .felt-mark {
   @apply absolute left-[50%] top-[51%];
   transform: translate(-50%, -50%);
-  width: auto;
-  height: 76px;
   color: rgba(219, 233, 255, 0.08);
   @apply select-none pointer-events-none;
   z-index: 1;
@@ -698,7 +696,7 @@
 
 /* Compact / Mobile */
 .table-wrap.compact .felt-mark {
-  height: 38px;
+  font-size: 38px;
 }
 .table-wrap.compact .pc.lg {
   --w: 56px;

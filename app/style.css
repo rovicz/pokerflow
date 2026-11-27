@@ -271,41 +271,224 @@ header {
 .resume small, .resume b { display: block; }
 .resume button { white-space: nowrap; }
 
-.heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 0 8px; }
-.heading h1 { font-size: 31px; margin-top: 6px; }
-.room-stats { display: flex; gap: 20px; }
-.room-stats > div { border-left: 1px solid var(--line); padding-left: 20px; }
-.room-stats small { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
-.room-stats b { font-size: 20px; font-weight: 600; }
+/* ==========================================================================
+   Lobby 100% Responsivo à Viewport (mesmo padrão da Arena de Jogo)
+   ========================================================================== */
+main.in-lobby {
+  max-width: none;
+  width: 100%;
+  height: 100dvh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: radial-gradient(ellipse 80% 55% at 50% 35%, #131826 0%, #0d0e13 70%, #090a0e 100%);
+}
 
-.lobby { max-width: 960px; margin: 20px auto; padding: 32px; }
-.lobby h2 { font-size: 38px; margin: 8px 0; }
-.lobby > p { margin-bottom: 4px; }
-.lobby-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
+.lobby-arena {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  padding: clamp(12px, 2vw, 24px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+  gap: clamp(12px, 1.8vw, 22px);
+}
+
+.lobby-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: clamp(16px, 2vw, 26px);
+  gap: clamp(12px, 1.4vh, 20px);
+}
+
+.lobby-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex: none;
+}
+
+.lobby-card-head h2 {
+  font-size: clamp(26px, 2.6vw, 38px);
+  line-height: 1.08;
+  margin: 4px 0 6px;
+}
+
+.lobby-card-head h3 {
+  font: 400 clamp(22px, 2vw, 30px) / 1.1 var(--serif);
+  margin-top: 4px;
+}
+
+.lobby-card-head p {
+  font-size: clamp(13px, 1.05vw, 15px);
+}
+
+.room-code-box {
+  flex: none;
+  text-align: right;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(10, 100, 255, .1);
+  border: 1px solid rgba(102, 161, 255, .28);
+}
+.room-code-box small {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--brand-300);
+}
+.room-code-box b {
+  font-size: clamp(14px, 1.2vw, 17px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--bg-light);
+}
+
+.lobby-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: clamp(8px, 1.1vw, 14px);
+}
+
 .lobby-seat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 7px;
   text-align: center;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 20px 10px;
-  background: rgba(16, 17, 21, .75);
+  border-radius: 12px;
+  padding: clamp(10px, 1.4vh, 18px) 10px;
+  background: rgba(14, 16, 22, .72);
+  transition: border-color .2s ease, background .2s ease;
 }
-.lobby-seat .avatar { width: 46px; height: 46px; font-size: 18px; }
-.lobby-seat .remove-player { min-height: 34px; padding: 5px 12px; font-size: 12px; }
-.vacant { border-style: dashed; background: transparent; color: var(--muted); }
-.vacant-av { display: grid; place-items: center; width: 46px; height: 46px; border: 1px dashed var(--line); background: transparent; border-radius: 8px; }
 
-.picker { border-top: 1px solid var(--line); padding-top: 22px; margin: 26px 0 24px; }
-.picker .between { margin-bottom: 6px; }
-.picker .seg { margin: 10px 0; }
-.choices { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
-.choice { padding: 6px; background: var(--bg-dark); display: grid; place-items: center; border-radius: 10px; }
-.choice.on { border-color: var(--brand-500); box-shadow: 0 0 0 2px var(--brand-500); }
-.choice .avatar { width: 100%; height: auto; aspect-ratio: 1; }
-.lobby > .between { gap: 12px; flex-wrap: wrap; }
+.lobby-seat.is-self {
+  border-color: rgba(102, 161, 255, .52);
+  background: linear-gradient(180deg, rgba(18, 28, 52, .85) 0%, rgba(14, 17, 26, .9) 100%);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+.lobby-seat b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: clamp(12.5px, 1vw, 14.5px);
+  color: var(--bg-light);
+  max-width: 100%;
+}
+
+.lobby-seat small {
+  font-size: clamp(11px, .9vw, 12.5px);
+}
+
+.lobby-seat .avatar {
+  width: clamp(40px, 4.2vw, 56px);
+  height: clamp(40px, 4.2vw, 56px);
+  border-radius: 10px;
+}
+
+.lobby-seat .remove-player {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+}
+
+.vacant {
+  border-style: dashed;
+  border-color: rgba(246, 246, 243, .14);
+  background: rgba(255, 255, 255, .015);
+  color: var(--muted);
+}
+
+.vacant-av {
+  display: grid;
+  place-items: center;
+  width: clamp(40px, 4.2vw, 56px);
+  height: clamp(40px, 4.2vw, 56px);
+  border: 1px dashed rgba(246, 246, 243, .2);
+  background: rgba(10, 100, 255, .08);
+  color: var(--brand-300);
+  font-size: 20px;
+  border-radius: 10px;
+}
+
+.lobby-footer {
+  flex: none;
+  padding-top: clamp(10px, 1.2vh, 16px);
+  border-top: 1px solid var(--line);
+}
+.lobby-footer .between { gap: 12px; flex-wrap: wrap; }
+.lobby-footer .is-copied {
+  border-color: rgba(22, 163, 74, .65);
+  background: rgba(22, 163, 74, .18);
+  color: #bbf7d0;
+}
+.start-btn { min-width: 180px; font-weight: 600; }
+.waiting-host { font-size: 13.5px; color: var(--muted); }
+
+/* Coluna de Avatar */
+.my-preview {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: rgba(10, 100, 255, .09);
+  border: 1px solid rgba(102, 161, 255, .28);
+}
+.my-preview .avatar { width: 52px; height: 52px; border-radius: 10px; }
+.my-preview b { display: block; font-size: 15px; color: var(--bg-light); }
+.my-preview small { display: block; font-size: 12.5px; }
+
+.lobby-avatar-card .seg {
+  flex: none;
+  margin: 0;
+}
+
+.choices {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: clamp(8px, 1vw, 12px);
+  align-content: center;
+}
+
+.choice {
+  padding: clamp(5px, .6vw, 8px);
+  background: rgba(14, 16, 22, .75);
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  height: 100%;
+  min-height: 0;
+}
+.choice.on {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 2px var(--brand-500), 0 0 18px rgba(10, 100, 255, .3);
+}
+.choice .avatar {
+  width: 100%;
+  height: 100%;
+  max-width: 96px;
+  max-height: 96px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 9px;
+}
 
 .error {
   color: #fecdd3;
@@ -1047,6 +1230,23 @@ header.game-topbar {
   .icon-btn { padding: 7px 9px; }
 }
 
+@media (max-width: 1024px), (max-height: 620px) {
+  main.in-lobby {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+  .lobby-arena {
+    grid-template-columns: 1fr;
+  }
+  .lobby-grid {
+    grid-template-rows: auto;
+  }
+  .choices {
+    grid-template-rows: auto;
+  }
+}
+
 @media (max-width: 860px) {
   .bet-panel {
     grid-template-columns: 1fr;
@@ -1060,13 +1260,17 @@ header.game-topbar {
 @media (max-width: 680px) {
   main { padding: 0 14px 16px; }
   header { height: 60px; }
-  .private, .hide-sm { display: none; }
+  .private, .hide-sm, .hide-xs { display: none; }
   .landing { grid-template-columns: 1fr; gap: 24px; padding: 24px 0; min-height: 0; }
   .hero-cards { display: none; }
   .entry { padding: 20px; }
-  .lobby { padding: 18px; }
-  .lobby-grid { grid-template-columns: repeat(2, 1fr); }
-  .choices { grid-template-columns: repeat(4, 1fr); }
+  .lobby-arena { padding: 10px; gap: 10px; }
+  .lobby-card { padding: 14px; }
+  .lobby-card-head { flex-direction: column; }
+  .room-code-box { text-align: left; width: 100%; }
+  .lobby-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .choices { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .start-btn { width: 100%; }
 
   header.game-topbar { height: 52px; padding: 0 10px; gap: 8px; }
   .game-topbar .brand { font-size: 19px; }

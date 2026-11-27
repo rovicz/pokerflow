@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import type { GameOperation, Room } from '../../poker/game-types.ts';
+import type { BotDifficulty, GameOperation, Room } from '../../poker/game-types.ts';
 import type { AvatarStyle } from '../../poker/avatars.ts';
 import type { EmoteId } from '../../poker/emotes.ts';
 import { useRoomChannel } from './use-room-channel.ts';
@@ -11,6 +11,8 @@ export type SendExtra = {
   stack?: number;
   bb?: number;
   seconds?: number;
+  bots?: number;
+  botDifficulty?: BotDifficulty;
   version?: number;
   type?: string;
   amount?: number;
@@ -165,6 +167,7 @@ export function useRoom() {
       const t = Date.now() + offset.current;
       const s = g.state;
       const due =
+        s.botActAt ??
         s.deadline ??
         (s.phase === 'settled' &&
         s.pausedFor == null &&
@@ -172,7 +175,7 @@ export function useRoom() {
           ? s.nextHandAt
           : null);
       if (!socket.current || ++n % 20 === 0) void send('state', {}, true);
-      else if (due != null && t >= due + 120 && Date.now() - asked.current > 900) {
+      else if (due != null && t >= due + 80 && Date.now() - asked.current > 450) {
         asked.current = Date.now();
         void send('state', {}, true);
       }

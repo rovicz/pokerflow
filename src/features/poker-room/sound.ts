@@ -280,8 +280,24 @@ export const sfx = {
       vol: 0.65,
       rateSpread: 0.05,
       fallback: () => {
-        softNoise(0.064, { freq: 1450, to: 820, q: 0.8, lp: 3400, vol: 0.16, at: 0, attack: 0.008 });
-        softNoise(0.06, { freq: 1280, to: 720, q: 0.8, lp: 3100, vol: 0.14, at: 0.045, attack: 0.008 });
+        softNoise(0.064, {
+          freq: 1450,
+          to: 820,
+          q: 0.8,
+          lp: 3400,
+          vol: 0.16,
+          at: 0,
+          attack: 0.008,
+        });
+        softNoise(0.06, {
+          freq: 1280,
+          to: 720,
+          q: 0.8,
+          lp: 3100,
+          vol: 0.14,
+          at: 0.045,
+          attack: 0.008,
+        });
       },
     }),
   gather(at = 0) {

@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import type { GameOperation } from '../../poker/game-types.ts';
+import type { BotDifficulty, GameOperation } from '../../poker/game-types.ts';
+import { BOT_DIFFICULTIES, BOT_DIFFICULTY_LABELS } from '../../poker/bot-ai.ts';
 import type { SendExtra } from './use-room.ts';
 import { PlayingCard, fmt } from './table';
 import { Tip } from './ui';
@@ -22,7 +23,9 @@ export default function EntryScreen({ send, pending, error, notice, setError }: 
   const [stack, setStack] = useState(2000);
   const [bb, setBb] = useState(20);
   const [seconds, setSeconds] = useState(30);
-  const [mode, setMode] = useState('create');
+  const [botCount, setBotCount] = useState(3);
+  const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('medium');
+  const [mode, setMode] = useState<'create' | 'bots' | 'join'>('create');
   const [invited, setInvited] = useState(false);
   const [saved, setSaved] = useState('');
 
@@ -160,6 +163,17 @@ export default function EntryScreen({ send, pending, error, notice, setError }: 
                 </button>
                 <button
                   role="tab"
+                  aria-selected={mode === 'bots'}
+                  className={mode === 'bots' ? 'on' : ''}
+                  onClick={() => {
+                    setMode('bots');
+                    setError('');
+                  }}
+                >
+                  Contra bots
+                </button>
+                <button
+                  role="tab"
                   aria-selected={mode === 'join'}
                   className={mode === 'join' ? 'on' : ''}
                   onClick={() => {
@@ -220,6 +234,90 @@ export default function EntryScreen({ send, pending, error, notice, setError }: 
                     </button>
                     <p className="step">
                       Depois de criar, você recebe um link para convidar seus amigos.
+                    </p>
+                  </motion.div>
+                ) : mode === 'bots' ? (
+                  <motion.div
+                    key="bots"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <div className="bot-picker-row">
+                      <div className="between">
+                        <span className="field-lbl">Quantidade de bots</span>
+                        <small className="bot-total-note">
+                          Você + {botCount} {botCount === 1 ? 'bot' : 'bots'} ({botCount + 1}/8)
+                        </small>
+                      </div>
+                      <div
+                        className="bot-count-pills"
+                        role="radiogroup"
+                        aria-label="Quantidade de bots"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            role="radio"
+                            aria-checked={botCount === n}
+                            className={botCount === n ? 'on' : ''}
+                            onClick={() => setBotCount(n)}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="fields bot-fields">
+                      <label>
+                        Dificuldade
+                        <select
+                          value={botDifficulty}
+                          onChange={(e) => setBotDifficulty(e.target.value as BotDifficulty)}
+                        >
+                          {BOT_DIFFICULTIES.map((d) => (
+                            <option key={d} value={d}>
+                              {BOT_DIFFICULTY_LABELS[d]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Fichas
+                        <select value={stack} onChange={(e) => setStack(+e.target.value)}>
+                          {[1000, 2000, 5000, 10000].map((v) => (
+                            <option key={v} value={v}>
+                              {fmt(v)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Big blind <Tip text="A maior aposta obrigatória antes do flop.">ⓘ</Tip>
+                        <select value={bb} onChange={(e) => setBb(+e.target.value)}>
+                          {[10, 20, 50, 100].map((v) => (
+                            <option key={v} value={v}>
+                              {v}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <button
+                      className="primary wide"
+                      disabled={pending || !name.trim()}
+                      onClick={() =>
+                        send('create', { name, stack, bb, seconds, bots: botCount, botDifficulty })
+                      }
+                    >
+                      Criar mesa com bots →
+                    </button>
+                    <p className="step">
+                      Os bots entram no Lobby com você — personalize seu avatar ou convide amigos
+                      antes de começar.
                     </p>
                   </motion.div>
                 ) : (

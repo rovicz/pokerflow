@@ -369,6 +369,7 @@ function Seat({
           <b>
             {p.name}
             {self ? <span className="you-tag">Você</span> : null}
+            {p.bot ? <span className="bot-tag">Bot</span> : null}
           </b>
           <small className="stack-val">
             <i className="chip-dot" aria-hidden="true" />

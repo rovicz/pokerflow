@@ -1,4 +1,4 @@
-import type { GameState, PublicState, Room } from '../../../src/poker/game-types.ts';
+import type { GameState, Player, PublicState, Room } from '../../../src/poker/game-types.ts';
 
 import { openRoomStore } from '../../../src/server/room-store.ts';
 import { notifyRoom, roomChannel } from '../../../src/server/room-notify.ts';
@@ -8,6 +8,7 @@ import { start, act, view, betweenHands } from '../../../src/poker/engine.ts';
 import { resolveDue } from '../../../src/poker/timeouts.ts';
 import { cleanAvatar } from '../../../src/poker/avatars.ts';
 import { isEmoteId, pushEmote } from '../../../src/poker/emotes.ts';
+import { createBotPlayer, isBotDifficulty } from '../../../src/poker/bot-ai.ts';
 export const runtime = 'nodejs';
 
 const MAX_SPECTATORS = 30;
@@ -61,22 +62,32 @@ export async function POST(req: Request) {
       code = randomBytes(6).toString('hex').toUpperCase();
       const stack = Number(b.stack || 2000),
         bb = Number(b.bb || 20),
-        seconds = Number(b.seconds || 30);
+        seconds = Number(b.seconds || 30),
+        bots = b.bots == null ? 0 : Number(b.bots),
+        botDifficulty = isBotDifficulty(b.botDifficulty) ? b.botDifficulty : 'medium';
       if (
         ![1000, 2000, 5000, 10000].includes(stack) ||
         ![10, 20, 50, 100].includes(bb) ||
-        ![15, 30, 45, 60].includes(seconds)
+        ![15, 30, 45, 60].includes(seconds) ||
+        !Number.isInteger(bots) ||
+        bots < 0 ||
+        bots > 7
       )
         throw Error('Configuração inválida');
+      const players: Player[] = [
+        { id, name, stack, cards: [], bet: 0, total: 0, avatar: cleanAvatar(b.avatar, name) },
+      ];
+      for (let i = 0; i < bots; i++) {
+        players.push(createBotPlayer(players, stack, botDifficulty));
+      }
       const s: GameState = {
         host: id,
-        players: [
-          { id, name, stack, cards: [], bet: 0, total: 0, avatar: cleanAvatar(b.avatar, name) },
-        ],
+        players,
         initial: stack,
         sb: bb / 2,
         bb,
         seconds,
+        botDifficulty,
         phase: 'waiting',
         dealer: -1,
         turn: -1,
@@ -158,7 +169,16 @@ export async function POST(req: Request) {
           if (s.phase !== 'waiting') throw Error('A próxima mão começa automaticamente');
           start(s);
         } else if (b.op === 'interval') betweenHands(s, id, b.type);
-        else if (b.op === 'remove') {
+        else if (b.op === 'add_bot') {
+          if (s.host !== id || s.phase !== 'waiting')
+            throw Error('Somente o anfitrião pode adicionar bots antes da partida');
+          if (s.players.length >= 8) throw Error('A mesa já está cheia (8 jogadores)');
+          const diff = isBotDifficulty(b.botDifficulty)
+            ? b.botDifficulty
+            : (s.botDifficulty ?? 'medium');
+          s.botDifficulty = diff;
+          s.players.push(createBotPlayer(s.players, s.initial, diff));
+        } else if (b.op === 'remove') {
           if (s.host !== id || s.phase !== 'waiting')
             throw Error('Somente o anfitrião pode remover jogadores antes da partida');
           if (
@@ -169,7 +189,7 @@ export async function POST(req: Request) {
           )
             throw Error('Jogador inválido');
           const [gone] = s.players.splice(b.seat, 1);
-          (s.removed ??= []).push(gone.id);
+          if (!gone.bot) (s.removed ??= []).push(gone.id);
         } else if (b.op === 'avatar') {
           if (s.phase !== 'waiting') throw Error('O avatar só pode ser trocado na sala de espera');
           member!.avatar = cleanAvatar(b.avatar, member!.name);

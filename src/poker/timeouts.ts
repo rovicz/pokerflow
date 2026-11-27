@@ -1,12 +1,27 @@
 import type { GameState } from './game-types.ts';
 import { act, betweenHands } from './engine.ts';
+import { decideBotAction, maybeBotEmote } from './bot-ai.ts';
+import { pushEmote } from './emotes.ts';
 
-// Aplica, de uma vez, tudo o que já venceu: jogada automática de quem estourou o tempo e início da próxima mão.
-// Roda no servidor a cada requisição da sala, então ninguém depende de um cliente específico para a mesa andar.
+// Aplica prazos vencidos: jogada de bot pronta (1 por vez para ritmo natural),
+// timeout de humano e início automático da próxima mão.
+// Roda no servidor a cada requisição da sala, sem depender de workers em background.
 export function resolveDue(s: GameState, now = Date.now()): boolean {
   let changed = false;
   for (let i = 0; i < 20; i++) {
     try {
+      const activePlayer = s.turn >= 0 ? s.players[s.turn] : null;
+      if (activePlayer?.bot && s.botActAt != null && now >= s.botActAt) {
+        const seat = s.turn;
+        const decision = decideBotAction(s, seat);
+        const emote = maybeBotEmote(s, seat, decision);
+        act(s, activePlayer.id, decision.type, decision.amount);
+        if (emote) {
+          const res = pushEmote(s.emotes, seat, emote, now);
+          if (res.ok) s.emotes = res.emotes;
+        }
+        return true; // 1 jogada de bot por vez para o humano acompanhar cada ação na mesa
+      }
       if (s.deadline != null && s.turn >= 0 && now >= s.deadline) {
         act(s, s.players[s.turn].id, 'tick');
       } else if (

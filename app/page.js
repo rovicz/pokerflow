@@ -221,6 +221,8 @@ export default function Page() {
 
   const s = game?.state;
   const inGame = !!s && s.phase !== 'waiting';
+  const inLobby = !!s && s.phase === 'waiting';
+  const inApp = inGame || inLobby;
   const p = s?.players.find(q => q.self);
   const mine = !!s?.players[s.turn]?.self;
   const live = !!s && !['waiting', 'settled'].includes(s.phase);
@@ -328,21 +330,28 @@ export default function Page() {
     : [];
 
   return (
-    <main className={inGame ? 'in-game' : ''}>
-      {/* Topbar: unificada no modo jogo, clássica na entrada/lobby */}
-      <header className={inGame ? 'game-topbar' : ''}>
+    <main className={inGame ? 'in-game' : inLobby ? 'in-lobby' : ''}>
+      {/* Topbar: unificada no modo jogo e lobby, clássica na entrada */}
+      <header className={inApp ? 'game-topbar' : ''}>
         <div className="header-left">
           <a href="/" className="brand">
             <span className="mark">♠</span>
             <div>
               PokerFlow<i>.</i>
-              {!inGame && <small>PRIVATE POKER CLUB</small>}
+              {!inApp && <small>PRIVATE POKER CLUB</small>}
             </div>
           </a>
 
-          {inGame && (
+          {inApp && (
             <div className="game-meta">
-              <span className="meta-pill accent">Mão {s.hand}</span>
+              {inGame ? (
+                <span className="meta-pill accent">Mão {s.hand}</span>
+              ) : (
+                <>
+                  <span className="meta-pill accent">Lobby</span>
+                  <span className="meta-pill hide-xs">Sala <b>{game.code}</b></span>
+                </>
+              )}
               <Tip text="Small blind e big blind: apostas obrigatórias iniciais.">
                 <span className="meta-pill">Blinds <b>{s.sb}/{s.bb}</b></span>
               </Tip>
@@ -376,7 +385,7 @@ export default function Page() {
         )}
 
         <div className="header-right">
-          {!inGame && <span className="private">● Mesa privada</span>}
+          {!inApp && <span className="private">● Mesa privada</span>}
           <button
             className="icon-btn"
             onClick={toggleMute}
@@ -613,37 +622,34 @@ export default function Page() {
           </motion.div>
         </section>
       ) : s.phase === 'waiting' ? (
-        /* Sala de Espera (Lobby) */
-        <>
-          <div className="heading">
-            <div>
-              <div className="eyebrow">MESA PRIVADA / {game.code}</div>
-              <h1>Sua mesa está pronta <span className="tag">LOBBY</span></h1>
+        /* Sala de Espera (Lobby 100% responsivo à viewport) */
+        <div className="lobby-arena">
+          <section className="panel lobby-card lobby-seats-card">
+            <div className="lobby-card-head">
+              <div>
+                <div className="eyebrow">AGUARDANDO JOGADORES</div>
+                <h2>Chame seus amigos.</h2>
+                <p>Compartilhe o convite e inicie a partida com pelo menos dois jogadores.</p>
+              </div>
+              <div className="room-code-box">
+                <small>Código da mesa</small>
+                <b>{game.code}</b>
+              </div>
             </div>
-            <div className="room-stats">
-              <div><small>JOGADORES</small><b>{s.players.length}/8</b></div>
-              <div><small>BLINDS <Tip text="Small blind e big blind: apostas obrigatórias.">ⓘ</Tip></small><b>{s.sb}/{s.bb}</b></div>
-            </div>
-          </div>
-
-          <section className="panel lobby">
-            <div className="eyebrow">AGUARDANDO JOGADORES</div>
-            <h2>Chame seus amigos.</h2>
-            <p>Compartilhe o convite e inicie com pelo menos dois jogadores.</p>
 
             <div className="lobby-grid">
               {Array.from({length: 8}, (_, i) => {
                 const q = s.players[i];
                 return (
                   <motion.div
-                    className={'lobby-seat ' + (!q ? 'vacant' : '')}
+                    className={'lobby-seat ' + (!q ? 'vacant' : q.self ? 'is-self' : '')}
                     key={i}
                     initial={reducedMotion ? false : {opacity: 0, scale: .96}}
                     animate={{opacity: 1, scale: 1}}
                     transition={{duration: .25, delay: i * .03}}
                   >
-                    {q ? <Avatar a={q.avatar} name={q.name} size={46}/> : <span className="avatar vacant-av">+</span>}
-                    <b>{q ? q.name + (q.self ? ' · Você' : '') : 'Lugar disponível'}</b>
+                    {q ? <Avatar a={q.avatar} name={q.name} size={52}/> : <span className="avatar vacant-av">+</span>}
+                    <b>{q ? q.name : 'Lugar disponível'}{q?.self && <span className="you-tag">Você</span>}</b>
                     <small>{q ? fmt(q.stack) + ' fichas' : 'Aguardando convite'}</small>
                     {s.host && q && !q.self && (
                       <button className="outline remove-player" aria-label={'Remover ' + q.name} disabled={pending} onClick={() => send('remove', {seat: i, version: game.version})}>
@@ -655,57 +661,78 @@ export default function Page() {
               })}
             </div>
 
-            <div className="picker">
+            <div className="lobby-footer">
               <div className="between">
-                <b>Escolha seu avatar</b>
-                <button className="text-button" onClick={() => Seeds(mkSeeds())}>Sortear outros</button>
-              </div>
-              <div className="seg" role="tablist">
-                {AVATAR_STYLES.map(st => (
-                  <button key={st} role="tab" aria-selected={st === pstyle} className={st === pstyle ? 'on' : ''} onClick={() => Pstyle(st)}>
-                    {AVATAR_LABELS[st]}
-                  </button>
-                ))}
-              </div>
-              <div className="choices">
-                {seeds.map(sd => {
-                  const on = p?.avatar?.style === pstyle && p?.avatar?.seed === sd;
-                  return (
-                    <motion.button
-                      key={sd}
-                      whileHover={{scale: 1.05}}
-                      whileTap={{scale: .95}}
-                      className={'choice' + (on ? ' on' : '')}
-                      aria-pressed={on}
-                      aria-label="Usar este avatar"
-                      disabled={pending}
-                      onClick={() => send('avatar', {avatar: {style: pstyle, seed: sd}})}
-                    >
-                      <Avatar a={{style: pstyle, seed: sd}} size={56}/>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="between">
-              <button className="outline" onClick={invite}>{copied ? '✓ Copiado' : 'Copiar convite'}</button>
-              {s.host ? (
-                <button className="primary" disabled={pending || s.players.filter(q => q.stack > 0).length < 2} onClick={() => send('start')}>
-                  Iniciar partida →
+                <button className={'outline' + (copied ? ' is-copied' : '')} onClick={invite}>
+                  {copied ? '✓ Convite copiado!' : 'Copiar link de convite'}
                 </button>
-              ) : (
-                <span>Aguardando anfitrião iniciar…</span>
-              )}
+                {s.host ? (
+                  <motion.button
+                    type="button"
+                    className="primary start-btn"
+                    disabled={pending || s.players.filter(q => q.stack > 0).length < 2}
+                    whileHover={pending || s.players.filter(q => q.stack > 0).length < 2 ? undefined : {scale: 1.02}}
+                    whileTap={pending || s.players.filter(q => q.stack > 0).length < 2 ? undefined : {scale: .98}}
+                    onClick={() => send('start')}
+                  >
+                    Iniciar partida →
+                  </motion.button>
+                ) : (
+                  <span className="waiting-host">Aguardando o anfitrião iniciar…</span>
+                )}
+              </div>
+              {error && <p className="error" role="alert">{error}</p>}
             </div>
-            {error && <p className="error" role="alert">{error}</p>}
           </section>
 
-          <footer className="foot">
-            <button className="text-button" onClick={exit}>← Voltar à entrada</button>
-            <span>Jogo entre amigos · fichas virtuais</span>
-          </footer>
-        </>
+          <section className="panel lobby-card lobby-avatar-card">
+            <div className="lobby-card-head">
+              <div>
+                <div className="eyebrow">SEU PERFIL NA MESA</div>
+                <h3>Escolha seu avatar</h3>
+              </div>
+              <button className="text-button" onClick={() => Seeds(mkSeeds())}>Sortear outros</button>
+            </div>
+
+            {p && (
+              <div className="my-preview">
+                <Avatar a={p.avatar} name={p.name} size={54}/>
+                <div>
+                  <b>{p.name}</b>
+                  <small>{fmt(p.stack)} fichas iniciais · {s.host ? 'Anfitrião' : 'Convidado'}</small>
+                </div>
+              </div>
+            )}
+
+            <div className="seg" role="tablist" aria-label="Estilo do avatar">
+              {AVATAR_STYLES.map(st => (
+                <button key={st} role="tab" aria-selected={st === pstyle} className={st === pstyle ? 'on' : ''} onClick={() => Pstyle(st)}>
+                  {AVATAR_LABELS[st]}
+                </button>
+              ))}
+            </div>
+
+            <div className="choices">
+              {seeds.map(sd => {
+                const on = p?.avatar?.style === pstyle && p?.avatar?.seed === sd;
+                return (
+                  <motion.button
+                    key={sd}
+                    whileHover={{scale: 1.05}}
+                    whileTap={{scale: .95}}
+                    className={'choice' + (on ? ' on' : '')}
+                    aria-pressed={on}
+                    aria-label="Usar este avatar"
+                    disabled={pending}
+                    onClick={() => send('avatar', {avatar: {style: pstyle, seed: sd}})}
+                  >
+                    <Avatar a={{style: pstyle, seed: sd}} size={72}/>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
       ) : (
         /* Arena de Jogo (Mesa + Dock de Controles) */
         <div className="arena">

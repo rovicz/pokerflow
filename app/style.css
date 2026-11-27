@@ -305,3 +305,13 @@ main.in-game { max-width: none; height: auto; min-height: 100dvh; }
 .in-game .table-area { min-height: clamp(390px, 62dvh, 650px); }
 .in-game .end { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
 .lobby-seat .remove-player { min-height: 36px; }
+
+.celebration { text-align: center; border-color: var(--amber); }
+.celebration::backdrop { background: rgba(0, 0, 0, .84); }
+.celebration .trophy { font-size: clamp(72px, 18vw, 120px); line-height: 1.2; }
+.celebration .eyebrow { margin-top: 12px; color: var(--amber); }
+.celebration h2 { margin: 8px 0 20px; }
+.champion { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 24px; }
+.champion .avatar { width: 96px; height: 96px; border: 2px solid var(--amber); }
+.champion strong { font-size: 24px; overflow-wrap: anywhere; }
+.champion span { color: var(--muted); }

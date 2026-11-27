@@ -1,0 +1,1 @@
+import './style.css'; export const metadata={title:'PokerFlow — Private poker club'}; export default function Layout({children}){return <html lang="pt-BR"><body>{children}</body></html>}

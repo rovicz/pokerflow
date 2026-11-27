@@ -1,16 +1,19 @@
 # PokerFlow
 
-Private Texas Hold’em for 2–8 friends. Virtual chips only.
+Texas Hold’em privado para 2–8 amigos. Apenas fichas virtuais.
 
-## Local development
+## Executar localmente
 
-1. Install Node.js 22 and run `npm install`.
-2. Copy `.env.example` to `.env.local` and configure the Supabase credentials.
-3. Run the migration in `supabase/schema.sql` on your own Supabase project.
-4. Run `npm run dev`.
+Requisitos: Node.js 22, npm e projeto Supabase. Execute `npm install`, copie `.env.example` para `.env.local`, configure as variáveis do seu projeto, execute `supabase/schema.sql` no SQL Editor e rode `npm run dev`. Testes: `npm test`. Build: `npm run build`.
 
-Never commit the service role key. Production credentials belong in Vercel environment variables.
+## Vercel
 
-Production: https://pokerflow-theta.vercel.app
+Importe o repositório como Next.js, raiz `/`, Node.js 22. Configure `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` somente no ambiente de servidor. Nunca envie a chave ao GitHub ou ao cliente. Produção: https://pokerflow-theta.vercel.app
 
-This is an initial prototype with polling, anonymous browser sessions, and server-side game logic. Complex poker scenarios and full multiplayer browser tests remain pending.
+## Arquitetura
+
+Next.js App Router, API server-side, Supabase PostgreSQL com RLS, motor de poker independente e sincronização por polling de 1,5s. A sessão é um token aleatório armazenado no navegador. O estado é versionado para evitar atualizações concorrentes.
+
+## Limitações
+
+Protótipo v0.2.0: sem dinheiro real, sem autenticação Supabase, sem Realtime, sem rate limiting, sem testes E2E completos. Casos complexos de poker precisam de testes adicionais. O banco não deve ser exposto diretamente ao cliente.

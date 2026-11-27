@@ -706,21 +706,29 @@
 }
 
 /* Compact / Mobile (Mesa Portrait) */
+.mobile-deck-origin {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
 .table-wrap.compact .felt-mark {
   font-size: 36px;
 }
 .table-wrap.compact .pc.lg {
-  --w: 56px;
-  --h: 78px;
+  --w: 58px;
+  --h: 80px;
 }
 .table-wrap.compact .pc.md,
 .table-wrap.compact .board {
-  --w: 52px;
-  --h: 72px;
+  --w: 54px;
+  --h: 75px;
 }
 .table-wrap.compact .pc.sm {
-  --w: 34px;
-  --h: 48px;
+  --w: 30px;
+  --h: 42px;
 }
 .table-wrap.compact .pc.deck-sz {
   --w: 32px;
@@ -729,18 +737,21 @@
 .table-wrap.compact .board {
   @apply gap-[5px];
 }
+.table-wrap.compact .hand {
+  bottom: calc(100% - 6px);
+}
+.table-wrap.compact .self .hand {
+  bottom: calc(100% - 8px);
+}
 .table-wrap.compact .plate {
   @apply min-w-[88px];
-  @apply max-w-[112px];
+  @apply max-w-[114px];
   @apply p-[4px_7px_6px_5px];
   @apply gap-[5px];
 }
 .table-wrap.compact .self .plate {
   @apply min-w-[126px];
   @apply max-w-[152px];
-}
-.table-wrap.compact .mobile-deck-spot {
-  z-index: 2;
 }
 .table-wrap.compact .avatar {
   @apply w-[24px];
@@ -759,6 +770,15 @@
 .table-wrap.compact .status {
   @apply text-[9px];
 }
+.table-wrap.compact .blind-badge {
+  left: -6px;
+  top: -8px;
+  right: auto;
+  min-width: 24px;
+  height: 18px;
+  font-size: 9px;
+  padding: 0 5px;
+}
 .table-wrap.compact .pot-pill {
   @apply p-[4px_10px];
   @apply gap-[5px];
@@ -769,24 +789,30 @@
 .table-wrap.compact .pot-val {
   @apply text-[12px];
 }
+.table-wrap.compact .bet {
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+.table-wrap.compact .bet .amt {
+  margin-top: 0;
+  font-size: 10px;
+  padding: 1px 6px;
+}
 .table-wrap.compact .chip {
-  @apply w-[20px];
-  @apply h-[20px];
+  @apply w-[18px];
+  @apply h-[18px];
   @apply text-[6px];
-  left: calc(var(--s) * 22px);
+  left: calc(var(--s) * 19px);
+  bottom: calc(var(--i) * 2px);
 }
 .table-wrap.compact .chips {
-  @apply h-[32px];
+  @apply h-[20px];
+  margin-right: 0 !important;
 }
 .table-wrap.compact .bubble {
   @apply text-[10px];
   @apply p-[3px_8px];
-}
-.table-wrap.compact .seat.top-seat .hand {
-  @apply top-[-3px];
-}
-.table-wrap.compact .seat.top-seat .hand .pc + .pc {
-  @apply ml-[-8px];
 }
 
 /* ==========================================================================

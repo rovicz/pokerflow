@@ -260,55 +260,57 @@ function portraitShape(x0: number, x1: number, y0: number, y1: number) {
 }
 
 // Posições dedicadas para mesa vertical mobile (índice 0 = jogador local na base).
-const MOBILE_SEATS: Record<number, Point[]> = {
+// Cada assento define (x, y) do plate e (bx, by) da ficha de aposta na zona limpa do feltro.
+type MobileSeat = { x: number; y: number; bx: number; by: number };
+const MOBILE_SEATS: Record<number, MobileSeat[]> = {
   2: [
-    { x: 50, y: 89 },
-    { x: 50, y: 21 },
+    { x: 50, y: 90, bx: 75, by: 75 },
+    { x: 50, y: 20, bx: 50, by: 36 },
   ],
   3: [
-    { x: 50, y: 89 },
-    { x: 19, y: 27 },
-    { x: 81, y: 27 },
+    { x: 50, y: 90, bx: 75, by: 75 },
+    { x: 20, y: 24, bx: 31, by: 37 },
+    { x: 80, y: 24, bx: 69, by: 37 },
   ],
   4: [
-    { x: 50, y: 89 },
-    { x: 16, y: 50 },
-    { x: 50, y: 20 },
-    { x: 84, y: 50 },
+    { x: 50, y: 90, bx: 75, by: 75 },
+    { x: 16, y: 50, bx: 31, by: 58 },
+    { x: 50, y: 20, bx: 50, by: 36 },
+    { x: 84, y: 50, bx: 69, by: 58 },
   ],
   5: [
-    { x: 50, y: 89 },
-    { x: 16, y: 63 },
-    { x: 22, y: 22 },
-    { x: 78, y: 22 },
-    { x: 84, y: 63 },
+    { x: 50, y: 90, bx: 76, by: 75 },
+    { x: 16, y: 65, bx: 31, by: 67 },
+    { x: 21, y: 22, bx: 31, by: 36 },
+    { x: 79, y: 22, bx: 69, by: 36 },
+    { x: 84, y: 65, bx: 69, by: 67 },
   ],
   6: [
-    { x: 50, y: 89 },
-    { x: 15, y: 64 },
-    { x: 17, y: 29 },
-    { x: 50, y: 19 },
-    { x: 83, y: 29 },
-    { x: 85, y: 64 },
+    { x: 50, y: 90, bx: 76, by: 75 },
+    { x: 16, y: 65, bx: 31, by: 67 },
+    { x: 17, y: 28, bx: 31, by: 38 },
+    { x: 50, y: 19, bx: 50, by: 35 },
+    { x: 83, y: 28, bx: 69, by: 38 },
+    { x: 84, y: 65, bx: 69, by: 67 },
   ],
   7: [
-    { x: 50, y: 89 },
-    { x: 15, y: 67 },
-    { x: 15, y: 40 },
-    { x: 28, y: 19 },
-    { x: 72, y: 19 },
-    { x: 85, y: 40 },
-    { x: 85, y: 67 },
+    { x: 50, y: 90, bx: 76, by: 75 },
+    { x: 16, y: 68, bx: 31, by: 69 },
+    { x: 15, y: 41, bx: 30, by: 41 },
+    { x: 25, y: 20, bx: 33, by: 34 },
+    { x: 75, y: 20, bx: 67, by: 34 },
+    { x: 85, y: 41, bx: 70, by: 41 },
+    { x: 84, y: 68, bx: 69, by: 69 },
   ],
   8: [
-    { x: 50, y: 89 },
-    { x: 15, y: 67 },
-    { x: 15, y: 42 },
-    { x: 24, y: 20 },
-    { x: 50, y: 17 },
-    { x: 76, y: 20 },
-    { x: 85, y: 42 },
-    { x: 85, y: 67 },
+    { x: 50, y: 90, bx: 76, by: 75 },
+    { x: 16, y: 68, bx: 31, by: 69 },
+    { x: 15, y: 42, bx: 30, by: 42 },
+    { x: 22, y: 21, bx: 32, by: 35 },
+    { x: 50, y: 17, bx: 50, by: 34 },
+    { x: 78, y: 21, bx: 68, by: 35 },
+    { x: 85, y: 42, bx: 70, by: 42 },
+    { x: 84, y: 68, bx: 69, by: 69 },
   ],
 };
 
@@ -329,6 +331,7 @@ function Seat({
   winCore,
   winKickers,
   settled,
+  compact,
 }: {
   p: PublicPlayer;
   j: number;
@@ -346,6 +349,7 @@ function Seat({
   winCore: Set<number>;
   winKickers: Set<number>;
   settled: boolean;
+  compact: boolean;
 }) {
   const N = s.players.length,
     order = (j - s.dealer - 1 + N) % N;
@@ -357,7 +361,7 @@ function Seat({
     : { x: 0, y: 0, opacity: 1, scale: 1 };
 
   const timerTone = left <= 18 ? 'danger' : left <= 38 ? 'warn' : 'ok';
-  const isTop = !self && pos.y < 32;
+  const isTop = !compact && !self && pos.y < 32;
   const topSide = isTop ? (pos.x < 48 ? ' top-seat top-left' : ' top-seat top-right') : '';
   const emoteSide = self ? 'side-left' : pos.x < 50 ? 'side-right' : 'side-left';
 
@@ -707,13 +711,13 @@ export default function Table({
 
   const tgt = settled ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null;
   const G = compact
-    ? { x0: 0.08, x1: 0.92, y0: 0.11, y1: 0.87, pad: 12, nd: 0, nw: 0, sh: 0, zw: 46, zh: 55 }
+    ? { x0: 0.035, x1: 0.965, y0: 0.055, y1: 0.92, pad: 10, nd: 0, nw: 0, sh: 0, zw: 44, zh: 52 }
     : { x0: 0.11, x1: 0.89, y0: 0.125, y1: 0.87, pad: 26, nd: 82, nw: 126, sh: 64, zw: 82, zh: 98 };
   const X0 = G.x0 * dim.w,
     X1 = G.x1 * dim.w,
     Y0 = G.y0 * dim.h,
     Y1 = G.y1 * dim.h;
-  const dealerTop = compact ? Y0 - G.zh * 0.78 : Y0 + G.nd - G.zh;
+  const dealerTop = compact ? Y0 - G.zh * 0.44 : Y0 + G.nd - G.zh;
   const zx = dim.w / 2,
     zy = compact ? Y0 : Y0 + G.nd - G.zh / 2;
   const look =
@@ -724,7 +728,7 @@ export default function Table({
           y: Math.max(-0.6, Math.min(1, ((tgt.y / 100) * dim.h - zy) / 260)),
         };
 
-  const potPos = compact ? { x: 54, y: 34 } : POT;
+  const potPos = compact ? { x: 50, y: 31 } : POT;
   const toPot = (b: Point) => (settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, potPos));
   const displayPot = settled ? winners.reduce((a, w) => a + w[1], 0) : pot;
   const tblPath = (x0: number, x1: number, y0: number, y1: number, nw = G.nw) =>
@@ -820,23 +824,6 @@ export default function Table({
 
         <BrandLogo variant="watermark" className="felt-mark" />
 
-        {/* No mobile, baralho compacto fica na linha do pote para liberar 100% da largura ao board */}
-        {compact && (
-          <div className="spot mobile-deck-spot" style={at(27, 34)}>
-            <motion.div
-              key={s.hand}
-              className="deck pc deck-sz"
-              initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
-              animate={{ rotate: 0, scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-            >
-              <div className="pc-back" style={{ transform: 'translate(-3px,-3px)' }} />
-              <div className="pc-back" style={{ transform: 'translate(-1.5px,-1.5px)' }} />
-              <div id="deck" className="pc-back" />
-            </motion.div>
-          </div>
-        )}
-
         {/* Pote centralizado na linha superior */}
         <div className="spot pot-spot" style={at(potPos.x, potPos.y)}>
           <ChipStack
@@ -857,7 +844,7 @@ export default function Table({
         </div>
 
         {/* Cartas comunitárias (Board) com baralho ancorado à esquerda no desktop */}
-        <div className="spot board" style={at(50, compact ? 50 : 50)}>
+        <div className="spot board" style={at(50, compact ? 49 : 50)}>
           {!compact && (
             <div className="deck-anchor">
               <motion.div
@@ -937,12 +924,16 @@ export default function Table({
 
         {/* Apostas na mesa por jogador */}
         {s.players.map((q, j) => {
+          const rel = (j - me + N) % N;
+          const mSeat = mobileLayout[rel];
           const isTopSeat = j !== me && pos[j].y < 32;
-          const f = isTopSeat ? (compact ? 0.22 : 0.25) : compact ? 0.24 : 0.3;
+          const f = isTopSeat ? 0.25 : 0.3;
           const b =
-            j === me
-              ? { x: compact ? 69 : 63, y: 74 }
-              : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
+            compact && mSeat
+              ? { x: mSeat.bx, y: mSeat.by }
+              : j === me
+                ? { x: 63, y: 74 }
+                : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
           return (
             <div key={'b' + j} className="spot bet" style={at(b.x, b.y)}>
               <ChipStack amount={q.bet} from={vec(b, pos[j])} to={toPot(b)} />
@@ -979,6 +970,7 @@ export default function Table({
             winCore={winCore}
             winKickers={winKickers}
             settled={settled}
+            compact={compact}
             rb={
               s.board.length > seen.current
                 ? 0.65 + (s.board.length - seen.current) * 0.2 + 0.25
@@ -1001,6 +993,7 @@ export default function Table({
         }}
       >
         <Zake look={look} mood={mood.n} />
+        {compact && <span id="deck" className="mobile-deck-origin" aria-hidden="true" />}
         <AnimatePresence>
           {mood.say && mood.n !== 'idle' && (
             <motion.div

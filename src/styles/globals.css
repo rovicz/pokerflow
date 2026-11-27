@@ -1764,6 +1764,11 @@ header.game-topbar {
     padding: 3px 9px;
     font-size: 12px;
   }
+  .turn-pill.is-other {
+    color: rgba(246, 246, 243, 0.9);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(246, 246, 243, 0.16);
+  }
   .dock-metrics {
     @apply text-[11.5px];
     @apply gap-[5px];
@@ -1775,7 +1780,7 @@ header.game-topbar {
     font-size: 14px;
   }
   .dock-body {
-    @apply gap-[7px];
+    @apply gap-[6px];
   }
   .actions {
     @apply gap-[6px];
@@ -1795,24 +1800,31 @@ header.game-topbar {
     @apply hidden;
   }
   .bet-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    padding: 8px 9px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 7px 9px;
   }
   .bet-title,
   .range-limits {
     @apply hidden;
   }
+  .bet-slider-wrap {
+    order: 1;
+  }
   .bet-left {
+    order: 2;
     justify-content: flex-end;
   }
   .bet-panel input[type='number'] {
-    width: 78px;
+    width: 72px;
     padding: 4px 6px;
     font-size: 13px;
   }
   .presets {
+    order: 3;
+    grid-column: 1 / -1;
     justify-content: space-between;
     gap: 4px;
   }

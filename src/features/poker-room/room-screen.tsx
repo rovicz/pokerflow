@@ -15,6 +15,7 @@ import Avatar from './avatar';
 import { AVATAR_STYLES, AVATAR_LABELS } from '../../poker/avatars.ts';
 import { HAND_RANKINGS, RANKS, SUITS, analyzeShowdown, describeHand } from '../../poker/hands.ts';
 import { sfx, setMuted, unlock, playTransition } from './sound';
+import { useRoomChannel } from './use-room-channel';
 
 const phases = [
   ['preflop', 'Pré-flop'],
@@ -235,6 +236,7 @@ export default function Page() {
   const latest = useRef<Room | null>(null);
   const mutating = useRef(false);
   const polling = useRef(false);
+  const again = useRef(false);
   const epoch = useRef(0);
 
   useEffect(() => {
@@ -334,14 +336,27 @@ export default function Page() {
         mutating.current = false;
         P(false);
       }
+      if (again.current) {
+        again.current = false;
+        void send('state', {}, true);
+      }
     }
   }
 
-  // O relógio avança enquanto uma mesa está aberta
+  // Aviso do canal em tempo real: busca o estado agora (ou logo após a chamada em andamento).
+  const socket = useRoomChannel(game?.code, () => {
+    if (mutating.current || polling.current) again.current = true;
+    else void send('state', {}, true);
+  });
+
+  // O relógio avança enquanto uma mesa está aberta. Com o socket conectado o estado chega por aviso e o polling vira reserva (10 s).
   useEffect(() => {
     if (!game) return;
+    let n = 0;
+    const onVisible = () => document.visibilityState === 'visible' && void send('state', {}, true);
+    document.addEventListener('visibilitychange', onVisible);
     const timer = setInterval(async () => {
-      await send('state', {}, true);
+      if (!socket.current || ++n % 10 === 0) await send('state', {}, true);
       const g = latest.current;
       if (g?.state.deadline && Date.now() >= g.state.deadline) {
         await send('action', { type: 'tick' }, true);
@@ -354,7 +369,10 @@ export default function Page() {
         await send('interval', { type: 'tick' }, true);
       }
     }, 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [!!game]);
 
   const s = game?.state;

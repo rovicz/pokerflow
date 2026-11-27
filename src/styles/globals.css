@@ -1750,33 +1750,87 @@ header.game-topbar {
     @apply gap-[6px];
   }
   .dock {
-    @apply p-[10px_10px];
+    @apply p-[8px_10px];
     @apply rounded-[12px];
   }
   .dock-head {
-    @apply mb-[8px];
+    @apply mb-[6px];
+    @apply gap-[8px];
+  }
+  .dock-status {
+    @apply gap-[4px_10px];
+  }
+  .turn-pill {
+    padding: 3px 9px;
+    font-size: 12px;
   }
   .dock-metrics {
-    @apply text-[12px];
-    @apply gap-[6px];
+    @apply text-[11.5px];
+    @apply gap-[5px];
   }
   .timer {
-    @apply min-w-[84px];
+    @apply min-w-[72px];
+  }
+  .timer b {
+    font-size: 14px;
+  }
+  .dock-body {
+    @apply gap-[7px];
   }
   .actions {
     @apply gap-[6px];
   }
   .action {
-    @apply min-h-[44px];
+    @apply min-h-[42px];
     @apply p-[6px_8px];
     @apply text-[12.5px];
+    justify-content: center;
+    text-align: center;
   }
   .action-main small {
-    @apply text-[10px];
+    @apply hidden;
+  }
+  /* No mobile, recolhe o bet-panel quando não puder aumentar para dar mais espaço à mesa */
+  .bet-panel.is-disabled {
+    @apply hidden;
+  }
+  .bet-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 8px 9px;
+  }
+  .bet-title,
+  .range-limits {
+    @apply hidden;
+  }
+  .bet-left {
+    justify-content: flex-end;
+  }
+  .bet-panel input[type='number'] {
+    width: 78px;
+    padding: 4px 6px;
+    font-size: 13px;
+  }
+  .presets {
+    justify-content: space-between;
+    gap: 4px;
   }
   .presets button {
-    @apply p-[5px_8px];
-    @apply text-[11.5px];
+    flex: 1 1 auto;
+    @apply p-[5px_6px];
+    @apply text-[11px];
+  }
+  .seg button {
+    font-size: 12.5px;
+    padding: 7px 6px;
+  }
+  .bot-count-pills {
+    gap: 4px;
+  }
+  .bot-count-pills button {
+    padding: 6px 0;
+    font-size: 13px;
   }
   .rank-ruler {
     @apply flex-wrap;

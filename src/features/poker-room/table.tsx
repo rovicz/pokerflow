@@ -273,65 +273,25 @@ function shape(x0: number, x1: number, y0: number, y1: number, nd: number, nw: n
 }
 
 // Contorno da mesa mobile (portrait): cápsula oval vertical sempre válida (sem arcos cruzados).
-function portraitShape(x0: number, x1: number, y0: number, y1: number) {
-  const r = Math.min((x1 - x0) / 2, (y1 - y0) / 2);
-  return `M${x0 + r},${y0} L${x1 - r},${y0} A${r},${r} 0 0 1 ${x1},${y0 + r} L${x1},${y1 - r} A${r},${r} 0 0 1 ${x1 - r},${y1} L${x0 + r},${y1} A${r},${r} 0 0 1 ${x0},${y1 - r} L${x0},${y0 + r} A${r},${r} 0 0 1 ${x0 + r},${y0} Z`;
+// Mesa vertical (mobile): mesmo desenho do desktop (cantos arredondados + recorte do dealer no topo), girado para caber em pé.
+function portraitShape(
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+  nd: number,
+  nw: number,
+  sh: number,
+) {
+  const c = (x0 + x1) / 2,
+    a = c - nw / 2,
+    b = c + nw / 2,
+    r = Math.max(30, Math.min((x1 - x0) / 2 - nw / 2 - sh - 4, (y1 - y0) / 2));
+  return `M${x0 + r},${y0} L${a - sh},${y0} C${a - sh / 2},${y0} ${a - sh / 2},${y0 + nd} ${a},${y0 + nd} L${b},${y0 + nd} C${b + sh / 2},${y0 + nd} ${b + sh / 2},${y0} ${b + sh},${y0} L${x1 - r},${y0} A${r},${r} 0 0 1 ${x1},${y0 + r} L${x1},${y1 - r} A${r},${r} 0 0 1 ${x1 - r},${y1} L${x0 + r},${y1} A${r},${r} 0 0 1 ${x0},${y1 - r} L${x0},${y0 + r} A${r},${r} 0 0 1 ${x0 + r},${y0} Z`;
 }
 
 // Posições dedicadas para mesa vertical mobile (índice 0 = jogador local na base).
 // Cada assento define (x, y) do plate e (bx, by) da ficha de aposta na zona limpa do feltro.
-type MobileSeat = { x: number; y: number; bx: number; by: number };
-const MOBILE_SEATS: Record<number, MobileSeat[]> = {
-  2: [
-    { x: 50, y: 90, bx: 75, by: 75 },
-    { x: 50, y: 20, bx: 50, by: 36 },
-  ],
-  3: [
-    { x: 50, y: 90, bx: 75, by: 75 },
-    { x: 20, y: 24, bx: 31, by: 37 },
-    { x: 80, y: 24, bx: 69, by: 37 },
-  ],
-  4: [
-    { x: 50, y: 90, bx: 75, by: 75 },
-    { x: 16, y: 50, bx: 31, by: 58 },
-    { x: 50, y: 20, bx: 50, by: 36 },
-    { x: 84, y: 50, bx: 69, by: 58 },
-  ],
-  5: [
-    { x: 50, y: 90, bx: 76, by: 75 },
-    { x: 16, y: 65, bx: 31, by: 67 },
-    { x: 21, y: 22, bx: 31, by: 36 },
-    { x: 79, y: 22, bx: 69, by: 36 },
-    { x: 84, y: 65, bx: 69, by: 67 },
-  ],
-  6: [
-    { x: 50, y: 90, bx: 76, by: 75 },
-    { x: 16, y: 65, bx: 31, by: 67 },
-    { x: 17, y: 28, bx: 31, by: 38 },
-    { x: 50, y: 19, bx: 50, by: 35 },
-    { x: 83, y: 28, bx: 69, by: 38 },
-    { x: 84, y: 65, bx: 69, by: 67 },
-  ],
-  7: [
-    { x: 50, y: 90, bx: 76, by: 75 },
-    { x: 16, y: 68, bx: 31, by: 69 },
-    { x: 15, y: 41, bx: 30, by: 41 },
-    { x: 25, y: 20, bx: 33, by: 34 },
-    { x: 75, y: 20, bx: 67, by: 34 },
-    { x: 85, y: 41, bx: 70, by: 41 },
-    { x: 84, y: 68, bx: 69, by: 69 },
-  ],
-  8: [
-    { x: 50, y: 90, bx: 76, by: 75 },
-    { x: 16, y: 68, bx: 31, by: 69 },
-    { x: 15, y: 42, bx: 30, by: 42 },
-    { x: 22, y: 21, bx: 32, by: 35 },
-    { x: 50, y: 17, bx: 50, by: 34 },
-    { x: 78, y: 21, bx: 68, by: 35 },
-    { x: 85, y: 42, bx: 70, by: 42 },
-    { x: 84, y: 68, bx: 69, by: 69 },
-  ],
-};
 
 function Seat({
   p,
@@ -798,22 +758,32 @@ export default function Table({
   // Canvas virtual: desktop horizontal (inalterado) vs mobile portrait dedicado.
   const baseH = 560;
   const dim = compact
-    ? { w: 390, h: Math.min(520, Math.max(450, (area.h / Math.max(1, area.w)) * 390)) }
+    ? { w: 390, h: Math.round(Math.min(780, Math.max(560, (area.h / Math.max(1, area.w)) * 390))) }
     : {
         w: Math.min(1440, Math.max(780, (area.w / Math.max(1, area.h)) * baseH)),
         h: baseH,
       };
   const scale = Math.min(area.w / dim.w, area.h / dim.h);
-  const rx = Math.min(0.42, 0.48 - 84 / dim.w);
-  const ry = 0.39;
-  const cy = 51.5;
+  const rx = compact ? 0.365 : Math.min(0.42, 0.48 - 84 / dim.w);
+  const ry = compact ? 0.4 : 0.39;
+  const cy = compact ? 54 : 51.5;
 
-  const mobileLayout = MOBILE_SEATS[Math.min(8, Math.max(2, N))] ?? MOBILE_SEATS[2];
   const pos = s.players.map((_, j) => {
     const rel = (j - me + N) % N;
-    if (compact) return mobileLayout[rel] ?? { x: 50, y: 21 };
+    if (compact && rel > 0) {
+      // Mobile: adversários distribuídos com vão no topo (dealer) e na base (você), nos dois lados.
+      if (N === 2) return { x: 50, y: 28 }; // mano a mano: adversário centralizado abaixo do dealer
+      const M = N - 1,
+        lo = 0.62,
+        hi = Math.PI - 0.75,
+        L = hi - lo,
+        u = ((rel - 0.5) / M) * 2 * L,
+        th = u <= L ? lo + u : Math.PI + 0.75 + (u - L),
+        a = Math.PI / 2 + th;
+      return { x: 50 + Math.cos(a) * rx * 100, y: cy + Math.sin(a) * ry * 100 };
+    }
     const f = rel / N,
-      H = Math.PI - 0.42;
+      H = Math.PI - 0.42; // vão no topo para o dealer
     const a = Math.PI / 2 + (f <= 0.5 ? f * 2 * H : -(1 - f) * 2 * H);
     const y = cy + Math.sin(a) * ry * 100;
     return { x: 50 + Math.cos(a) * rx * 100, y };
@@ -872,15 +842,15 @@ export default function Table({
 
   const tgt = settled ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null;
   const G = compact
-    ? { x0: 0.035, x1: 0.965, y0: 0.055, y1: 0.92, pad: 10, nd: 0, nw: 0, sh: 0, zw: 44, zh: 52 }
+    ? { x0: 0.03, x1: 0.97, y0: 0.085, y1: 0.935, pad: 10, nd: 54, nw: 72, sh: 30, zw: 50, zh: 58 }
     : { x0: 0.11, x1: 0.89, y0: 0.125, y1: 0.87, pad: 26, nd: 82, nw: 126, sh: 64, zw: 82, zh: 98 };
   const X0 = G.x0 * dim.w,
     X1 = G.x1 * dim.w,
     Y0 = G.y0 * dim.h,
     Y1 = G.y1 * dim.h;
-  const dealerTop = compact ? Y0 - G.zh * 0.44 : Y0 + G.nd - G.zh;
+  const dealerTop = Y0 + G.nd - G.zh;
   const zx = dim.w / 2,
-    zy = compact ? Y0 : Y0 + G.nd - G.zh / 2;
+    zy = Y0 + G.nd - G.zh / 2;
   const look =
     mood.n === 'deal' || mood.n === 'nod' || !tgt
       ? { x: 0, y: 1 }
@@ -889,11 +859,11 @@ export default function Table({
           y: Math.max(-0.6, Math.min(1, ((tgt.y / 100) * dim.h - zy) / 260)),
         };
 
-  const potPos = compact ? { x: 50, y: 31 } : POT;
+  const potPos = compact ? { x: 50, y: 37 } : POT;
   const toPot = (b: Point) => (settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, potPos));
   const displayPot = settled ? winners.reduce((a, w) => a + w[1], 0) : pot;
   const tblPath = (x0: number, x1: number, y0: number, y1: number, nw = G.nw) =>
-    compact ? portraitShape(x0, x1, y0, y1) : shape(x0, x1, y0, y1, G.nd, nw, G.sh);
+    compact ? portraitShape(x0, x1, y0, y1, G.nd, nw, G.sh) : shape(x0, x1, y0, y1, G.nd, nw, G.sh);
 
   return (
     <>
@@ -1005,7 +975,7 @@ export default function Table({
         </div>
 
         {/* Cartas comunitárias (Board) com baralho ancorado à esquerda no desktop */}
-        <div className="spot board" style={at(50, compact ? 49 : 50)}>
+        <div className="spot board" style={at(50, compact ? 53 : 50)}>
           {!compact && (
             <div className="deck-anchor">
               <motion.div
@@ -1047,7 +1017,7 @@ export default function Table({
         </div>
 
         {/* Banner de vencedores em zona limpa entre o board e o jogador */}
-        <div className="spot winners-spot" style={at(50, compact ? 65.5 : 64)}>
+        <div className="spot winners-spot" style={at(50, compact ? 68 : 64)}>
           <AnimatePresence>
             {settled && winners.length > 0 && (
               <motion.div
@@ -1086,15 +1056,12 @@ export default function Table({
         {/* Apostas na mesa por jogador */}
         {s.players.map((q, j) => {
           const rel = (j - me + N) % N;
-          const mSeat = mobileLayout[rel];
           const isTopSeat = j !== me && pos[j].y < 32;
-          const f = isTopSeat ? 0.25 : 0.3;
+          const f = isTopSeat ? 0.25 : compact ? 0.36 : 0.3;
           const b =
-            compact && mSeat
-              ? { x: mSeat.bx, y: mSeat.by }
-              : j === me
-                ? { x: 63, y: 74 }
-                : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
+            j === me
+              ? { x: compact ? 70 : 63, y: compact ? 78 : 74 }
+              : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
           return (
             <div key={'b' + j} className="spot bet" style={at(b.x, b.y)}>
               <ChipStack amount={q.bet} from={vec(b, pos[j])} to={toPot(b)} />

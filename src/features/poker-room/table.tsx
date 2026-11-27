@@ -752,6 +752,16 @@ export default function Table({
     }
   }, [shownKey, s.phase, s.reveal]);
 
+  const blindLevel = s.blinds?.level ?? 1;
+  const prevBlindLevel = useRef(blindLevel);
+  useEffect(() => {
+    if (blindLevel > prevBlindLevel.current) {
+      act('wow', 2400, `Blinds ${s.sb}/${s.bb}!`);
+      sfx.chip();
+    }
+    prevBlindLevel.current = blindLevel;
+  }, [blindLevel, s.sb, s.bb]);
+
   useEffect(() => {
     const L = s.last;
     if (!L || L.seq === lastSeq.current) return;

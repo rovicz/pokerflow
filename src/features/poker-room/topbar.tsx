@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { motion } from 'motion/react';
 import type { PublicState } from '../../poker/game-types.ts';
 import { HAND_RANKINGS } from '../../poker/hands.ts';
+import { MAX_BLIND_LEVEL, blindsForLevel, handsUntilNextLevel } from '../../poker/blinds.ts';
 import BrandLogo from './brand-logo';
 import { Tip, IconSoundOn, IconSoundOff, IconGuide, IconShare, IconCheck, IconExit } from './ui';
 
@@ -27,6 +28,7 @@ const GUIDE = [
 type Props = {
   s: PublicState | null;
   code?: string;
+  now?: number;
   muted: boolean;
   onToggleMute: () => void;
   copied: boolean;
@@ -34,12 +36,56 @@ type Props = {
   onExit: () => void;
 };
 
+function fmtClock(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 // Barra superior (marca, fase, ações) e o modal do guia rápido.
-export default function Topbar({ s, code, muted, onToggleMute, copied, onInvite, onExit }: Props) {
+export default function Topbar({
+  s,
+  code,
+  now = 0,
+  muted,
+  onToggleMute,
+  copied,
+  onInvite,
+  onExit,
+}: Props) {
   const guide = useRef<HTMLDialogElement>(null);
   const inGame = !!s && s.phase !== 'waiting';
   const inLobby = !!s && s.phase === 'waiting';
   const inApp = inGame || inLobby;
+
+  const blinds = s?.blinds ?? null;
+  const nextBlinds =
+    blinds && blinds.level < MAX_BLIND_LEVEL
+      ? blindsForLevel(blinds.baseBb, blinds.level + 1)
+      : null;
+  const handsLeft = blinds && inGame ? handsUntilNextLevel(blinds, s.hand) : null;
+  const secsLeft =
+    blinds && inGame && blinds.mode === 'time' && blinds.nextAt != null && now > 0
+      ? Math.max(0, Math.ceil((blinds.nextAt - now) / 1000))
+      : null;
+  const levelSoon =
+    inGame &&
+    !!nextBlinds &&
+    ((handsLeft != null && handsLeft <= 1) || (secsLeft != null && secsLeft <= 30));
+  const blindsTip = !blinds
+    ? 'Small blind e big blind: apostas obrigatórias iniciais.'
+    : !nextBlinds
+      ? `Modo Torneio · Nível máximo (${blinds.level}/${MAX_BLIND_LEVEL}).`
+      : `Modo Torneio · Nível ${blinds.level}/${MAX_BLIND_LEVEL}. Próximo nível: ${nextBlinds.sb}/${nextBlinds.bb}` +
+        (handsLeft != null
+          ? handsLeft === 1
+            ? ' na próxima mão.'
+            : ` em ${handsLeft} mãos.`
+          : secsLeft != null
+            ? secsLeft === 0
+              ? ' na próxima mão.'
+              : ` em ${fmtClock(secsLeft)}.`
+            : '.');
   return (
     <>
       {/* Topbar: unificada no modo jogo e lobby, clássica na entrada */}
@@ -62,12 +108,22 @@ export default function Topbar({ s, code, muted, onToggleMute, copied, onInvite,
                   </span>
                 </>
               )}
-              <Tip text="Small blind e big blind: apostas obrigatórias iniciais.">
-                <span className="meta-pill">
-                  Blinds{' '}
+              <Tip text={blindsTip}>
+                <span className={'meta-pill' + (levelSoon ? ' is-level-soon' : '')}>
+                  {blinds ? `Nv.${blinds.level}` : 'Blinds'}{' '}
                   <b>
                     {s.sb}/{s.bb}
                   </b>
+                  {inGame && nextBlinds && handsLeft != null && (
+                    <small className="blinds-next hide-xs">
+                      {handsLeft === 1 ? ' · próx. mão' : ` · ${handsLeft}m`}
+                    </small>
+                  )}
+                  {inGame && nextBlinds && secsLeft != null && (
+                    <small className="blinds-next hide-xs">
+                      {secsLeft === 0 ? ' · próx. mão' : ` · ${fmtClock(secsLeft)}`}
+                    </small>
+                  )}
                 </span>
               </Tip>
               <span className="meta-pill hide-sm">

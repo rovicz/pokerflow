@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import type { BotDifficulty, GameOperation, Room } from '../../poker/game-types.ts';
+import type { BlindMode, BotDifficulty, GameOperation, Room } from '../../poker/game-types.ts';
 import type { AvatarStyle } from '../../poker/avatars.ts';
 import type { EmoteId } from '../../poker/emotes.ts';
 import { useRoomChannel } from './use-room-channel.ts';
@@ -13,6 +13,8 @@ export type SendExtra = {
   seconds?: number;
   bots?: number;
   botDifficulty?: BotDifficulty;
+  blindsMode?: BlindMode;
+  blindsEvery?: number;
   version?: number;
   type?: string;
   amount?: number;

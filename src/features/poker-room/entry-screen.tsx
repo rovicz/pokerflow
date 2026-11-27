@@ -1,8 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import type { BotDifficulty, GameOperation } from '../../poker/game-types.ts';
+import type { BlindMode, BotDifficulty, GameOperation } from '../../poker/game-types.ts';
 import { BOT_DIFFICULTIES, BOT_DIFFICULTY_LABELS } from '../../poker/bot-ai.ts';
+import {
+  BLIND_HAND_INTERVALS,
+  BLIND_TIME_INTERVALS,
+  previewBlindLevels,
+} from '../../poker/blinds.ts';
 import type { SendExtra } from './use-room.ts';
 import { PlayingCard, fmt } from './table';
 import { Tip } from './ui';
@@ -25,7 +30,107 @@ export default function EntryScreen({ send, pending, error, notice, setError }: 
   const [seconds, setSeconds] = useState(30);
   const [botCount, setBotCount] = useState(3);
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('medium');
+  const [blindsMode, setBlindsMode] = useState<BlindMode>('fixed');
+  const [blindsEvery, setBlindsEvery] = useState(8);
   const [mode, setMode] = useState<'create' | 'bots' | 'join'>('create');
+  const previewLevels = previewBlindLevels(bb, 4);
+
+  function selectBlindsMode(next: BlindMode) {
+    setBlindsMode(next);
+    if (next === 'hands' && !(BLIND_HAND_INTERVALS as readonly number[]).includes(blindsEvery)) {
+      setBlindsEvery(8);
+    } else if (
+      next === 'time' &&
+      !(BLIND_TIME_INTERVALS as readonly number[]).includes(blindsEvery)
+    ) {
+      setBlindsEvery(300);
+    }
+  }
+
+  const tournamentControl = (
+    <div className="tourney-box">
+      <div className="between">
+        <span className="field-lbl">
+          Blinds{' '}
+          <Tip text="No modo torneio, os blinds sobem periodicamente entre mãos para dar ritmo à partida.">
+            ⓘ
+          </Tip>
+        </span>
+        <div className="tourney-toggle" role="radiogroup" aria-label="Estrutura de blinds">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={blindsMode === 'fixed'}
+            className={blindsMode === 'fixed' ? 'on' : ''}
+            onClick={() => selectBlindsMode('fixed')}
+          >
+            Fixos
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={blindsMode !== 'fixed'}
+            className={blindsMode !== 'fixed' ? 'on' : ''}
+            onClick={() => selectBlindsMode(blindsMode === 'fixed' ? 'hands' : blindsMode)}
+          >
+            Torneio
+          </button>
+        </div>
+      </div>
+
+      {blindsMode !== 'fixed' && (
+        <div className="tourney-opts">
+          <div className="tourney-row">
+            <div className="tourney-mini-seg" role="radiogroup" aria-label="Critério de subida">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={blindsMode === 'hands'}
+                className={blindsMode === 'hands' ? 'on' : ''}
+                onClick={() => selectBlindsMode('hands')}
+              >
+                Por mãos
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={blindsMode === 'time'}
+                className={blindsMode === 'time' ? 'on' : ''}
+                onClick={() => selectBlindsMode('time')}
+              >
+                Por tempo
+              </button>
+            </div>
+            <div className="tourney-pills" role="radiogroup" aria-label="Ritmo de subida">
+              {(blindsMode === 'hands' ? BLIND_HAND_INTERVALS : BLIND_TIME_INTERVALS).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={blindsEvery === v}
+                  className={blindsEvery === v ? 'on' : ''}
+                  onClick={() => setBlindsEvery(v)}
+                >
+                  {blindsMode === 'hands' ? `${v} mãos` : `${v / 60} min`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="tourney-preview">
+            {previewLevels.map((lv, i) => (
+              <span key={i}>
+                {i > 0 && <i aria-hidden="true">→</i>}
+                <b>
+                  {lv.sb}/{lv.bb}
+                </b>
+              </span>
+            ))}
+            <span>…</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
   const [invited, setInvited] = useState(false);
   const [saved, setSaved] = useState('');
 
@@ -225,10 +330,20 @@ export default function EntryScreen({ send, pending, error, notice, setError }: 
                         </select>
                       </label>
                     </div>
+                    {tournamentControl}
                     <button
                       className="primary wide"
                       disabled={pending || !name.trim()}
-                      onClick={() => send('create', { name, stack, bb, seconds })}
+                      onClick={() =>
+                        send('create', {
+                          name,
+                          stack,
+                          bb,
+                          seconds,
+                          blindsMode,
+                          ...(blindsMode !== 'fixed' ? { blindsEvery } : {}),
+                        })
+                      }
                     >
                       Criar mesa privada →
                     </button>
@@ -306,11 +421,21 @@ export default function EntryScreen({ send, pending, error, notice, setError }: 
                         </select>
                       </label>
                     </div>
+                    {tournamentControl}
                     <button
                       className="primary wide"
                       disabled={pending || !name.trim()}
                       onClick={() =>
-                        send('create', { name, stack, bb, seconds, bots: botCount, botDifficulty })
+                        send('create', {
+                          name,
+                          stack,
+                          bb,
+                          seconds,
+                          bots: botCount,
+                          botDifficulty,
+                          blindsMode,
+                          ...(blindsMode !== 'fixed' ? { blindsEvery } : {}),
+                        })
                       }
                     >
                       Criar mesa com bots →

@@ -2749,3 +2749,190 @@ header.game-topbar {
     display: none;
   }
 }
+
+/* ==========================================================================
+   Modo Torneio (Blinds Progressivos)
+   ========================================================================== */
+.tourney-box {
+  margin-bottom: 12px;
+  padding: 10px 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(246, 246, 243, 0.11);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tourney-toggle,
+.tourney-mini-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(246, 246, 243, 0.1);
+  gap: 2px;
+}
+
+.tourney-toggle button,
+.tourney-mini-seg button {
+  border: none;
+  background: transparent;
+  color: rgba(246, 246, 243, 0.65);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 0.14s ease,
+    color 0.14s ease;
+}
+
+.tourney-toggle button.on,
+.tourney-mini-seg button.on {
+  background: rgba(10, 100, 255, 0.32);
+  color: #f6f6f3;
+}
+
+.tourney-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(246, 246, 243, 0.08);
+}
+
+.tourney-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tourney-pills {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.tourney-pills button {
+  padding: 4px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(246, 246, 243, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(246, 246, 243, 0.78);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tourney-pills button.on {
+  background: rgba(10, 100, 255, 0.28);
+  border-color: rgba(102, 161, 255, 0.55);
+  color: #f6f6f3;
+}
+
+.tourney-preview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 11px;
+  color: rgba(246, 246, 243, 0.65);
+  font-variant-numeric: tabular-nums;
+}
+
+.tourney-preview i {
+  font-style: normal;
+  margin-right: 5px;
+  color: rgba(102, 161, 255, 0.75);
+}
+
+.tourney-preview b {
+  color: rgba(246, 246, 243, 0.9);
+  font-weight: 600;
+}
+
+.lobby-blinds-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(246, 246, 243, 0.1);
+}
+
+.lbb-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lbb-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(246, 246, 243, 0.78);
+}
+
+.lbb-badge.is-tourney {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  color: #fde68a;
+}
+
+.lbb-text {
+  font-size: 12px;
+  color: rgba(246, 246, 243, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.lbb-text b {
+  color: #f6f6f3;
+}
+
+.lbb-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.lbb-controls .seat-mini-btn.is-selected {
+  background: rgba(10, 100, 255, 0.26);
+  border-color: rgba(102, 161, 255, 0.55);
+  color: #f6f6f3;
+}
+
+.lbb-select {
+  padding: 3px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(246, 246, 243, 0.16);
+  background: rgba(14, 16, 22, 0.9);
+  color: #f6f6f3;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.meta-pill.is-level-soon {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fde68a;
+}
+
+.blinds-next {
+  font-size: 10.5px;
+  opacity: 0.82;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

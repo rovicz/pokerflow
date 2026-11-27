@@ -9,6 +9,7 @@ import type {
   Player,
 } from './game-types.ts';
 import { describeHand } from './hands.ts';
+import { advanceBlindsIfDue, blindsForLevel } from './blinds.ts';
 import { randomInt } from 'node:crypto';
 
 const MAX_HAND_HISTORY = 12;
@@ -322,6 +323,13 @@ export function rematch(s: GameState, id: string, mode: unknown) {
   delete s.pausedFor;
   s.deadline = null;
   s.botActAt = null;
+  if (s.blinds) {
+    s.blinds.level = 1;
+    s.blinds.nextAt = null;
+    const base = blindsForLevel(s.blinds.baseBb, 1);
+    s.sb = base.sb;
+    s.bb = base.bb;
+  }
 
   if (targetMode === 'start' && s.players.length >= 2) {
     s.phase = 'waiting';
@@ -332,7 +340,7 @@ export function rematch(s: GameState, id: string, mode: unknown) {
   return s;
 }
 
-export function start(s: GameState) {
+export function start(s: GameState, now = Date.now()) {
   if (!['waiting', 'settled'].includes(s.phase)) throw Error('Mão em andamento');
   purgeDeparted(s);
   if (s.players.filter(eligibleToPlay).length < 2) throw Error('Mínimo de dois jogadores');
@@ -341,6 +349,14 @@ export function start(s: GameState) {
   s.deck = deck();
   s.board = [];
   s.result = [];
+  s.hand++;
+  const blindUpdate = advanceBlindsIfDue(s, now);
+  if (blindUpdate.leveledUp) {
+    pushRoomNotice(
+      s,
+      `Nível ${blindUpdate.level} · Blinds subiram para ${blindUpdate.sb}/${blindUpdate.bb}!`,
+    );
+  }
   s.dealer = next(s, s.dealer, eligibleToPlay);
   for (const p of s.players) {
     p.cards = [];
@@ -366,7 +382,6 @@ export function start(s: GameState) {
   s.current = s.bb;
   s.minRaise = s.bb;
   s.phase = 'preflop';
-  s.hand++;
   s.handLog = [];
   if (s.players[sb].bet > 0) {
     pushLog(s, {

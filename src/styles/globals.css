@@ -1766,3 +1766,55 @@ header.game-topbar {
     animation: none !important;
   }
 }
+
+/* Avisos: informativo (removido, sala expirada), toast de jogada automática e conexão */
+.notice {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--brand-500);
+  border-radius: 7px;
+  background: rgba(10, 100, 255, 0.12);
+  color: var(--ink);
+  font-size: 14px;
+}
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  z-index: 30;
+  transform: translateX(-50%);
+  max-width: min(92%, 520px);
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 7px;
+  background: var(--amber);
+  color: var(--ink-dark);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: toast-in 0.2s ease-out;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+}
+.conn-banner {
+  margin: 0;
+  padding: 6px 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-dark);
+  background: var(--amber);
+}
+.spectator-dock .dock-head {
+  align-items: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

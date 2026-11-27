@@ -1,13 +1,65 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createServerSupabase } from '../../../src/lib/supabase/server.ts';
 import { createAdminSupabase } from '../../../src/server/supabase-admin.ts';
 import { allow } from '../../../src/server/rate-limit.ts';
-import { cleanAvatar } from '../../../src/poker/avatars.ts';
-import { DELETE_CONFIRM_WORD, validateProfileUpdate } from '../../../src/auth/validation.ts';
+import {
+  DELETE_CONFIRM_WORD,
+  type UserProfile,
+  type UserStats,
+} from '../../../src/auth/validation.ts';
+import {
+  getOrHealProfile,
+  updateUserProfile,
+  type ProfileStore,
+} from '../../../src/server/profile-service.ts';
 
 export const runtime = 'nodejs';
 
 const reply = (x: unknown, status = 200) =>
   Response.json(x, { status, headers: { 'Cache-Control': 'no-store' } });
+
+function makeSupabaseProfileStore(db: SupabaseClient): ProfileStore {
+  return {
+    async findProfile(userId) {
+      const { data } = await db.from('profiles').select('*').eq('id', userId).maybeSingle();
+      return (data as UserProfile | null) ?? null;
+    },
+    async findStats(userId) {
+      const { data } = await db
+        .from('player_stats')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      return (data as UserStats | null) ?? null;
+    },
+    async isUsernameTaken(username, excludeUserId) {
+      const { data } = await db
+        .from('profiles')
+        .select('id')
+        .ilike('username', username)
+        .neq('id', excludeUserId)
+        .limit(1);
+      return !!data && data.length > 0;
+    },
+    async upsertProfile(row) {
+      const { data, error } = await db
+        .from('profiles')
+        .upsert(row, { onConflict: 'id' })
+        .select('*')
+        .single();
+      if (error) {
+        console.error('[api/profile] upsertProfile error:', error.code, error.message);
+        return { data: null, error: error.message };
+      }
+      return { data: data as UserProfile, error: null };
+    },
+    async ensureStats(userId) {
+      await db
+        .from('player_stats')
+        .upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
+    },
+  };
+}
 
 export async function GET() {
   const supabase = await createServerSupabase();
@@ -18,15 +70,18 @@ export async function GET() {
   } = await supabase.auth.getUser();
   if (!user) return reply({ user: null, profile: null, stats: null });
 
-  const [{ data: profile }, { data: stats }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('player_stats').select('*').eq('user_id', user.id).single(),
-  ]);
+  const db = createAdminSupabase() ?? supabase;
+  const store = makeSupabaseProfileStore(db);
+  const { profile, stats } = await getOrHealProfile(store, {
+    id: user.id,
+    email: user.email,
+    user_metadata: user.user_metadata,
+  });
 
   return reply({
     user: { id: user.id, email: user.email },
-    profile: profile ?? null,
-    stats: stats ?? null,
+    profile,
+    stats,
   });
 }
 
@@ -40,54 +95,20 @@ export async function PATCH(req: Request) {
   if (!user) return reply({ error: 'Faça login para editar seu perfil.' }, 401);
 
   const body: unknown = await req.json().catch(() => null);
-  if (!body || typeof body !== 'object') return reply({ error: 'Dados inválidos.' }, 400);
-  const b = body as Record<string, unknown>;
-
-  const validated = validateProfileUpdate({
-    username: b.username,
-    display_name: b.display_name,
-  });
-  if (!validated.ok) return reply({ error: validated.error }, 400);
-
-  const updates: Record<string, string> = {};
-  if (validated.display_name) updates.display_name = validated.display_name;
-  if (validated.username) {
-    const admin = createAdminSupabase();
-    if (admin) {
-      const { data: taken } = await admin
-        .from('profiles')
-        .select('id')
-        .ilike('username', validated.username)
-        .neq('id', user.id)
-        .limit(1);
-      if (taken && taken.length > 0) {
-        return reply({ error: 'Este apelido único já está em uso.' }, 409);
-      }
-    }
-    updates.username = validated.username;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return reply({ error: 'Dados inválidos.' }, 400);
   }
-  if (b.avatar) {
-    const av = cleanAvatar(b.avatar, updates.display_name || user.email || 'player');
-    updates.avatar_style = av.style;
-    updates.avatar_seed = av.seed;
-  }
-  if (!Object.keys(updates).length) return reply({ error: 'Nada para atualizar.' }, 400);
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', user.id)
-    .select('*')
-    .single();
+  const db = createAdminSupabase() ?? supabase;
+  const store = makeSupabaseProfileStore(db);
+  const res = await updateUserProfile(
+    store,
+    { id: user.id, email: user.email, user_metadata: user.user_metadata },
+    body as Record<string, unknown>,
+  );
 
-  if (error) {
-    const msg = error.message.toLowerCase();
-    if (msg.includes('duplicate') || msg.includes('unique')) {
-      return reply({ error: 'Este apelido único já está em uso.' }, 409);
-    }
-    return reply({ error: 'Não foi possível salvar seu perfil.' }, 400);
-  }
-  return reply({ profile: data });
+  if (!res.ok) return reply({ error: res.error }, res.status);
+  return reply({ profile: res.profile });
 }
 
 export async function DELETE(req: Request) {

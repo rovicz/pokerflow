@@ -1,5 +1,6 @@
 'use client';
 import { useRef } from 'react';
+import Link from 'next/link';
 import { motion } from 'motion/react';
 import type { PublicState } from '../../poker/game-types.ts';
 import { HAND_RANKINGS } from '../../poker/hands.ts';
@@ -172,21 +173,27 @@ export default function Topbar({
             !inApp &&
             (user ? (
               <div className="auth-user-pill">
-                <Avatar
-                  a={
-                    profile
-                      ? {
-                          style: (profile.avatar_style as 'lorelei') || 'lorelei',
-                          seed: profile.avatar_seed || profile.username,
-                        }
-                      : undefined
-                  }
-                  name={profile?.display_name || user.email || 'Conta'}
-                  size={22}
-                />
-                <span className="auth-user-name">
-                  {profile?.display_name || user.email?.split('@')[0]}
-                </span>
+                <Link
+                  href="/perfil"
+                  className="auth-user-link"
+                  title="Editar perfil e configurações da conta"
+                >
+                  <Avatar
+                    a={
+                      profile
+                        ? {
+                            style: (profile.avatar_style as 'lorelei') || 'lorelei',
+                            seed: profile.avatar_seed || profile.username,
+                          }
+                        : undefined
+                    }
+                    name={profile?.display_name || user.email || 'Conta'}
+                    size={22}
+                  />
+                  <span className="auth-user-name">
+                    {profile?.display_name || user.email?.split('@')[0]}
+                  </span>
+                </Link>
                 <button
                   type="button"
                   className="text-button auth-signout-btn"

@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { GameState } from '../src/poker/game-types.ts';
-import { escapeHtml, validateRegistrationInput } from '../src/auth/validation.ts';
+import {
+  escapeHtml,
+  validatePasswordChange,
+  validateProfileUpdate,
+  validateRegistrationInput,
+} from '../src/auth/validation.ts';
 import { buildConfirmUrl, renderEmailHtml } from '../src/server/email.ts';
 import { view } from '../src/poker/engine.ts';
 
@@ -97,4 +102,32 @@ test('view() nunca vaza player.userId no estado público e expõe apenas verifie
   assert.equal((pub.players[0] as Record<string, unknown>).userId, undefined);
   assert.equal(pub.players[0].verified, true);
   assert.equal(pub.players[1].verified, undefined);
+});
+
+test('validateProfileUpdate e validatePasswordChange validam campos de perfil e troca de senha', () => {
+  const pOk = validateProfileUpdate({ display_name: '  Victor Silva ', username: 'victor_sp' });
+  assert.equal(pOk.ok, true);
+  if (pOk.ok) {
+    assert.equal(pOk.display_name, 'Victor Silva');
+    assert.equal(pOk.username, 'victor_sp');
+  }
+  assert.equal(validateProfileUpdate({ display_name: 'A' }).ok, false);
+  assert.equal(validateProfileUpdate({ username: 'invalido com espaço' }).ok, false);
+
+  assert.equal(
+    validatePasswordChange({ currentPassword: '', newPassword: 'nova-senha-123' }).ok,
+    false,
+  );
+  assert.equal(
+    validatePasswordChange({ currentPassword: 'senha-atual', newPassword: '123' }).ok,
+    false,
+  );
+  assert.equal(
+    validatePasswordChange({ currentPassword: 'mesma-senha', newPassword: 'mesma-senha' }).ok,
+    false,
+  );
+  assert.equal(
+    validatePasswordChange({ currentPassword: 'senha-atual', newPassword: 'nova-senha-123' }).ok,
+    true,
+  );
 });

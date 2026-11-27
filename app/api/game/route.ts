@@ -23,14 +23,29 @@ import { createBlindSchedule } from '../../../src/poker/blinds.ts';
 import { createServerSupabase } from '../../../src/lib/supabase/server.ts';
 export const runtime = 'nodejs';
 
-async function readAuthUserId(): Promise<string | undefined> {
+async function readAuthProfile(): Promise<{
+  userId?: string;
+  avatar?: { style: string; seed: string };
+}> {
   try {
     const sb = await createServerSupabase();
-    if (!sb) return undefined;
+    if (!sb) return {};
     const { data } = await sb.auth.getUser();
-    return data.user?.id;
+    const userId = data.user?.id;
+    if (!userId) return {};
+    const { data: prof } = await sb
+      .from('profiles')
+      .select('avatar_style, avatar_seed')
+      .eq('id', userId)
+      .single();
+    return {
+      userId,
+      ...(prof?.avatar_style
+        ? { avatar: { style: prof.avatar_style, seed: prof.avatar_seed || '' } }
+        : {}),
+    };
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -101,17 +116,17 @@ export async function POST(req: Request) {
         throw Error('Configuração inválida');
       const blinds =
         blindsMode === 'fixed' ? null : createBlindSchedule(blindsMode, blindsEvery, bb);
-      const authUserId = await readAuthUserId();
+      const auth = await readAuthProfile();
       const players: Player[] = [
         {
           id,
-          ...(authUserId ? { userId: authUserId } : {}),
+          ...(auth.userId ? { userId: auth.userId } : {}),
           name,
           stack,
           cards: [],
           bet: 0,
           total: 0,
-          avatar: cleanAvatar(b.avatar, name),
+          avatar: cleanAvatar(b.avatar ?? auth.avatar, name),
         },
       ];
       for (let i = 0; i < bots; i++) {
@@ -159,12 +174,12 @@ export async function POST(req: Request) {
     const watcher = s.spectators?.find((p) => p.id === id);
     if (b.op === 'join' && !member && !watcher) {
       if (!name) throw Error('Informe seu nome');
-      const avatar = cleanAvatar(b.avatar, name);
+      const auth = await readAuthProfile();
+      const avatar = cleanAvatar(b.avatar ?? auth.avatar, name);
       if (s.phase === 'waiting' && s.players.length < 8) {
-        const authUserId = await readAuthUserId();
         s.players.push({
           id,
-          ...(authUserId ? { userId: authUserId } : {}),
+          ...(auth.userId ? { userId: auth.userId } : {}),
           name,
           stack: s.initial,
           cards: [],
@@ -190,16 +205,16 @@ export async function POST(req: Request) {
           if (s.phase !== 'waiting' || s.players.length >= 8)
             throw Error('Não há lugar livre agora.');
           s.spectators = s.spectators!.filter((p) => p.id !== id);
-          const authUserId = await readAuthUserId();
+          const auth = await readAuthProfile();
           s.players.push({
             id,
-            ...(authUserId ? { userId: authUserId } : {}),
+            ...(auth.userId ? { userId: auth.userId } : {}),
             name: watcher.name,
             stack: s.initial,
             cards: [],
             bet: 0,
             total: 0,
-            avatar: watcher.avatar,
+            avatar: watcher.avatar ?? cleanAvatar(auth.avatar, watcher.name),
           });
         }
       } else if (b.op === 'sit') throw Error('Comando inválido');

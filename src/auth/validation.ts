@@ -1,5 +1,6 @@
 export const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+export const DELETE_CONFIRM_WORD = 'EXCLUIR';
 
 export function normalizeUsername(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
@@ -31,6 +32,49 @@ export function validateRegistrationInput(input: {
     return { ok: false, error: 'A senha deve ter pelo menos 8 caracteres.' };
   }
   return { ok: true, username, email, password };
+}
+
+export function validateProfileUpdate(input: {
+  username?: unknown;
+  display_name?: unknown;
+}): { ok: true; username?: string; display_name?: string } | { ok: false; error: string } {
+  const out: { username?: string; display_name?: string } = {};
+  if (input.username !== undefined) {
+    const username = normalizeUsername(input.username);
+    if (!USERNAME_RE.test(username)) {
+      return {
+        ok: false,
+        error: 'O apelido único deve ter de 3 a 20 caracteres (apenas letras, números e _).',
+      };
+    }
+    out.username = username;
+  }
+  if (input.display_name !== undefined) {
+    const displayName = typeof input.display_name === 'string' ? input.display_name.trim() : '';
+    if (displayName.length < 2 || displayName.length > 24) {
+      return { ok: false, error: 'O nome de exibição deve ter de 2 a 24 caracteres.' };
+    }
+    out.display_name = displayName;
+  }
+  return { ok: true, ...out };
+}
+
+export function validatePasswordChange(input: {
+  currentPassword?: unknown;
+  newPassword?: unknown;
+}): { ok: true; currentPassword: string; newPassword: string } | { ok: false; error: string } {
+  const currentPassword = typeof input.currentPassword === 'string' ? input.currentPassword : '';
+  const newPassword = typeof input.newPassword === 'string' ? input.newPassword : '';
+  if (!currentPassword) {
+    return { ok: false, error: 'Informe sua senha atual.' };
+  }
+  if (newPassword.length < 8 || newPassword.length > 72) {
+    return { ok: false, error: 'A nova senha deve ter pelo menos 8 caracteres.' };
+  }
+  if (currentPassword === newPassword) {
+    return { ok: false, error: 'A nova senha deve ser diferente da senha atual.' };
+  }
+  return { ok: true, currentPassword, newPassword };
 }
 
 export function escapeHtml(str: string): string {

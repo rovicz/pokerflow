@@ -11,6 +11,7 @@ import {
 import type { SendExtra } from './use-room.ts';
 import { PlayingCard, fmt } from './table';
 import { Tip } from './ui';
+import HomeLeaderboard from './home-leaderboard';
 import { useAuth } from '../auth/use-auth';
 
 type Props = {
@@ -507,6 +508,7 @@ export default function EntryScreen({ send, pending, error, notice, setError, on
           )}
         </motion.div>
       </section>
+      {!invited && <HomeLeaderboard />}
       <footer className="landing-foot">
         <span>PokerFlow · Texas Hold’em privado entre amigos</span>
         <span>Apenas fichas virtuais</span>

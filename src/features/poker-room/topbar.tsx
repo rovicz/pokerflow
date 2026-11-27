@@ -8,7 +8,16 @@ import { MAX_BLIND_LEVEL, blindsForLevel, handsUntilNextLevel } from '../../poke
 import BrandLogo from './brand-logo';
 import Avatar from './avatar';
 import { useAuth } from '../auth/use-auth';
-import { Tip, IconSoundOn, IconSoundOff, IconGuide, IconShare, IconCheck, IconExit } from './ui';
+import {
+  Tip,
+  IconSoundOn,
+  IconSoundOff,
+  IconGuide,
+  IconShare,
+  IconCheck,
+  IconExit,
+  IconTrophy,
+} from './ui';
 
 export const phases = [
   ['preflop', 'Pré-flop'],
@@ -170,8 +179,9 @@ export default function Topbar({
         <div className="header-right">
           {!inApp && <span className="private">● Mesa privada</span>}
           {!inGame && (
-            <Link href="/ranking" className="outline auth-enter-btn" title="Ver ranking do clube">
-              Ranking
+            <Link href="/ranking" className="icon-btn topbar-link-btn" title="Ver ranking do clube">
+              <IconTrophy />
+              <span className="btn-txt">Ranking</span>
             </Link>
           )}
           {authEnabled &&

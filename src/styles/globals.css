@@ -3306,14 +3306,28 @@ main.ranking-page {
   flex-direction: column;
 }
 
+.topbar-link-btn {
+  text-decoration: none;
+  color: inherit;
+}
+
+.topbar-link-btn:visited {
+  color: inherit;
+}
+
 /* ==========================================================================
-   /perfil — Hero Banner + 2 Colunas Equilibradas (zero buracos vazios)
+   /perfil — Composição Equilibrada (Hero Banner + 2 Colunas Proporcionais)
    ========================================================================== */
+main.profile-page {
+  justify-content: center;
+}
+
 .profile-layout {
-  width: 100%;
+  width: min(1160px, 100%);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: clamp(14px, 1.6vw, 20px);
+  gap: 18px;
 }
 
 .profile-banner {
@@ -3510,19 +3524,20 @@ main.ranking-page {
 }
 
 .profile-style-tabs button.on {
-  background: var(--brand);
+  background: var(--brand-500);
   color: #fff;
 }
 
 .profile-av-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .profile-av-grid .av-opt {
   width: 100%;
-  padding: 10px 6px;
+  aspect-ratio: 1 / 1;
+  padding: 5px;
   display: grid;
   place-items: center;
 }
@@ -3610,7 +3625,7 @@ main.ranking-page {
 }
 
 .rk-tabs button.on {
-  background: var(--brand);
+  background: var(--brand-500);
   color: #fff;
 }
 
@@ -3934,6 +3949,9 @@ main.ranking-page {
   .profile-style-tabs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  .profile-av-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
   .profile-name-fields {
     grid-template-columns: 1fr;
   }
@@ -3954,5 +3972,206 @@ main.ranking-page {
   }
   .profile-signout {
     display: none;
+  }
+}
+
+/* ==========================================================================
+   Leaderboard Compacto na Home (EntryScreen)
+   ========================================================================== */
+.home-lb {
+  margin: 0 0 18px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hlb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hlb-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.hlb-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  color: #fde68a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.hlb-title h2 {
+  margin: 1px 0 0;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.hlb-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hlb-tabs {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(246, 246, 243, 0.1);
+}
+
+.hlb-tabs button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(246, 246, 243, 0.68);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.hlb-tabs button.on {
+  background: var(--brand-500);
+  color: #fff;
+}
+
+.hlb-all-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #93c5fd;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.hlb-all-link:hover {
+  color: #dbeafe;
+  text-decoration: underline;
+}
+
+.hlb-empty {
+  margin: 2px 0;
+  font-size: 13px;
+  color: rgba(246, 246, 243, 0.6);
+}
+
+.hlb-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hlb-card {
+  position: relative;
+  padding: 12px 12px 11px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(246, 246, 243, 0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.hlb-card.is-p1 {
+  border-color: rgba(251, 191, 36, 0.42);
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 0%, rgba(251, 191, 36, 0.14), transparent 70%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.hlb-card.is-me {
+  box-shadow: 0 0 0 1.5px rgba(102, 161, 255, 0.65);
+}
+
+.hlb-rank {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(246, 246, 243, 0.55);
+}
+
+.hlb-card.is-p1 .hlb-rank {
+  color: #fde68a;
+}
+
+.hlb-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  line-height: 1.2;
+}
+
+.hlb-who b {
+  font-size: 13px;
+  color: #f6f6f3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hlb-who small {
+  font-size: 11px;
+  color: rgba(246, 246, 243, 0.52);
+}
+
+.hlb-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.hlb-score strong {
+  font-size: 15px;
+  color: #93c5fd;
+  font-variant-numeric: tabular-nums;
+}
+
+.hlb-score small {
+  font-size: 10.5px;
+  color: rgba(246, 246, 243, 0.54);
+}
+
+@media (max-width: 960px) {
+  .hlb-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .hlb-grid {
+    grid-template-columns: 1fr;
+  }
+  .hlb-card {
+    flex-direction: row;
+    text-align: left;
+    padding: 10px 12px;
+  }
+  .hlb-rank {
+    position: static;
+    min-width: 24px;
+  }
+  .hlb-score {
+    margin-top: 0;
+    margin-left: auto;
   }
 }

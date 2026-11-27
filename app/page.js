@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useState,useRef} from 'react';
+import {motion, useReducedMotion} from 'motion/react';
 import Table,{PlayingCard,fmt} from './table';
 import Avatar from './avatar';
 import {AVATAR_STYLES,AVATAR_LABELS} from '../lib/avatars.mjs';
@@ -14,6 +15,7 @@ function Action({label,en,desc,kind,disabled,onClick}){return <div className="ac
 export default function Page(){
  const [name,N]=useState(''),[code,C]=useState(''),[game,G]=useState(null),[error,E]=useState(''),[now,T]=useState(Date.now()),[stack,S]=useState(2000),[bb,B]=useState(20),[seconds,D]=useState(30),[pending,P]=useState(false),[copied,Copy]=useState(false),[choice,Choose]=useState({key:'',amount:0});
  const [muted,Mute]=useState(false),prev=useRef(null),guide=useRef(null),[invited,Inv]=useState(false),[mode,Mode]=useState('create'),[saved,Saved]=useState(''),[pstyle,Pstyle]=useState('lorelei'),[seeds,Seeds]=useState(()=>mkSeeds());
+ const celebration=useRef(null), celebrated=useRef(''), reducedMotion=useReducedMotion();
  const token=useRef(''),latest=useRef(null),mutating=useRef(false),polling=useRef(false),epoch=useRef(0);
  useEffect(()=>{let t=localStorage.getItem('pf-token');if(!t){t=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');localStorage.setItem('pf-token',t)}token.current=t;const inv=(new URLSearchParams(location.search).get('room')||'').toUpperCase();C(inv);Inv(!!inv);Saved(!inv&&localStorage.getItem('pf-room')||'');N(localStorage.getItem('pf-name')||'');const m=localStorage.getItem('pf-mute')==='1';Mute(m);setMuted(m);addEventListener('pointerdown',unlock,{once:true});addEventListener('keydown',unlock,{once:true});const timer=setInterval(()=>T(Date.now()),200);return()=>clearInterval(timer)},[]);
  async function send(op,extra={},quiet=false){if(!token.current||mutating.current||(quiet&&polling.current))return;const ep=epoch.current,prev=latest.current;if(quiet)polling.current=true;else{mutating.current=true;P(true);E('')}try{const r=await fetch('/api/game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op,token:token.current,code:prev?.code||code,name,stack,bb,seconds,version:prev?.version,...extra})});const x=await r.json();if(r.status===403&&op==='state'&&ep===epoch.current&&prev?.code===latest.current?.code){exit();E('Você não está mais nesta sala.');return}if(!r.ok)throw Error(x.error||'Não foi possível concluir.');if(ep!==epoch.current||(latest.current?.code===x.code&&latest.current.version>x.version))return;latest.current=x;G(x);C(x.code);localStorage.setItem('pf-room',x.code);if(!quiet)localStorage.setItem('pf-name',name)}catch(e){if(!quiet&&ep===epoch.current)E(e.message)}finally{if(quiet)polling.current=false;else{mutating.current=false;P(false)}}}
@@ -23,6 +25,8 @@ export default function Page(){
  const raiseAllowed=!!p&&max>s.current&&(p.actedAt==null||s.current-p.actedAt>=s.minRaise)&&s.players.some(q=>!q.self&&!q.fold&&q.cards?.length&&q.stack>0),canRaise=canAct&&raiseAllowed,key=[game?.code,s?.hand,s?.phase,s?.turn,min,max].join('/'),amount=choice.key===key?Math.min(max,Math.max(min,choice.amount)):min;
  const nextLeft=Math.max(0,Math.ceil(((s?.nextHandAt??now)-now)/1000));
  const hasNext=s?.players.filter(q=>q.stack>0).length>=2;
+ const champion=s?.phase==='settled'&&s.players.filter(q=>q.stack>0).length===1?s.players.find(q=>q.stack>0):null;
+ useEffect(()=>{if(!champion||!game)return;const key=game.code+'/'+s.hand;if(celebrated.current===key)return;celebrated.current=key;celebration.current?.showModal();sfx.champion()},[game?.code,s?.hand,!!champion]);
  const choose=v=>Choose({key,amount:Math.round(Math.min(max,Math.max(min,v)))});
  const winners=Object.entries((s?.result||[]).reduce((a,r)=>{a[r.name]=(a[r.name]||0)+r.amount;return a},Object.create(null)));
 
@@ -33,6 +37,13 @@ export default function Page(){
  function leaveInvite(){Inv(false);C('');E('');history.replaceState(null,'',location.pathname)}
  function exit(){history.replaceState(null,'',location.pathname);Inv(false);Saved('');epoch.current++;latest.current=null;G(null);C('');E('');localStorage.removeItem('pf-room')}
  return <main className={s&&s.phase!=='waiting'?'in-game':''}><header><a href="/" className="brand"><span className="mark">♠</span><div>PokerFlow<i>.</i><small>PRIVATE POKER CLUB</small></div></a><div className="header-right"><span className="private">● Mesa privada</span><button className="outline" onClick={toggleMute} aria-pressed={muted}>{muted?'Som desligado':'Som ligado'}</button>{s&&<button className="outline" onClick={()=>guide.current?.showModal()}>Guia rápido</button>}{s&&<button className="outline" onClick={invite}>{copied?'✓ Convite copiado':'⤴ Convidar amigos'}</button>}{s&&<button className="outline" onClick={exit}>Sair</button>}</div></header>
+ <dialog ref={celebration} className="modal celebration" aria-labelledby="champion-title">
+ {champion&&<><motion.div className="trophy" aria-hidden="true" initial={reducedMotion?false:{scale:.3,rotate:-20}} animate={reducedMotion?{}:{scale:[.3,1.2,1],rotate:[-20,12,0]}} transition={{duration:1,type:'spring'}}>🏆</motion.div>
+ <p className="eyebrow">FIM DE PARTIDA</p><h2 id="champion-title">Temos um campeão!</h2>
+ <motion.div className="champion" initial={reducedMotion?false:{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:reducedMotion?0:.4}}>
+ <Avatar a={champion.avatar} name={champion.name} size={96}/><strong>{champion.name}</strong><span>{fmt(champion.stack)} fichas</span></motion.div>
+ <button className="primary" autoFocus onClick={()=>celebration.current?.close()}>Ver resultado da mesa</button></>}
+ </dialog>
  <dialog ref={guide} className="modal" onClick={e=>e.target===guide.current&&guide.current.close()}><div className="between"><div><div className="eyebrow">Guia rápido</div><h2>Como jogar?</h2></div><button className="outline" onClick={()=>guide.current.close()} aria-label="Fechar guia">Fechar</button></div>{GUIDE.map(([h,t])=><div className="gitem" key={h}><h3>{h}</h3><p>{t}</p></div>)}</dialog>
  {!s?<section className="landing"><div className="hero"><div className="eyebrow">● O CLUBE É SEU</div><h1>Seus amigos.<br/>Sua mesa.<br/><em>Seu jogo.</em></h1><p>Texas Hold’em privado para até oito amigos. Apenas fichas virtuais.</p><div className="hero-cards"><PlayingCard c={12} className="lg"/><PlayingCard c={25} className="lg"/></div><div className="tags"><span>02–08 jogadores</span><span>Texas Hold’em</span><span>Fichas virtuais</span></div></div><div className="panel entry">
  {invited?<>

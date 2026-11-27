@@ -772,7 +772,6 @@ export default function Table({
     const rel = (j - me + N) % N;
     if (compact && rel > 0) {
       // Mobile: adversários distribuídos com vão no topo (dealer) e na base (você), nos dois lados.
-      if (N === 2) return { x: 50, y: 28 }; // mano a mano: adversário centralizado abaixo do dealer
       const M = N - 1,
         lo = 0.62,
         hi = Math.PI - 0.75,
@@ -1060,7 +1059,7 @@ export default function Table({
           const f = isTopSeat ? 0.25 : compact ? 0.36 : 0.3;
           const b =
             j === me
-              ? { x: compact ? 70 : 63, y: compact ? 78 : 74 }
+              ? { x: compact ? 50 : 63, y: compact ? 72 : 74 } // mobile: acima das suas cartas, nunca atrás delas
               : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
           return (
             <div key={'b' + j} className="spot bet" style={at(b.x, b.y)}>

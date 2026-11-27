@@ -193,10 +193,56 @@ header {
 .brand:hover {
   opacity: 0.9;
 }
-.brand-wordmark {
-  display: block;
-  width: auto;
+
+/* Wordmark editorial PokerFlow (100% por escrito + traço SVG ancorado sob "Flow") */
+.pf-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--serif);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  user-select: none;
+  white-space: nowrap;
+}
+.pf-wordmark.pf-full {
+  font-size: 31px;
+  padding-bottom: 5px;
+}
+.pf-wordmark.pf-compact {
+  font-size: 24px;
+  padding-bottom: 4px;
+}
+.pf-wordmark.pf-watermark {
+  font-size: 72px;
+  padding-bottom: 10px;
+}
+.pf-poker {
+  color: #f6f6f3;
+}
+.pf-flow {
+  position: relative;
+  display: inline-block;
+  font-style: italic;
+  color: var(--brand-300);
+  padding-right: 0.04em;
+}
+.pf-flow-stroke {
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: -0.17em;
+  width: 104%;
+  height: 0.24em;
   overflow: visible;
+  pointer-events: none;
+}
+.pf-watermark .pf-poker,
+.pf-watermark .pf-flow {
+  color: currentColor;
+}
+.pf-watermark .pf-flow-stroke {
+  opacity: 0.65;
 }
 
 .header-right,
@@ -674,8 +720,8 @@ header.game-topbar {
   z-index: 20;
 }
 
-.game-topbar .brand-wordmark {
-  height: 26px;
+.game-topbar .pf-wordmark.pf-compact {
+  font-size: 24px;
 }
 
 .game-meta {
@@ -1637,8 +1683,8 @@ header.game-topbar {
     padding: 0 10px;
     @apply gap-[8px];
   }
-  .game-topbar .brand-wordmark {
-    height: 22px;
+  .game-topbar .pf-wordmark.pf-compact {
+    font-size: 20px;
   }
   .game-meta {
     @apply pl-[8px];

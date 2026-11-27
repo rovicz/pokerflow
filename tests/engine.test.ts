@@ -127,3 +127,48 @@ test('next hand starts after 15 seconds of unpaused time', (t) => {
     1000,
   );
 });
+
+test('expõe sbSeat e bbSeat corretamente em 2 e 3 jogadores e rotaciona entre mãos', () => {
+  const mk = (n: number): GameState => ({
+    host: 'p0',
+    initial: 500,
+    sb: 10,
+    bb: 20,
+    seconds: 30,
+    phase: 'waiting',
+    dealer: -1,
+    turn: -1,
+    hand: 0,
+    board: [],
+    result: [],
+    players: Array.from({ length: n }, (_, i) => ({
+      id: `p${i}`,
+      name: `P${i}`,
+      stack: 500,
+      cards: [],
+      bet: 0,
+      total: 0,
+    })),
+  });
+
+  // 2 jogadores (heads-up): mão 1 -> SB=0, BB=1; mão 2 -> SB=1, BB=0
+  const s2 = mk(2);
+  start(s2);
+  assert.equal(s2.sbSeat, 0);
+  assert.equal(s2.bbSeat, 1);
+  act(s2, s2.players[s2.turn].id, 'fold');
+  start(s2);
+  assert.equal(s2.sbSeat, 1);
+  assert.equal(s2.bbSeat, 0);
+
+  // 3 jogadores: mão 1 -> SB=1, BB=2; mão 2 -> SB=2, BB=0
+  const s3 = mk(3);
+  start(s3);
+  assert.equal(s3.sbSeat, 1);
+  assert.equal(s3.bbSeat, 2);
+  act(s3, s3.players[s3.turn].id, 'fold');
+  act(s3, s3.players[s3.turn].id, 'fold');
+  start(s3);
+  assert.equal(s3.sbSeat, 2);
+  assert.equal(s3.bbSeat, 0);
+});

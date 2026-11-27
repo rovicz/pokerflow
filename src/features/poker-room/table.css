@@ -38,8 +38,6 @@
 .felt-mark {
   @apply absolute left-[50%] top-[51%];
   transform: translate(-50%, -50%);
-  width: auto;
-  height: 76px;
   color: rgba(219, 233, 255, 0.08);
   @apply select-none pointer-events-none;
   z-index: 1;
@@ -539,17 +537,29 @@
   box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.28);
 }
 
-.dbtn {
-  @apply absolute right-[-10px] top-[-10px] grid;
-  place-items: center;
-  @apply w-[23px] h-[23px] rounded-[50%];
-  background: linear-gradient(145deg, #ffffff 0%, #e5e5df 100%);
-  color: #141414;
-  border: 1.5px solid #cbd5e1;
-  @apply text-[11px];
+.blind-badge {
+  @apply absolute right-[-10px] top-[-10px] inline-flex items-center justify-center;
+  min-width: 28px;
+  height: 21px;
+  padding: 0 7px;
+  border-radius: 99px;
+  font-size: 10px;
   font-weight: 800;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65);
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65);
   z-index: 3;
+}
+
+.blind-badge.is-sb {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  color: #082f49;
+  border: 1.5px solid #bae6fd;
+}
+
+.blind-badge.is-bb {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: 1.5px solid #ddd6fe;
 }
 
 .timebar-track {
@@ -686,7 +696,7 @@
 
 /* Compact / Mobile */
 .table-wrap.compact .felt-mark {
-  height: 38px;
+  font-size: 38px;
 }
 .table-wrap.compact .pc.lg {
   --w: 56px;

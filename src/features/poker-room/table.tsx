@@ -260,7 +260,7 @@ function Seat({
   s,
   self,
   active,
-  dealer,
+  blind,
   left,
   win,
   toCenter,
@@ -277,7 +277,7 @@ function Seat({
   s: PublicState;
   self: boolean;
   active: boolean;
-  dealer: boolean;
+  blind: 'SB' | 'BB' | null;
   left: number;
   win: boolean;
   toCenter: Point;
@@ -375,14 +375,18 @@ function Seat({
             <Num v={p.stack} />
           </small>
         </div>
-        {dealer && (
+        {blind && (
           <motion.span
-            layoutId="dealer"
-            className="dbtn"
-            title="Dealer (botão)"
+            layoutId={blind === 'SB' ? 'sb-badge' : 'bb-badge'}
+            className={'blind-badge ' + (blind === 'SB' ? 'is-sb' : 'is-bb')}
+            title={
+              blind === 'SB'
+                ? `Small Blind (${fmt(s.sb)} fichas)`
+                : `Big Blind (${fmt(s.bb)} fichas)`
+            }
             transition={{ type: 'spring', stiffness: 260, damping: 22 }}
           >
-            D
+            {blind}
           </motion.span>
         )}
         {active && (
@@ -593,6 +597,27 @@ export default function Table({
   const wi = winners.length ? s.players.findIndex((q) => q.name === winners[0][0]) : -1;
   const bets = s.players.reduce((a, q) => a + q.bet, 0);
   const won = winners.map((w) => w[0]);
+
+  // Índices de Small Blind (SB) e Big Blind (BB) da mão atual (com fallback para salas já iniciadas)
+  const { sbSeat, bbSeat } = useMemo(() => {
+    if (typeof s.sbSeat === 'number' && typeof s.bbSeat === 'number') {
+      return { sbSeat: s.sbSeat, bbSeat: s.bbSeat };
+    }
+    const inHand = s.players
+      .map((q, idx) => (q.cards.length > 0 ? idx : -1))
+      .filter((idx) => idx >= 0);
+    if (inHand.length < 2 || s.dealer < 0) return { sbSeat: -1, bbSeat: -1 };
+    const nextInHand = (from: number) => {
+      for (let step = 1; step <= s.players.length; step++) {
+        const idx = (from + step) % s.players.length;
+        if (s.players[idx]?.cards.length > 0) return idx;
+      }
+      return -1;
+    };
+    const sb = inHand.length === 2 ? s.dealer : nextInHand(s.dealer);
+    const bb = nextInHand(sb);
+    return { sbSeat: sb, bbSeat: bb };
+  }, [s.sbSeat, s.bbSeat, s.dealer, s.players]);
 
   // Conjuntos de cartas da combinação principal (core) + carta decisiva de desempate e kickers no showdown
   const { winCore, winKickers } = useMemo(() => {
@@ -866,7 +891,7 @@ export default function Table({
             s={s}
             self={q.self}
             active={j === s.turn}
-            dealer={j === s.dealer}
+            blind={j === sbSeat ? 'SB' : j === bbSeat ? 'BB' : null}
             left={j === s.turn ? Math.min(100, (left / s.seconds) * 100) : 0}
             win={settled && won.includes(q.name)}
             winCore={winCore}

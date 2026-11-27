@@ -67,9 +67,16 @@
   @apply text-poker-ink-dark;
 }
 
-/* Baralho e Pote */
-.deck-spot {
+/* Baralho ancorado à esquerda das cartas comunitárias e Pote centralizado */
+.deck-anchor {
+  position: absolute;
+  right: calc(100% + 24px);
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 2;
+}
+.table-wrap.compact .deck-anchor {
+  right: calc(100% + 10px);
 }
 .pot-spot {
   z-index: 3;

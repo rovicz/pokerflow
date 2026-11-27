@@ -7,6 +7,7 @@ import { AVATAR_STYLES, AVATAR_LABELS } from '../../poker/avatars.ts';
 import { BOT_DIFFICULTY_LABELS } from '../../poker/bot-ai.ts';
 import type { SendExtra } from './use-room.ts';
 import Avatar from './avatar';
+import BanVoteBanner from './ban-vote-banner';
 import { fmt } from './table';
 
 const mkSeeds = () => Array.from({ length: 8 }, () => Math.random().toString(36).slice(2, 8));
@@ -15,11 +16,14 @@ type Props = {
   s: PublicState;
   code: string;
   version: number;
+  now: number;
   pending: boolean;
   error: string;
   copied: boolean;
   invite: () => void;
   send: (op: GameOperation, extra?: SendExtra) => void;
+  mutedUids: Set<string>;
+  onTogglePlayerMute: (uid: string) => void;
 };
 
 // Sala de espera: lugares, convite, início da partida e escolha de avatar.
@@ -27,20 +31,30 @@ export default function LobbyScreen({
   s,
   code,
   version,
+  now,
   pending,
   error,
   copied,
   invite,
   send,
+  mutedUids,
+  onTogglePlayerMute,
 }: Props) {
   const reducedMotion = useReducedMotion();
   const [pstyle, setPstyle] = useState<AvatarStyle>('lorelei');
   const [seeds, setSeeds] = useState(mkSeeds);
   const p = s.players.find((q) => q.self);
   const watching = s.role === 'spectator';
+  const humanCount = s.players.filter((q) => !q.bot && !q.kicked).length;
   return (
     <div className="lobby-arena">
       <section className="panel lobby-card lobby-seats-card">
+        <BanVoteBanner
+          vote={s.banVote}
+          now={now}
+          pending={pending}
+          onVote={(targetUid, vote) => send('vote_kick', { targetUid, vote })}
+        />
         <div className="lobby-card-head">
           <div>
             <div className="eyebrow">AGUARDANDO JOGADORES</div>
@@ -94,15 +108,55 @@ export default function LobbyScreen({
                       : fmt(q.stack) + ' fichas'
                     : 'Aguardando convite'}
                 </small>
-                {s.host && q && !q.self && (
-                  <button
-                    className="outline remove-player"
-                    aria-label={'Remover ' + q.name}
-                    disabled={pending}
-                    onClick={() => send('remove', { seat: i, version })}
-                  >
-                    Remover
-                  </button>
+                {q && !q.self && (
+                  <div className="lobby-seat-actions">
+                    <button
+                      type="button"
+                      className={
+                        'outline seat-mini-btn' + (mutedUids.has(q.uid) ? ' is-muted' : '')
+                      }
+                      aria-label={
+                        (mutedUids.has(q.uid) ? 'Reativar emotes de ' : 'Silenciar emotes de ') +
+                        q.name
+                      }
+                      title={
+                        mutedUids.has(q.uid)
+                          ? 'Emotes silenciados (clique para reativar)'
+                          : 'Silenciar emotes deste jogador'
+                      }
+                      onClick={() => onTogglePlayerMute(q.uid)}
+                    >
+                      {mutedUids.has(q.uid) ? 'Silenciado' : 'Silenciar'}
+                    </button>
+                    {s.host ? (
+                      <button
+                        type="button"
+                        className="outline remove-player"
+                        aria-label={'Remover ' + q.name}
+                        disabled={pending}
+                        onClick={() => send('remove', { seat: i, version })}
+                      >
+                        Remover
+                      </button>
+                    ) : !watching && !q.bot && !q.isHost ? (
+                      <button
+                        type="button"
+                        className="outline remove-player"
+                        aria-label={'Votar para expulsar ' + q.name}
+                        disabled={pending || humanCount < 3 || !!s.banVote}
+                        title={
+                          humanCount < 3
+                            ? 'Requer pelo menos 3 jogadores humanos'
+                            : s.banVote
+                              ? 'Já existe uma votação em andamento'
+                              : 'Abrir votação para expulsar da sala'
+                        }
+                        onClick={() => send('vote_kick', { targetUid: q.uid, vote: 'yes' })}
+                      >
+                        Votar expulsão
+                      </button>
+                    ) : null}
+                  </div>
                 )}
                 {s.host && !q && s.players.length < 8 && (
                   <button

@@ -19,6 +19,7 @@ import Avatar from './avatar';
 import Zake from './zake';
 import BrandLogo from './brand-logo';
 import NotoEmoji from './noto-emoji';
+import PlayerMenu from './player-menu';
 import { sfx } from './sound';
 import { analyzeShowdown, describeHand } from '../../poker/hands.ts';
 import type { EmoteEvent } from '../../poker/emotes.ts';
@@ -332,6 +333,15 @@ function Seat({
   winKickers,
   settled,
   compact,
+  muted,
+  menuOpen,
+  onToggleMenu,
+  onCloseMenu,
+  onToggleMute,
+  canVoteKick,
+  voteKickReason,
+  onVoteKick,
+  pending,
 }: {
   p: PublicPlayer;
   j: number;
@@ -350,6 +360,15 @@ function Seat({
   winKickers: Set<number>;
   settled: boolean;
   compact: boolean;
+  muted: boolean;
+  menuOpen: boolean;
+  onToggleMenu?: () => void;
+  onCloseMenu: () => void;
+  onToggleMute?: () => void;
+  canVoteKick: boolean;
+  voteKickReason?: string;
+  onVoteKick?: () => void;
+  pending?: boolean;
 }) {
   const N = s.players.length,
     order = (j - s.dealer - 1 + N) % N;
@@ -374,7 +393,8 @@ function Seat({
         (active ? ' active' : '') +
         (p.fold ? ' folded' : '') +
         (win ? ' win' : '') +
-        (isAllIn ? ' allin' : '')
+        (isAllIn ? ' allin' : '') +
+        (menuOpen ? ' has-menu' : '')
       }
       style={at(pos.x, pos.y)}
     >
@@ -416,7 +436,23 @@ function Seat({
       </motion.div>
 
       <motion.div
-        className="plate"
+        className={'plate' + (!self && onToggleMenu ? ' is-interactive' : '')}
+        role={!self && onToggleMenu ? 'button' : undefined}
+        tabIndex={!self && onToggleMenu ? 0 : undefined}
+        aria-haspopup={!self && onToggleMenu ? 'menu' : undefined}
+        aria-expanded={!self && onToggleMenu ? menuOpen : undefined}
+        aria-label={!self && onToggleMenu ? 'Opções para ' + p.name : undefined}
+        onClick={!self && onToggleMenu ? onToggleMenu : undefined}
+        onKeyDown={
+          !self && onToggleMenu
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onToggleMenu();
+                }
+              }
+            : undefined
+        }
         initial={{ opacity: 0, scale: 0.92 }}
         animate={win ? { opacity: 1, scale: 1, y: [0, -4, 0] } : { opacity: 1, scale: 1, y: 0 }}
         transition={
@@ -433,6 +469,28 @@ function Seat({
             {p.name}
             {self ? <span className="you-tag">Você</span> : null}
             {p.bot ? <span className="bot-tag">Bot</span> : null}
+            {muted && !self ? (
+              <span
+                className="muted-tag"
+                title="Emotes deste jogador estão silenciados"
+                aria-label="Silenciado"
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <line x1="23" y1="9" x2="17" y2="15" />
+                  <line x1="17" y1="9" x2="23" y2="15" />
+                </svg>
+              </span>
+            ) : null}
           </b>
           <small className="stack-val">
             <i className="chip-dot" aria-hidden="true" />
@@ -461,18 +519,36 @@ function Seat({
       </motion.div>
 
       <div className="status">
-        {p.fold
-          ? 'Desistiu'
-          : isAllIn
-            ? 'ALL-IN'
-            : active
-              ? self
-                ? 'Sua vez'
-                : 'Pensando…'
-              : win
-                ? 'Venceu!'
-                : ''}
+        {p.kicked
+          ? 'Expulso'
+          : p.fold
+            ? 'Desistiu'
+            : isAllIn
+              ? 'ALL-IN'
+              : active
+                ? self
+                  ? 'Sua vez'
+                  : 'Pensando…'
+                : win
+                  ? 'Venceu!'
+                  : ''}
       </div>
+
+      <AnimatePresence>
+        {menuOpen && !self && onToggleMute && (
+          <PlayerMenu
+            player={p}
+            muted={muted}
+            onToggleMute={onToggleMute}
+            canVoteKick={canVoteKick}
+            voteKickReason={voteKickReason}
+            onVoteKick={onVoteKick}
+            pending={pending}
+            align={pos.y > 58 ? 'above' : 'below'}
+            onClose={onCloseMenu}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="bubble-w">
         <AnimatePresence>
@@ -517,18 +593,27 @@ export default function Table({
   winners,
   left,
   emotesMuted = false,
+  mutedUids,
+  onTogglePlayerMute,
+  onStartVoteKick,
+  pending = false,
 }: {
   s: PublicState;
   pot: number;
   winners: Winners;
   left: number;
   emotesMuted?: boolean;
+  mutedUids?: Set<string>;
+  onTogglePlayerMute?: (uid: string) => void;
+  onStartVoteKick?: (uid: string) => void;
+  pending?: boolean;
 }) {
   const wrap = useRef<HTMLDivElement>(null),
     seen = useRef(0),
     lastSeq = useRef(s.last?.seq);
   const [area, setArea] = useState({ w: 960, h: 560 });
   const [bub, setBub] = useState<Bubble | null>(null);
+  const [openMenuUid, setOpenMenuUid] = useState<string | null>(null);
   const [activeEmotes, setActiveEmotes] = useState<Record<number, EmoteEvent>>({});
   const seenEmoteSeq = useRef((s.emotes || []).reduce((m, e) => Math.max(m, e.seq), 0));
   const emoteTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
@@ -552,8 +637,10 @@ export default function Table({
     seenEmoteSeq.current = incoming.reduce((m, e) => Math.max(m, e.seq), seenEmoteSeq.current);
     let played = false;
     for (const ev of incoming) {
-      const isSelf = !!s.players[ev.seat]?.self;
-      if (emotesMuted && !isSelf) continue;
+      const sender = s.players[ev.seat];
+      const isSelf = !!sender?.self;
+      const isIndividuallyMuted = !!sender?.uid && !!mutedUids?.has(sender.uid);
+      if (!isSelf && (emotesMuted || isIndividuallyMuted)) continue;
       if (!played) {
         sfx.emote();
         played = true;
@@ -569,7 +656,25 @@ export default function Table({
         });
       }, 3200);
     }
-  }, [s.emotes, emotesMuted, s.players]);
+  }, [s.emotes, emotesMuted, mutedUids, s.players]);
+
+  // Remove imediatamente a bolha ativa se o jogador for silenciado.
+  useEffect(() => {
+    if (!mutedUids?.size) return;
+    setActiveEmotes((cur) => {
+      let changed = false;
+      const next = { ...cur };
+      for (const seatKey of Object.keys(next)) {
+        const idx = Number(seatKey);
+        const sender = s.players[idx];
+        if (sender && !sender.self && mutedUids.has(sender.uid)) {
+          delete next[idx];
+          changed = true;
+        }
+      }
+      return changed ? next : cur;
+    });
+  }, [mutedUids, s.players]);
 
   const act = (n: Mood, ms: number, say?: string) => {
     clearTimeout(mt.current);
@@ -955,32 +1060,61 @@ export default function Table({
         })}
 
         {/* Assentos dos jogadores */}
-        {s.players.map((q, j) => (
-          <Seat
-            key={j}
-            p={q}
-            j={j}
-            pos={pos[j]}
-            s={s}
-            self={q.self}
-            active={j === s.turn}
-            blind={j === sbSeat ? 'SB' : j === bbSeat ? 'BB' : null}
-            left={j === s.turn ? Math.min(100, (left / s.seconds) * 100) : 0}
-            win={settled && won.includes(q.name)}
-            winCore={winCore}
-            winKickers={winKickers}
-            settled={settled}
-            compact={compact}
-            rb={
-              s.board.length > seen.current
-                ? 0.65 + (s.board.length - seen.current) * 0.2 + 0.25
-                : 0.18
-            }
-            toCenter={vec(pos[j], { x: 50, y: 50 })}
-            bubble={bub?.seat === j ? bub : null}
-            emote={activeEmotes[j] ?? null}
-          />
-        ))}
+        {s.players.map((q, j) => {
+          const humanCount = s.players.filter((pl) => !pl.bot && !pl.kicked).length;
+          const canVoteKick =
+            !!onStartVoteKick &&
+            !q.self &&
+            !q.bot &&
+            !q.isHost &&
+            !q.kicked &&
+            humanCount >= 3 &&
+            !s.banVote;
+          const voteKickReason = s.banVote
+            ? 'Votação em andamento'
+            : humanCount < 3
+              ? 'Requer 3+ humanos'
+              : undefined;
+          return (
+            <Seat
+              key={j}
+              p={q}
+              j={j}
+              pos={pos[j]}
+              s={s}
+              self={q.self}
+              active={j === s.turn}
+              blind={j === sbSeat ? 'SB' : j === bbSeat ? 'BB' : null}
+              left={j === s.turn ? Math.min(100, (left / s.seconds) * 100) : 0}
+              win={settled && won.includes(q.name)}
+              winCore={winCore}
+              winKickers={winKickers}
+              settled={settled}
+              compact={compact}
+              muted={!!mutedUids?.has(q.uid)}
+              menuOpen={openMenuUid === q.uid}
+              onToggleMenu={
+                !q.self && onTogglePlayerMute
+                  ? () => setOpenMenuUid((cur) => (cur === q.uid ? null : q.uid))
+                  : undefined
+              }
+              onCloseMenu={() => setOpenMenuUid(null)}
+              onToggleMute={onTogglePlayerMute ? () => onTogglePlayerMute(q.uid) : undefined}
+              canVoteKick={canVoteKick}
+              voteKickReason={voteKickReason}
+              onVoteKick={onStartVoteKick ? () => onStartVoteKick(q.uid) : undefined}
+              pending={pending}
+              rb={
+                s.board.length > seen.current
+                  ? 0.65 + (s.board.length - seen.current) * 0.2 + 0.25
+                  : 0.18
+              }
+              toCenter={vec(pos[j], { x: 50, y: 50 })}
+              bubble={bub?.seat === j ? bub : null}
+              emote={activeEmotes[j] ?? null}
+            />
+          );
+        })}
       </div>
 
       {/* Dealer Zake renderizado fora do transform: scale() da mesa para nitidez vetorial 1:1 */}

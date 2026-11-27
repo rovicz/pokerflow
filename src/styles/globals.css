@@ -1976,3 +1976,192 @@ header.game-topbar {
     display: none;
   }
 }
+
+/* ==========================================================================
+   Moderação: Banner de Votação de Expulsão e Ações no Lobby
+   ========================================================================== */
+.ban-vote-banner {
+  position: relative;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(28, 22, 28, 0.96) 0%, rgba(18, 16, 22, 0.98) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.36);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.52),
+    0 0 0 1px rgba(239, 68, 68, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.table-area > .ban-vote-banner {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: min(500px, calc(100% - 20px));
+}
+
+.lobby-seats-card > .ban-vote-banner {
+  margin-bottom: 12px;
+}
+
+.bvb-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bvb-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #f6f6f3;
+  flex-wrap: wrap;
+}
+
+.bvb-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.38);
+}
+
+.bvb-timer {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(246, 246, 243, 0.68);
+  font-variant-numeric: tabular-nums;
+}
+
+.bvb-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bvb-bar {
+  flex: 0 1 110px;
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.bvb-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #ef4444, #f97316);
+  transition: width 0.22s ease;
+}
+
+.bvb-progress-row small {
+  font-size: 11px;
+  color: rgba(246, 246, 243, 0.72);
+  white-space: nowrap;
+}
+
+.bvb-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.bvb-btn {
+  padding: 6px 11px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    opacity 0.14s ease;
+}
+
+.bvb-btn.is-yes {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.48);
+  color: #fecaca;
+}
+
+.bvb-btn.is-yes:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.34);
+}
+
+.bvb-btn.is-no {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(246, 246, 243, 0.18);
+  color: #f6f6f3;
+}
+
+.bvb-btn.is-no:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.bvb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bvb-status {
+  font-size: 11.5px;
+  color: rgba(246, 246, 243, 0.72);
+  white-space: nowrap;
+}
+
+.lobby-seat-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.lobby-seat-actions .remove-player,
+.lobby-seat-actions .seat-mini-btn {
+  margin-top: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+.seat-mini-btn.is-muted {
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+@media (max-width: 680px) {
+  .table-area > .ban-vote-banner {
+    top: 4px;
+    width: calc(100% - 10px);
+    padding: 7px 10px;
+    gap: 8px;
+  }
+  .bvb-title {
+    font-size: 11.5px;
+    gap: 5px;
+  }
+  .bvb-bar {
+    flex: 0 1 68px;
+  }
+  .bvb-btn {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+}

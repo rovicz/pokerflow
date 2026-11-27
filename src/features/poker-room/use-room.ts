@@ -17,6 +17,8 @@ export type SendExtra = {
   type?: string;
   amount?: number;
   seat?: number;
+  targetUid?: string;
+  vote?: 'yes' | 'no';
   avatar?: { style: AvatarStyle; seed: string };
 };
 export type Connection = 'ok' | 'offline';
@@ -114,9 +116,11 @@ export function useRoom() {
           return exit('Esta sala não existe mais. Ela pode ter expirado por inatividade.');
         if (r.status === 403)
           return exit(
-            body && typeof body === 'object' && 'removed' in body
-              ? 'Você foi removido da sala pelo anfitrião.'
-              : 'Você não está mais nesta sala.',
+            body && typeof body === 'object' && 'banned' in body && body.banned
+              ? 'Você foi expulso desta sala por votação.'
+              : body && typeof body === 'object' && 'removed' in body
+                ? 'Você foi removido da sala pelo anfitrião.'
+                : 'Você não está mais nesta sala.',
           );
       }
       if (!r.ok) throw Error(errorOf(body, 'Não foi possível concluir.'));
@@ -166,14 +170,17 @@ export function useRoom() {
       if (!g) return;
       const t = Date.now() + offset.current;
       const s = g.state;
-      const due =
-        s.botActAt ??
-        s.deadline ??
-        (s.phase === 'settled' &&
+      const dueCandidates = [
+        s.botActAt,
+        s.deadline,
+        s.banVote?.expiresAt,
+        s.phase === 'settled' &&
         s.pausedFor == null &&
-        s.players.filter((q) => q.stack > 0).length >= 2
+        s.players.filter((q) => !q.kicked && q.stack > 0).length >= 2
           ? s.nextHandAt
-          : null);
+          : null,
+      ].filter((v): v is number => typeof v === 'number');
+      const due = dueCandidates.length ? Math.min(...dueCandidates) : null;
       if (!socket.current || ++n % 20 === 0) void send('state', {}, true);
       else if (due != null && t >= due + 80 && Date.now() - asked.current > 450) {
         asked.current = Date.now();

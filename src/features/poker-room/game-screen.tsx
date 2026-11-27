@@ -7,6 +7,7 @@ import { HAND_RANKINGS, analyzeShowdown, describeHand } from '../../poker/hands.
 import type { SendExtra } from './use-room.ts';
 import Table, { fmt } from './table';
 import EmotePicker from './emote-picker';
+import BanVoteBanner from './ban-vote-banner';
 import Avatar from './avatar';
 import { ActionButton, MiniCard, Tip } from './ui';
 import { sfx } from './sound';
@@ -20,6 +21,8 @@ type Props = {
   sendEmote: (e: EmoteId) => void;
   emotesMuted: boolean;
   onToggleEmotesMute: () => void;
+  mutedUids: Set<string>;
+  onTogglePlayerMute: (uid: string) => void;
   onLeave: () => void;
 };
 
@@ -33,6 +36,8 @@ export default function GameScreen({
   sendEmote,
   emotesMuted,
   onToggleEmotesMute,
+  mutedUids,
+  onTogglePlayerMute,
   onLeave,
 }: Props) {
   const reducedMotion = useReducedMotion();
@@ -63,7 +68,7 @@ export default function GameScreen({
   const rangePct =
     max > min ? Math.min(100, Math.max(0, ((amount - min) / (max - min)) * 100)) : 100;
   const nextLeft = Math.max(0, Math.ceil(((s.nextHandAt ?? now) - now) / 1000));
-  const hasNext = s.players.filter((q) => q.stack > 0).length >= 2;
+  const hasNext = s.players.filter((q) => !q.kicked && q.stack > 0).length >= 2;
   const winners = Object.entries(
     s.result.reduce<Record<string, number>>((a, r) => {
       a[r.name] = (a[r.name] || 0) + r.amount;
@@ -100,7 +105,7 @@ export default function GameScreen({
     const L = s.last;
     if (!L?.auto) return;
     const who = s.players[L.seat];
-    if (!who) return;
+    if (!who || who.kicked) return;
     setToast(
       (who.self ? 'Você perdeu' : who.name + ' perdeu') +
         ' a vez (tempo esgotado) e ' +
@@ -109,6 +114,21 @@ export default function GameScreen({
     const t = setTimeout(() => setToast(''), 4000);
     return () => clearTimeout(t);
   }, [s.last?.seq]);
+
+  // Aviso de resultado da votação de expulsão.
+  useEffect(() => {
+    const vn = s.voteNotice;
+    if (!vn || now - vn.at > 8000) return;
+    setToast(
+      vn.kind === 'banned'
+        ? `${vn.targetName} foi expulso da sala por votação.`
+        : vn.kind === 'rejected'
+          ? `A votação para expulsar ${vn.targetName} foi rejeitada.`
+          : `A votação para expulsar ${vn.targetName} expirou.`,
+    );
+    const t = setTimeout(() => setToast(''), 4500);
+    return () => clearTimeout(t);
+  }, [s.voteNotice?.seq]);
 
   // Atalhos de teclado na vez do jogador (F = Fold, C = Check/Call, R = Raise/Bet, A = All-in)
   useEffect(() => {
@@ -140,7 +160,25 @@ export default function GameScreen({
   return (
     <div className="arena">
       <div className="table-area">
-        <Table s={s} pot={pot} winners={winners} left={left} emotesMuted={emotesMuted} />
+        <BanVoteBanner
+          vote={s.banVote}
+          now={now}
+          pending={pending}
+          onVote={(targetUid, vote) => send('vote_kick', { targetUid, vote })}
+        />
+        <Table
+          s={s}
+          pot={pot}
+          winners={winners}
+          left={left}
+          emotesMuted={emotesMuted}
+          mutedUids={mutedUids}
+          onTogglePlayerMute={onTogglePlayerMute}
+          onStartVoteKick={
+            !watching ? (targetUid) => send('vote_kick', { targetUid, vote: 'yes' }) : undefined
+          }
+          pending={pending}
+        />
         {toast && (
           <p className="toast" role="status">
             {toast}

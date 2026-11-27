@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PublicState } from '../../poker/game-types.ts';
 import { setMuted, unlock, playTransition, sfx } from './sound';
 import { useRoom } from './use-room';
+import { useMutedPlayers } from './use-muted-players';
 import Topbar from './topbar';
 import ChampionDialog from './champion-dialog';
 import EntryScreen from './entry-screen';
@@ -12,6 +13,7 @@ import GameScreen from './game-screen';
 // Coordena a sala: sessão e rede (useRoom), preferências de som, convite, celebração e a tela certa para cada fase.
 export default function Page() {
   const { game, error, setError, notice, conn, pending, now, send, sendEmote, leave } = useRoom();
+  const { mutedUids, toggleMute: togglePlayerMute } = useMutedPlayers(game?.code);
   const [muted, setMutedState] = useState(false);
   const [emotesMuted, setEmotesMuted] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -32,8 +34,8 @@ export default function Page() {
   const inGame = !!s && s.phase !== 'waiting';
   const inLobby = !!s && s.phase === 'waiting';
   const champion =
-    s?.phase === 'settled' && s.players.filter((q) => q.stack > 0).length === 1
-      ? s.players.find((q) => q.stack > 0)
+    s?.phase === 'settled' && s.players.filter((q) => !q.kicked && q.stack > 0).length === 1
+      ? s.players.find((q) => !q.kicked && q.stack > 0)
       : null;
 
   useEffect(() => {
@@ -110,11 +112,14 @@ export default function Page() {
           s={s}
           code={game.code}
           version={game.version}
+          now={now}
           pending={pending}
           error={error}
           copied={copied}
           invite={invite}
           send={send}
+          mutedUids={mutedUids}
+          onTogglePlayerMute={togglePlayerMute}
         />
       ) : game ? (
         <GameScreen
@@ -126,6 +131,8 @@ export default function Page() {
           sendEmote={sendEmote}
           emotesMuted={emotesMuted}
           onToggleEmotesMute={toggleEmotesMute}
+          mutedUids={mutedUids}
+          onTogglePlayerMute={togglePlayerMute}
           onLeave={leave}
         />
       ) : null}

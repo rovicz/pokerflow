@@ -14,7 +14,7 @@
 .felt-mark { font: 400 clamp(26px, 6vw, 76px) / 1 var(--serif); color: rgba(246, 246, 243, .1); letter-spacing: -.02em; user-select: none; }
 
 .spot { position: absolute; transform: translate(-50%, -50%); z-index: 2; display: flex; flex-direction: column; align-items: center; }
-.board { flex-direction: row; gap: 7px; z-index: 3; }
+.board { --w: 56px; --h: 78px; flex-direction: row; gap: 7px; z-index: 3; }
 .slot { position: relative; width: var(--w); height: var(--h); border: 1px dashed rgba(246, 246, 243, .3); border-radius: 5px; }
 .slot .pc { position: absolute; inset: -1px; }
 .winners { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 70%; z-index: 4; }
@@ -82,7 +82,7 @@
   .pc.md { --w: 40px; --h: 56px; }
   .pc.lg { --w: 46px; --h: 64px; }
   .pc.sm { --w: 28px; --h: 39px; }
-  .board { gap: 3px; }
+  .board { --w: 40px; --h: 56px; gap: 3px; }
   .plate { min-width: 0; padding: 4px 6px; gap: 5px; }
   .avatar { width: 22px; height: 22px; font-size: 11px; }
   .who b { font-size: 10px; max-width: 58px; }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import type { UserProfile, UserStats } from '../src/auth/validation.ts';
 import {
   getOrHealProfile,
+  mapProfileDbError,
   updateUserProfile,
   type ProfileStore,
 } from '../src/server/profile-service.ts';
@@ -11,9 +12,11 @@ function makeMemoryProfileStore(initial: UserProfile[] = []): {
   store: ProfileStore;
   profiles: Map<string, UserProfile>;
   stats: Map<string, UserStats>;
+  calls: { updates: number; inserts: number };
 } {
   const profiles = new Map<string, UserProfile>(initial.map((p) => [p.id, { ...p }]));
   const stats = new Map<string, UserStats>();
+  const calls = { updates: 0, inserts: 0 };
 
   const store: ProfileStore = {
     async findProfile(userId) {
@@ -29,18 +32,29 @@ function makeMemoryProfileStore(initial: UserProfile[] = []): {
       }
       return false;
     },
-    async upsertProfile(row) {
-      const prev = profiles.get(row.id);
+    async updateProfile(userId, fields) {
+      calls.updates++;
+      const prev = profiles.get(userId);
+      if (!prev) return { data: null, error: 'not found', code: 'PGRST116' };
+      const saved: UserProfile = {
+        ...prev,
+        ...fields,
+      };
+      profiles.set(userId, saved);
+      return { data: saved, error: null, code: null };
+    },
+    async insertProfile(row) {
+      calls.inserts++;
       const saved: UserProfile = {
         id: row.id,
         username: row.username,
         display_name: row.display_name,
         avatar_style: row.avatar_style,
         avatar_seed: row.avatar_seed,
-        role: prev?.role ?? 'player',
+        role: 'player',
       };
       profiles.set(row.id, saved);
-      return { data: saved, error: null };
+      return { data: saved, error: null, code: null };
     },
     async ensureStats(userId) {
       if (!stats.has(userId)) {
@@ -55,12 +69,12 @@ function makeMemoryProfileStore(initial: UserProfile[] = []): {
       }
     },
   };
-  return { store, profiles, stats };
+  return { store, profiles, stats, calls };
 }
 
-test('updateUserProfile salva perfil existente mantendo o próprio username e atualizando nome e avatar', async () => {
+test('updateUserProfile usa UPDATE direto para perfil existente e preserva role', async () => {
   const userId = '890eaad1-f7ec-4dff-9d28-84ef140c64f1';
-  const { store } = makeMemoryProfileStore([
+  const { store, calls } = makeMemoryProfileStore([
     {
       id: userId,
       username: 'rovicz',
@@ -77,25 +91,27 @@ test('updateUserProfile salva perfil existente mantendo o próprio username e at
     {
       display_name: 'victor',
       username: 'rovicz',
-      avatar: { style: 'adventurer', seed: 'z5rwg6' },
+      avatar: { style: 'adventurer', seed: 'owucrp' },
+      role: 'admin',
     },
   );
 
   assert.equal(res.ok, true);
+  assert.equal(calls.updates, 1);
+  assert.equal(calls.inserts, 0);
   if (res.ok) {
     assert.equal(res.profile.display_name, 'victor');
     assert.equal(res.profile.username, 'rovicz');
     assert.equal(res.profile.avatar_style, 'adventurer');
-    assert.equal(res.profile.avatar_seed, 'z5rwg6');
+    assert.equal(res.profile.avatar_seed, 'owucrp');
     assert.equal(res.profile.role, 'player');
   }
 });
 
-test('updateUserProfile e getOrHealProfile criam automaticamente linha ausente em profiles e player_stats', async () => {
+test('updateUserProfile e getOrHealProfile usam INSERT quando a linha ainda não existe', async () => {
   const userId = '11111111-2222-3333-4444-555555555555';
-  const { store, profiles, stats } = makeMemoryProfileStore([]);
+  const { store, profiles, stats, calls } = makeMemoryProfileStore([]);
 
-  // Conta criada antes da migration (sem linha em profiles): PATCH faz upsert e cria stats
   const res = await updateUserProfile(
     store,
     { id: userId, email: 'novo@example.com', user_metadata: { username: 'rovicz' } },
@@ -106,10 +122,11 @@ test('updateUserProfile e getOrHealProfile criam automaticamente linha ausente e
     },
   );
   assert.equal(res.ok, true);
+  assert.equal(calls.inserts, 1);
+  assert.equal(calls.updates, 0);
   assert.ok(profiles.has(userId));
   assert.ok(stats.has(userId));
 
-  // GET em outra conta sem linha também cura automaticamente
   const user2 = '99999999-2222-3333-4444-555555555555';
   const healed = await getOrHealProfile(store, {
     id: user2,
@@ -121,7 +138,7 @@ test('updateUserProfile e getOrHealProfile criam automaticamente linha ausente e
   assert.ok(healed.stats);
 });
 
-test('updateUserProfile bloqueia username duplicado de outro usuário (409) e preserva role contra escalada', async () => {
+test('updateUserProfile bloqueia username duplicado de outro usuário (409) e mapProfileDbError mapeia códigos Postgres/PostgREST', async () => {
   const { store } = makeMemoryProfileStore([
     {
       id: 'user-a',
@@ -149,12 +166,10 @@ test('updateUserProfile bloqueia username duplicado de outro usuário (409) e pr
   assert.equal(conflict.ok, false);
   if (!conflict.ok) assert.equal(conflict.status, 409);
 
-  // Tentar enviar role: 'admin' no body é ignorado
-  const safe = await updateUserProfile(
-    store,
-    { id: 'user-b' },
-    { display_name: 'Outro Nome', role: 'admin' },
-  );
-  assert.equal(safe.ok, true);
-  if (safe.ok) assert.equal(safe.profile.role, 'player');
+  assert.equal(mapProfileDbError('42P01', 'relation does not exist').status, 503);
+  assert.equal(mapProfileDbError('PGRST205', 'table not found').status, 503);
+  assert.equal(mapProfileDbError('PGRST204', 'column not found').status, 503);
+  assert.equal(mapProfileDbError('42501', 'rls violation').status, 403);
+  assert.equal(mapProfileDbError('23505', 'duplicate key').status, 409);
+  assert.equal(mapProfileDbError('23514', 'check violation').status, 400);
 });

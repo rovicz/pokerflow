@@ -1,6 +1,12 @@
 import { createAdminSupabase } from '../../../../src/server/supabase-admin.ts';
+import { createServerSupabase } from '../../../../src/lib/supabase/server.ts';
 import { allow } from '../../../../src/server/rate-limit.ts';
-import { buildConfirmUrl, sendConfirmationEmail } from '../../../../src/server/email.ts';
+import {
+  appOrigin,
+  buildConfirmUrl,
+  EmailDeliveryError,
+  sendConfirmationEmail,
+} from '../../../../src/server/email.ts';
 import { EMAIL_RE, normalizeEmail } from '../../../../src/auth/validation.ts';
 
 export const runtime = 'nodejs';
@@ -33,8 +39,35 @@ export async function POST(req: Request) {
         (data.user?.user_metadata?.display_name as string | undefined) ||
         (data.user?.user_metadata?.username as string | undefined) ||
         'jogador';
-      const confirmUrl = buildConfirmUrl(data.properties.hashed_token, 'signup');
-      await sendConfirmationEmail(email, displayName, confirmUrl);
+      const confirmUrl = buildConfirmUrl(data.properties.hashed_token, 'magiclink');
+      try {
+        await sendConfirmationEmail(email, displayName, confirmUrl);
+      } catch (err) {
+        if (
+          err instanceof EmailDeliveryError &&
+          (err.code === 'domain_unverified' || err.code === 'missing_config')
+        ) {
+          const supabase = await createServerSupabase();
+          const fb = supabase
+            ? await supabase.auth.resend({
+                type: 'signup',
+                email,
+                options: {
+                  emailRedirectTo: `${appOrigin()}/auth/confirm?next=/?auth=confirmed`,
+                },
+              })
+            : { error: { message: 'Supabase anon client indisponível.' } };
+          if (fb.error) {
+            console.error('[auth:resend] Fallback Supabase falhou:', fb.error.message);
+            return reply(
+              { error: 'Não foi possível reenviar o e-mail agora. Tente novamente em instantes.' },
+              502,
+            );
+          }
+        } else {
+          throw err;
+        }
+      }
     }
 
     return reply({ ok: true });

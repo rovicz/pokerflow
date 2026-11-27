@@ -640,275 +640,275 @@ export default function Table({
 
   return (
     <>
-    <div
-      className={'table-wrap' + (compact ? ' compact' : '')}
-      ref={wrap}
-      style={{ width: dim.w, height: dim.h, transform: `translate(-50%,-50%) scale(${scale})` }}
-    >
-      <svg className="tableshape" width={dim.w} height={dim.h} aria-hidden="true">
-        <defs>
-          <linearGradient id="railg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#353842" />
-            <stop offset=".45" stopColor="#1b1d24" />
-            <stop offset="1" stopColor="#0d0e12" />
-          </linearGradient>
-          <linearGradient id="railRim" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="rgba(255,255,255,0.22)" />
-            <stop offset=".5" stopColor="rgba(255,255,255,0.06)" />
-            <stop offset="1" stopColor="rgba(255,255,255,0.14)" />
-          </linearGradient>
-          <radialGradient id="feltg" cx=".5" cy=".36" r=".72">
-            <stop offset="0" stopColor="#0e58f2" />
-            <stop offset=".45" stopColor="#0832a8" />
-            <stop offset=".85" stopColor="#051a6b" />
-            <stop offset="1" stopColor="#031047" />
-          </radialGradient>
-          <radialGradient id="feltGlow" cx=".5" cy=".48" r=".55">
-            <stop offset="0" stopColor="rgba(102, 161, 255, 0.22)" />
-            <stop offset="1" stopColor="rgba(102, 161, 255, 0)" />
-          </radialGradient>
-          <pattern id="feltGrain" width="6" height="6" patternUnits="userSpaceOnUse">
-            <circle cx="1.5" cy="1.5" r=".6" fill="rgba(255,255,255,0.035)" />
-            <circle cx="4.5" cy="4.5" r=".5" fill="rgba(0,0,0,0.05)" />
-          </pattern>
-        </defs>
-        {/* Rail externo */}
-        <path
-          d={shape(X0, X1, Y0, Y1, G.nd, G.nw, G.sh)}
-          fill="url(#railg)"
-          stroke="url(#railRim)"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        {/* Borda interna do rail (sombra) */}
-        <path
-          d={shape(
-            X0 + G.pad - 3,
-            X1 - G.pad + 3,
-            Y0 + G.pad - 3,
-            Y1 - G.pad + 3,
-            G.nd,
-            G.nw + G.pad - 3,
-            G.sh,
-          )}
-          fill="#040b2a"
-        />
-        {/* Feltro principal */}
-        <path
-          d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
-          fill="url(#feltg)"
-          stroke="rgba(143, 184, 255, .28)"
-          strokeWidth="1.2"
-          strokeLinejoin="round"
-        />
-        {/* Textura + iluminação central do feltro */}
-        <path
-          d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
-          fill="url(#feltGrain)"
-          strokeLinejoin="round"
-        />
-        <path
-          d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
-          fill="url(#feltGlow)"
-          strokeLinejoin="round"
-        />
-        {/* Linha de apostas interna */}
-        <path
-          d={shape(
-            X0 + G.pad * 2.35,
-            X1 - G.pad * 2.35,
-            Y0 + G.pad * 2.35,
-            Y1 - G.pad * 2.35,
-            G.nd,
-            G.nw + G.pad * 1.9,
-            G.sh,
-          )}
-          fill="none"
-          stroke="rgba(219, 233, 255, .18)"
-          strokeWidth="1.2"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <div
+        className={'table-wrap' + (compact ? ' compact' : '')}
+        ref={wrap}
+        style={{ width: dim.w, height: dim.h, transform: `translate(-50%,-50%) scale(${scale})` }}
+      >
+        <svg className="tableshape" width={dim.w} height={dim.h} aria-hidden="true">
+          <defs>
+            <linearGradient id="railg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#353842" />
+              <stop offset=".45" stopColor="#1b1d24" />
+              <stop offset="1" stopColor="#0d0e12" />
+            </linearGradient>
+            <linearGradient id="railRim" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="rgba(255,255,255,0.22)" />
+              <stop offset=".5" stopColor="rgba(255,255,255,0.06)" />
+              <stop offset="1" stopColor="rgba(255,255,255,0.14)" />
+            </linearGradient>
+            <radialGradient id="feltg" cx=".5" cy=".36" r=".72">
+              <stop offset="0" stopColor="#0e58f2" />
+              <stop offset=".45" stopColor="#0832a8" />
+              <stop offset=".85" stopColor="#051a6b" />
+              <stop offset="1" stopColor="#031047" />
+            </radialGradient>
+            <radialGradient id="feltGlow" cx=".5" cy=".48" r=".55">
+              <stop offset="0" stopColor="rgba(102, 161, 255, 0.22)" />
+              <stop offset="1" stopColor="rgba(102, 161, 255, 0)" />
+            </radialGradient>
+            <pattern id="feltGrain" width="6" height="6" patternUnits="userSpaceOnUse">
+              <circle cx="1.5" cy="1.5" r=".6" fill="rgba(255,255,255,0.035)" />
+              <circle cx="4.5" cy="4.5" r=".5" fill="rgba(0,0,0,0.05)" />
+            </pattern>
+          </defs>
+          {/* Rail externo */}
+          <path
+            d={shape(X0, X1, Y0, Y1, G.nd, G.nw, G.sh)}
+            fill="url(#railg)"
+            stroke="url(#railRim)"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+          {/* Borda interna do rail (sombra) */}
+          <path
+            d={shape(
+              X0 + G.pad - 3,
+              X1 - G.pad + 3,
+              Y0 + G.pad - 3,
+              Y1 - G.pad + 3,
+              G.nd,
+              G.nw + G.pad - 3,
+              G.sh,
+            )}
+            fill="#040b2a"
+          />
+          {/* Feltro principal */}
+          <path
+            d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
+            fill="url(#feltg)"
+            stroke="rgba(143, 184, 255, .28)"
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+          />
+          {/* Textura + iluminação central do feltro */}
+          <path
+            d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
+            fill="url(#feltGrain)"
+            strokeLinejoin="round"
+          />
+          <path
+            d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
+            fill="url(#feltGlow)"
+            strokeLinejoin="round"
+          />
+          {/* Linha de apostas interna */}
+          <path
+            d={shape(
+              X0 + G.pad * 2.35,
+              X1 - G.pad * 2.35,
+              Y0 + G.pad * 2.35,
+              Y1 - G.pad * 2.35,
+              G.nd,
+              G.nw + G.pad * 1.9,
+              G.sh,
+            )}
+            fill="none"
+            stroke="rgba(219, 233, 255, .18)"
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+          />
+        </svg>
 
-      <BrandLogo variant="watermark" className="felt-mark" />
+        <BrandLogo variant="watermark" className="felt-mark" />
 
-      {/* Pote centralizado na linha superior */}
-      <div className="spot pot-spot" style={at(potPos.x, potPos.y)}>
-        <ChipStack
-          amount={settled ? 0 : Math.max(0, pot - bets)}
-          from={{ x: 0, y: -14 }}
-          to={settled && wi >= 0 ? vec(potPos, pos[wi]) : { x: 0, y: 0 }}
-        />
-        <motion.div
-          key={displayPot}
-          className={'pot-pill' + (displayPot > 0 ? ' has-pot' : '')}
-          initial={{ scale: 0.94 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 360, damping: 22 }}
-        >
-          <span className="pot-label">Pote</span>
-          <strong className="pot-val">{fmt(displayPot)}</strong>
-        </motion.div>
-      </div>
-
-      {/* Cartas comunitárias (Board) com baralho ancorado à esquerda */}
-      <div className="spot board" style={at(50, compact ? 52 : 50)}>
-        <div className="deck-anchor">
+        {/* Pote centralizado na linha superior */}
+        <div className="spot pot-spot" style={at(potPos.x, potPos.y)}>
+          <ChipStack
+            amount={settled ? 0 : Math.max(0, pot - bets)}
+            from={{ x: 0, y: -14 }}
+            to={settled && wi >= 0 ? vec(potPos, pos[wi]) : { x: 0, y: 0 }}
+          />
           <motion.div
-            key={s.hand}
-            className="deck pc deck-sz"
-            initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
-            animate={{ rotate: 0, scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 240, damping: 20 }}
+            key={displayPot}
+            className={'pot-pill' + (displayPot > 0 ? ' has-pot' : '')}
+            initial={{ scale: 0.94 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 360, damping: 22 }}
           >
-            <div className="pc-back" style={{ transform: 'translate(-4px,-4px)' }} />
-            <div className="pc-back" style={{ transform: 'translate(-2px,-2px)' }} />
-            <div id="deck" className="pc-back" />
+            <span className="pot-label">Pote</span>
+            <strong className="pot-val">{fmt(displayPot)}</strong>
           </motion.div>
         </div>
-        {[0, 1, 2, 3, 4].map((i) => {
-          const card = s.board[i];
-          const hasShowdown = settled && s.reveal && card != null && winCore.size > 0;
-          const isWinCard = hasShowdown && winCore.has(card);
-          const isKickerCard = hasShowdown && !isWinCard && winKickers.has(card);
-          const isDimCard = hasShowdown && !isWinCard && !isKickerCard;
+
+        {/* Cartas comunitárias (Board) com baralho ancorado à esquerda */}
+        <div className="spot board" style={at(50, compact ? 52 : 50)}>
+          <div className="deck-anchor">
+            <motion.div
+              key={s.hand}
+              className="deck pc deck-sz"
+              initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
+              animate={{ rotate: 0, scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 20 }}
+            >
+              <div className="pc-back" style={{ transform: 'translate(-4px,-4px)' }} />
+              <div className="pc-back" style={{ transform: 'translate(-2px,-2px)' }} />
+              <div id="deck" className="pc-back" />
+            </motion.div>
+          </div>
+          {[0, 1, 2, 3, 4].map((i) => {
+            const card = s.board[i];
+            const hasShowdown = settled && s.reveal && card != null && winCore.size > 0;
+            const isWinCard = hasShowdown && winCore.has(card);
+            const isKickerCard = hasShowdown && !isWinCard && winKickers.has(card);
+            const isDimCard = hasShowdown && !isWinCard && !isKickerCard;
+            return (
+              <div className={'slot' + (card != null ? ' filled' : '')} key={i}>
+                {card != null && (
+                  <PlayingCard
+                    key={s.hand + '-' + i}
+                    c={card}
+                    delay={Math.max(0, i - seen.current) * 0.08}
+                    flipDelay={0.1 + Math.max(0, i - seen.current) * 0.13}
+                    className="md"
+                    highlight={isWinCard}
+                    kicker={isKickerCard}
+                    dim={isDimCard}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Banner de vencedores em zona limpa entre o board e o jogador */}
+        <div className="spot winners-spot" style={at(50, compact ? 65.5 : 64)}>
+          <AnimatePresence>
+            {settled && winners.length > 0 && (
+              <motion.div
+                key={'win-' + s.hand}
+                className="winners"
+                initial={{ opacity: 0, y: 10, scale: 0.88 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.92 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+              >
+                {winners.map(([n, v]) => {
+                  const wp = s.players.find((q) => q.name === n);
+                  const h = s.reveal ? wp?.hand : null;
+                  return (
+                    <span key={n} className="winner-chip">
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                      </svg>
+                      <strong>{n}</strong>
+                      <b className="win-amt">+{fmt(v)}</b>
+                      <em className="win-hand">{h ? describeHand(h) : 'Por desistência'}</em>
+                    </span>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Apostas na mesa por jogador */}
+        {s.players.map((q, j) => {
+          const isTopSeat = j !== me && pos[j].y < 32;
+          const f = isTopSeat ? (compact ? 0.22 : 0.25) : compact ? 0.24 : 0.3;
+          const b =
+            j === me
+              ? { x: compact ? 69 : 63, y: 74 }
+              : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
           return (
-            <div className={'slot' + (card != null ? ' filled' : '')} key={i}>
-              {card != null && (
-                <PlayingCard
-                  key={s.hand + '-' + i}
-                  c={card}
-                  delay={Math.max(0, i - seen.current) * 0.08}
-                  flipDelay={0.1 + Math.max(0, i - seen.current) * 0.13}
-                  className="md"
-                  highlight={isWinCard}
-                  kicker={isKickerCard}
-                  dim={isDimCard}
-                />
-              )}
+            <div key={'b' + j} className="spot bet" style={at(b.x, b.y)}>
+              <ChipStack amount={q.bet} from={vec(b, pos[j])} to={toPot(b)} />
+              <AnimatePresence>
+                {q.bet > 0 && (
+                  <motion.span
+                    key={q.bet}
+                    className="amt"
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    {fmt(q.bet)}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}
+
+        {/* Assentos dos jogadores */}
+        {s.players.map((q, j) => (
+          <Seat
+            key={j}
+            p={q}
+            j={j}
+            pos={pos[j]}
+            s={s}
+            self={q.self}
+            active={j === s.turn}
+            dealer={j === s.dealer}
+            left={j === s.turn ? Math.min(100, (left / s.seconds) * 100) : 0}
+            win={settled && won.includes(q.name)}
+            winCore={winCore}
+            winKickers={winKickers}
+            settled={settled}
+            rb={
+              s.board.length > seen.current
+                ? 0.65 + (s.board.length - seen.current) * 0.2 + 0.25
+                : 0.18
+            }
+            toCenter={vec(pos[j], { x: 50, y: 50 })}
+            bubble={bub?.seat === j ? bub : null}
+            emote={activeEmotes[j] ?? null}
+          />
+        ))}
       </div>
 
-      {/* Banner de vencedores em zona limpa entre o board e o jogador */}
-      <div className="spot winners-spot" style={at(50, compact ? 65.5 : 64)}>
+      {/* Dealer Zake renderizado fora do transform: scale() da mesa para nitidez vetorial 1:1 */}
+      <div
+        className="dealer"
+        style={{
+          width: Math.round(G.zw * scale),
+          height: Math.round(G.zh * scale),
+          top: `calc(50% + ${(dealerTop - dim.h / 2) * scale}px)`,
+        }}
+      >
+        <Zake look={look} mood={mood.n} />
         <AnimatePresence>
-          {settled && winners.length > 0 && (
+          {mood.say && mood.n !== 'idle' && (
             <motion.div
-              key={'win-' + s.hand}
-              className="winners"
-              initial={{ opacity: 0, y: 10, scale: 0.88 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.92 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+              key={mood.say}
+              className="bubble zbubble"
+              initial={{ opacity: 0, x: -8, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 6 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 24 }}
             >
-              {winners.map(([n, v]) => {
-                const wp = s.players.find((q) => q.name === n);
-                const h = s.reveal ? wp?.hand : null;
-                return (
-                  <span key={n} className="winner-chip">
-                    <svg
-                      width="13"
-                      height="13"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
-                    </svg>
-                    <strong>{n}</strong>
-                    <b className="win-amt">+{fmt(v)}</b>
-                    <em className="win-hand">{h ? describeHand(h) : 'Por desistência'}</em>
-                  </span>
-                );
-              })}
+              {mood.say}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      {/* Apostas na mesa por jogador */}
-      {s.players.map((q, j) => {
-        const isTopSeat = j !== me && pos[j].y < 32;
-        const f = isTopSeat ? (compact ? 0.22 : 0.25) : compact ? 0.24 : 0.3;
-        const b =
-          j === me
-            ? { x: compact ? 69 : 63, y: 74 }
-            : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
-        return (
-          <div key={'b' + j} className="spot bet" style={at(b.x, b.y)}>
-            <ChipStack amount={q.bet} from={vec(b, pos[j])} to={toPot(b)} />
-            <AnimatePresence>
-              {q.bet > 0 && (
-                <motion.span
-                  key={q.bet}
-                  className="amt"
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                >
-                  {fmt(q.bet)}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-        );
-      })}
-
-      {/* Assentos dos jogadores */}
-      {s.players.map((q, j) => (
-        <Seat
-          key={j}
-          p={q}
-          j={j}
-          pos={pos[j]}
-          s={s}
-          self={q.self}
-          active={j === s.turn}
-          dealer={j === s.dealer}
-          left={j === s.turn ? Math.min(100, (left / s.seconds) * 100) : 0}
-          win={settled && won.includes(q.name)}
-          winCore={winCore}
-          winKickers={winKickers}
-          settled={settled}
-          rb={
-            s.board.length > seen.current
-              ? 0.65 + (s.board.length - seen.current) * 0.2 + 0.25
-              : 0.18
-          }
-          toCenter={vec(pos[j], { x: 50, y: 50 })}
-          bubble={bub?.seat === j ? bub : null}
-          emote={activeEmotes[j] ?? null}
-        />
-      ))}
-    </div>
-
-    {/* Dealer Zake renderizado fora do transform: scale() da mesa para nitidez vetorial 1:1 */}
-    <div
-      className="dealer"
-      style={{
-        width: Math.round(G.zw * scale),
-        height: Math.round(G.zh * scale),
-        top: `calc(50% + ${(dealerTop - dim.h / 2) * scale}px)`,
-      }}
-    >
-      <Zake look={look} mood={mood.n} />
-      <AnimatePresence>
-        {mood.say && mood.n !== 'idle' && (
-          <motion.div
-            key={mood.say}
-            className="bubble zbubble"
-            initial={{ opacity: 0, x: -8, scale: 0.9 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 6 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-          >
-            {mood.say}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
     </>
   );
 }

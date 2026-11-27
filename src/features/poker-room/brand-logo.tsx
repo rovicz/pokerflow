@@ -23,7 +23,14 @@ export default function BrandLogo({ variant = 'full', className = '' }: BrandLog
     >
       {!isWatermark && (
         <defs>
-          <linearGradient id="pfFlowStroke" x1="108" y1="38" x2="208" y2="34" gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id="pfFlowStroke"
+            x1="108"
+            y1="38"
+            x2="208"
+            y2="34"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0%" stopColor="#0A64FF" stopOpacity="0.3" />
             <stop offset="48%" stopColor="#0A64FF" stopOpacity="1" />
             <stop offset="100%" stopColor="#66A1FF" stopOpacity="0.95" />
@@ -40,11 +47,7 @@ export default function BrandLogo({ variant = 'full', className = '' }: BrandLog
         letterSpacing="-0.9"
       >
         <tspan fill={isWatermark ? 'currentColor' : '#F6F6F3'}>Poker</tspan>
-        <tspan
-          dx="1"
-          fontStyle="italic"
-          fill={isWatermark ? 'currentColor' : '#8FB8FF'}
-        >
+        <tspan dx="1" fontStyle="italic" fill={isWatermark ? 'currentColor' : '#8FB8FF'}>
           Flow
         </tspan>
       </text>

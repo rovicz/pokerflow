@@ -46,6 +46,25 @@ export function openRoomStore() {
         .single();
       return error ? null : data;
     },
+    // Remove salas sem atividade desde `cutoff` (ms). Devolve quantas foram apagadas.
+    async deleteStale(cutoff: number) {
+      if (!client) {
+        let n = 0;
+        for (const [code, row] of memory) {
+          if ((row.state.touched ?? Infinity) < cutoff) {
+            memory.delete(code);
+            n++;
+          }
+        }
+        return n;
+      }
+      const { data } = await client
+        .from('poker_rooms')
+        .delete()
+        .lt('state->>touched' as never, String(cutoff))
+        .select('code');
+      return data?.length ?? 0;
+    },
     async update(code: string, version: number, state: GameState) {
       if (!client) {
         if (memory.get(code)?.version !== version) return false;

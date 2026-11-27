@@ -617,12 +617,13 @@ export default function Table({
 
   const tgt = settled ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null;
   const G = compact
-    ? { x0: 0.12, x1: 0.88, y0: 0.11, y1: 0.88, pad: 12, nd: 58, nw: 72, sh: 34, zw: 46, zh: 54 }
-    : { x0: 0.11, x1: 0.89, y0: 0.125, y1: 0.87, pad: 26, nd: 82, nw: 126, sh: 64, zw: 62, zh: 74 };
+    ? { x0: 0.12, x1: 0.88, y0: 0.11, y1: 0.88, pad: 12, nd: 58, nw: 72, sh: 34, zw: 58, zh: 70 }
+    : { x0: 0.11, x1: 0.89, y0: 0.125, y1: 0.87, pad: 26, nd: 82, nw: 126, sh: 64, zw: 82, zh: 98 };
   const X0 = G.x0 * dim.w,
     X1 = G.x1 * dim.w,
     Y0 = G.y0 * dim.h,
     Y1 = G.y1 * dim.h;
+  const dealerTop = Y0 + G.nd - G.zh;
   const zx = dim.w / 2,
     zy = Y0 + G.nd - G.zh / 2;
   const look =
@@ -639,6 +640,7 @@ export default function Table({
   const displayPot = settled ? winners.reduce((a, w) => a + w[1], 0) : pot;
 
   return (
+    <>
     <div
       className={'table-wrap' + (compact ? ' compact' : '')}
       ref={wrap}
@@ -730,25 +732,6 @@ export default function Table({
       </svg>
 
       <span className="felt-mark">PokerFlow</span>
-
-      {/* Dealer Zake */}
-      <div className="dealer" style={{ width: G.zw, height: G.zh, top: Y0 + G.nd - G.zh }}>
-        <Zake look={look} mood={mood.n} />
-        <AnimatePresence>
-          {mood.say && mood.n !== 'idle' && (
-            <motion.div
-              key={mood.say}
-              className="bubble zbubble"
-              initial={{ opacity: 0, x: -8, scale: 0.9 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 6 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-            >
-              {mood.say}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       {/* Baralho à esquerda da linha do pote (sem colidir com o board) */}
       <div className="spot deck-spot" style={at(deckPos.x, deckPos.y)}>
@@ -903,5 +886,32 @@ export default function Table({
         />
       ))}
     </div>
+
+    {/* Dealer Zake renderizado fora do transform: scale() da mesa para nitidez vetorial 1:1 */}
+    <div
+      className="dealer"
+      style={{
+        width: Math.round(G.zw * scale),
+        height: Math.round(G.zh * scale),
+        top: `calc(50% + ${(dealerTop - dim.h / 2) * scale}px)`,
+      }}
+    >
+      <Zake look={look} mood={mood.n} />
+      <AnimatePresence>
+        {mood.say && mood.n !== 'idle' && (
+          <motion.div
+            key={mood.say}
+            className="bubble zbubble"
+            initial={{ opacity: 0, x: -8, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 6 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+          >
+            {mood.say}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+    </>
   );
 }

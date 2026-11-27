@@ -155,7 +155,7 @@ export default function Table({s, pot, winners, left}) {
     {settled && winners.length > 0 && <div className="spot winners" style={at(50, 70)}>{winners.map(([n, v]) => <span key={n}>{n} +{fmt(v)}</span>)}</div>}
 
     {s.players.map((q, j) => {
-      const b = {x: pos[j].x + (50 - pos[j].x) * (j === me ? .3 : .34), y: pos[j].y + (50 - pos[j].y) * (j === me ? .3 : .34)};
+      const f = compact ? .24 : j === me ? .3 : .34, b = {x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f};
       return <div key={'b' + j} className="spot bet" style={at(b.x, b.y)}>
         <ChipStack amount={q.bet} from={vec(b, pos[j])} to={toPot(b)}/>
         {q.bet > 0 && <span className="amt">{fmt(q.bet)}</span>}

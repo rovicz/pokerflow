@@ -21,7 +21,8 @@ const reply = (x: unknown, status = 200) =>
 function makeSupabaseProfileStore(db: SupabaseClient): ProfileStore {
   return {
     async findProfile(userId) {
-      const { data } = await db.from('profiles').select('*').eq('id', userId).maybeSingle();
+      const { data, error } = await db.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (error) console.error('[api/profile] findProfile error:', error.code, error.message);
       return (data as UserProfile | null) ?? null;
     },
     async findStats(userId) {
@@ -41,22 +42,42 @@ function makeSupabaseProfileStore(db: SupabaseClient): ProfileStore {
         .limit(1);
       return !!data && data.length > 0;
     },
-    async upsertProfile(row) {
+    async updateProfile(userId, fields) {
       const { data, error } = await db
         .from('profiles')
-        .upsert(row, { onConflict: 'id' })
+        .update(fields)
+        .eq('id', userId)
         .select('*')
         .single();
       if (error) {
-        console.error('[api/profile] upsertProfile error:', error.code, error.message);
-        return { data: null, error: error.message };
+        console.error(
+          '[api/profile] updateProfile error:',
+          error.code,
+          error.message,
+          error.details,
+        );
+        return { data: null, error: error.message, code: error.code };
       }
-      return { data: data as UserProfile, error: null };
+      return { data: data as UserProfile, error: null, code: null };
+    },
+    async insertProfile(row) {
+      const { data, error } = await db.from('profiles').insert(row).select('*').single();
+      if (error) {
+        console.error(
+          '[api/profile] insertProfile error:',
+          error.code,
+          error.message,
+          error.details,
+        );
+        return { data: null, error: error.message, code: error.code };
+      }
+      return { data: data as UserProfile, error: null, code: null };
     },
     async ensureStats(userId) {
-      await db
+      const { error } = await db
         .from('player_stats')
         .upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
+      if (error) console.error('[api/profile] ensureStats error:', error.code, error.message);
     },
   };
 }
@@ -107,7 +128,22 @@ export async function PATCH(req: Request) {
     body as Record<string, unknown>,
   );
 
-  if (!res.ok) return reply({ error: res.error }, res.status);
+  if (!res.ok) {
+    return reply({ error: res.error, ...(res.code ? { code: res.code } : {}) }, res.status);
+  }
+
+  // Sincroniza user_metadata no Supabase Auth (melhor esforço, não bloqueia a resposta)
+  await supabase.auth
+    .updateUser({
+      data: {
+        display_name: res.profile.display_name,
+        username: res.profile.username,
+        avatar_style: res.profile.avatar_style,
+        avatar_seed: res.profile.avatar_seed,
+      },
+    })
+    .catch(() => {});
+
   return reply({ profile: res.profile });
 }
 

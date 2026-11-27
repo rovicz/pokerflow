@@ -222,9 +222,11 @@ export function act(s: GameState, id: string, type: unknown, amount?: unknown) {
     { current, minRaise, deadline } = s;
   if (!p || !able(p) || current == null || minRaise == null || deadline == null)
     throw Error('Sem turno');
+  let auto = false;
   if (type === 'tick') {
     if (Date.now() < deadline) throw Error('Prazo ativo');
     type = p.bet >= current ? 'check' : 'fold';
+    auto = true;
   } else if (p.id !== id) throw Error('Não é sua vez');
   else if (Date.now() >= deadline) throw Error('Turno expirado');
   const due = Math.max(0, current - p.bet);
@@ -252,12 +254,12 @@ export function act(s: GameState, id: string, type: unknown, amount?: unknown) {
   } else throw Error('Ação inválida');
   p.acted = true;
   p.actedAt = s.current!;
-  s.last = { seat: s.turn, type, seq: (s.last?.seq || 0) + 1 };
+  s.last = { seat: s.turn, type, seq: (s.last?.seq || 0) + 1, ...(auto ? { auto } : {}) };
   progress(s, s.turn);
   return s;
 }
 export function view(s: GameState, id: string) {
-  const { deck, ...safe } = s;
+  const { deck, removed, spectators, ...safe } = s;
   return {
     ...safe,
     players: s.players.map(({ cards, ...p }) => ({

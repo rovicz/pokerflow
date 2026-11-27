@@ -1,6 +1,8 @@
 import { createAdminSupabase } from '../../../../src/server/supabase-admin.ts';
+import { createServerSupabase } from '../../../../src/lib/supabase/server.ts';
 import { allow } from '../../../../src/server/rate-limit.ts';
-import { buildConfirmUrl, sendConfirmationEmail } from '../../../../src/server/email.ts';
+import { appOrigin, buildConfirmUrl, sendConfirmationEmail } from '../../../../src/server/email.ts';
+import { registerAccountWithFallback } from '../../../../src/server/auth-registration.ts';
 import { validateRegistrationInput } from '../../../../src/auth/validation.ts';
 
 export const runtime = 'nodejs';
@@ -30,40 +32,64 @@ export async function POST(req: Request) {
       return reply({ error: 'Autenticação indisponível neste ambiente.' }, 503);
     }
 
-    // Verifica disponibilidade do apelido (case-insensitive)
-    const { data: existing } = await admin
-      .from('profiles')
-      .select('id')
-      .ilike('username', username)
-      .limit(1);
-    if (existing && existing.length > 0) {
-      return reply({ error: 'Este apelido já está em uso. Escolha outro.' }, 409);
-    }
-
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: 'signup',
-      email,
-      password,
-      options: {
-        data: {
-          username,
-          display_name: username,
+    const result = await registerAccountWithFallback(
+      {
+        isUsernameTaken: async (uname) => {
+          const { data: existing } = await admin
+            .from('profiles')
+            .select('id')
+            .ilike('username', uname)
+            .limit(1);
+          return !!(existing && existing.length > 0);
+        },
+        generateSignupLink: async ({ email: e, password: p, username: u }) => {
+          const { data, error } = await admin.auth.admin.generateLink({
+            type: 'signup',
+            email: e,
+            password: p,
+            options: {
+              data: {
+                username: u,
+                display_name: u,
+              },
+            },
+          });
+          return {
+            userId: data?.user?.id,
+            hashedToken: data?.properties?.hashed_token,
+            errorMessage: error?.message,
+          };
+        },
+        deleteUser: async (userId) => {
+          await admin.auth.admin.deleteUser(userId);
+        },
+        buildConfirmUrl: (tokenHash) => buildConfirmUrl(tokenHash, 'signup'),
+        sendConfirmationEmail,
+        fallbackSignUp: async ({ email: e, password: p, username: u }) => {
+          const supabase = await createServerSupabase();
+          if (!supabase) return { errorMessage: 'Supabase anon client indisponível.' };
+          const { error } = await supabase.auth.signUp({
+            email: e,
+            password: p,
+            options: {
+              data: {
+                username: u,
+                display_name: u,
+              },
+              emailRedirectTo: `${appOrigin()}/auth/confirm?next=/?auth=confirmed`,
+            },
+          });
+          return { errorMessage: error?.message };
         },
       },
-    });
+      { username, email, password },
+    );
 
-    if (error || !data?.properties?.hashed_token) {
-      const msg = error?.message?.toLowerCase() ?? '';
-      if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
-        return reply({ error: 'Este e-mail já está cadastrado. Tente entrar na sua conta.' }, 409);
-      }
-      return reply({ error: 'Não foi possível criar a conta. Tente novamente.' }, 400);
+    if (!result.ok) {
+      return reply({ error: result.error }, result.status);
     }
 
-    const confirmUrl = buildConfirmUrl(data.properties.hashed_token, 'signup');
-    await sendConfirmationEmail(email, username, confirmUrl);
-
-    return reply({ ok: true, email });
+    return reply({ ok: true, email: result.email });
   } catch (e) {
     return reply({ error: e instanceof Error ? e.message : 'Erro ao processar cadastro.' }, 500);
   }

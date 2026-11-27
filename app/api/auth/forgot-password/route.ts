@@ -1,6 +1,12 @@
 import { createAdminSupabase } from '../../../../src/server/supabase-admin.ts';
+import { createServerSupabase } from '../../../../src/lib/supabase/server.ts';
 import { allow } from '../../../../src/server/rate-limit.ts';
-import { buildConfirmUrl, sendPasswordResetEmail } from '../../../../src/server/email.ts';
+import {
+  appOrigin,
+  buildConfirmUrl,
+  EmailDeliveryError,
+  sendPasswordResetEmail,
+} from '../../../../src/server/email.ts';
 import { EMAIL_RE, normalizeEmail } from '../../../../src/auth/validation.ts';
 
 export const runtime = 'nodejs';
@@ -33,7 +39,33 @@ export async function POST(req: Request) {
         (data.user?.user_metadata?.username as string | undefined) ||
         'jogador';
       const resetUrl = buildConfirmUrl(data.properties.hashed_token, 'recovery');
-      await sendPasswordResetEmail(email, displayName, resetUrl);
+      try {
+        await sendPasswordResetEmail(email, displayName, resetUrl);
+      } catch (err) {
+        if (
+          err instanceof EmailDeliveryError &&
+          (err.code === 'domain_unverified' || err.code === 'missing_config')
+        ) {
+          const supabase = await createServerSupabase();
+          const fb = supabase
+            ? await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${appOrigin()}/auth/confirm?next=/redefinir-senha`,
+              })
+            : { error: { message: 'Supabase anon client indisponível.' } };
+          if (fb.error) {
+            console.error('[auth:forgot] Fallback Supabase falhou:', fb.error.message);
+            return reply(
+              {
+                error:
+                  'Não foi possível enviar o e-mail de recuperação agora. Tente novamente em instantes.',
+              },
+              502,
+            );
+          }
+        } else {
+          throw err;
+        }
+      }
     }
 
     // Sempre responde 200 para evitar enumeração de contas.

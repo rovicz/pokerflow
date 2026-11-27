@@ -1,14 +1,80 @@
 import { Resend } from 'resend';
 import { escapeHtml } from '../auth/validation.ts';
 
-function appOrigin(): string {
+export function appOrigin(): string {
   const env = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (env) return env.replace(/\/+$/, '');
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return 'http://localhost:3000';
 }
 
-export function buildConfirmUrl(tokenHash: string, type: 'signup' | 'recovery'): string {
+export type EmailErrorCode =
+  'missing_config' | 'domain_unverified' | 'rate_limited' | 'provider_error';
+
+export class EmailDeliveryError extends Error {
+  readonly code: EmailErrorCode;
+  readonly statusCode?: number;
+  readonly providerMessage?: string;
+
+  constructor(
+    code: EmailErrorCode,
+    message: string,
+    opts?: { statusCode?: number; providerMessage?: string },
+  ) {
+    super(message);
+    this.name = 'EmailDeliveryError';
+    this.code = code;
+    this.statusCode = opts?.statusCode;
+    this.providerMessage = opts?.providerMessage;
+  }
+}
+
+export function classifyResendError(err: {
+  name?: string;
+  message?: string;
+  statusCode?: number | null;
+}): { code: EmailErrorCode; statusCode?: number; userMessage: string; reason: string } {
+  const statusCode = typeof err.statusCode === 'number' ? err.statusCode : undefined;
+  const reason = (err.message || err.name || 'unknown_error').trim();
+  const low = reason.toLowerCase();
+
+  if (
+    statusCode === 403 ||
+    low.includes('only send testing emails') ||
+    low.includes('verify a domain') ||
+    low.includes('domain is not verified') ||
+    low.includes('not verified')
+  ) {
+    return {
+      code: 'domain_unverified',
+      statusCode,
+      reason,
+      userMessage:
+        'O remetente de e-mail do clube ainda não tem domínio verificado para destinatários externos.',
+    };
+  }
+
+  if (statusCode === 429 || low.includes('rate limit') || low.includes('too many requests')) {
+    return {
+      code: 'rate_limited',
+      statusCode,
+      reason,
+      userMessage: 'Limite temporário de envio de e-mails atingido. Tente novamente em instantes.',
+    };
+  }
+
+  return {
+    code: 'provider_error',
+    statusCode,
+    reason,
+    userMessage: 'Não foi possível enviar o e-mail agora. Tente novamente em instantes.',
+  };
+}
+
+export function buildConfirmUrl(
+  tokenHash: string,
+  type: 'signup' | 'recovery' | 'magiclink',
+): string {
   const next = type === 'recovery' ? '/redefinir-senha' : '/?auth=confirmed';
   const params = new URLSearchParams({ token_hash: tokenHash, type, next });
   return `${appOrigin()}/auth/confirm?${params.toString()}`;
@@ -63,13 +129,26 @@ export function renderEmailHtml(opts: {
 async function sendViaResend(to: string, subject: string, html: string) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    throw Error('Serviço de e-mail não configurado (RESEND_API_KEY ausente).');
+    throw new EmailDeliveryError(
+      'missing_config',
+      'Serviço de e-mail não configurado (RESEND_API_KEY ausente).',
+    );
   }
   const from = process.env.RESEND_FROM_EMAIL?.trim() || 'PokerFlow <onboarding@resend.dev>';
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({ from, to, subject, html });
   if (error) {
-    throw Error('Não foi possível enviar o e-mail agora. Tente novamente em instantes.');
+    const info = classifyResendError(error);
+    console.error('[email] Resend falhou:', {
+      code: info.code,
+      statusCode: info.statusCode,
+      from,
+      reason: info.reason,
+    });
+    throw new EmailDeliveryError(info.code, info.userMessage, {
+      statusCode: info.statusCode,
+      providerMessage: info.reason,
+    });
   }
 }
 

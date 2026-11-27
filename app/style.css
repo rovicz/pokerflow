@@ -200,12 +200,13 @@ main.in-game { height: 100dvh; display: flex; flex-direction: column; padding: 0
 .in-game header { height: 52px; flex: none; }
 .in-game .brand { font-size: 24px; }
 .in-game .mark { width: 32px; height: 32px; font-size: 20px; }
-.in-game .heading { padding: 8px 0; flex: none; }
-.in-game .heading h1 { font-size: 25px; margin-top: 2px; }
+.in-game .heading { padding: 4px 0 6px; flex: none; }
+.in-game .heading .eyebrow { display: none; }
+.in-game .heading h1 { font-size: 22px; margin: 0; }
 .in-game .room-stats b { font-size: 17px; }
 .in-game .game-grid { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr) 240px; gap: 12px; }
 .in-game .game-main { display: flex; flex-direction: column; min-height: 0; gap: 0; }
-.in-game .stagebar { padding: 6px; flex: none; }
+.in-game .stagebar { padding: 4px; flex: none; }
 .in-game aside { min-height: 0; overflow-y: auto; gap: 8px; }
 .in-game aside .panel { padding: 12px 14px; }
 .in-game .stack { font-size: 25px; margin: 4px 0 6px; }

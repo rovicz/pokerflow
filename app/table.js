@@ -143,7 +143,7 @@ export default function Table({s, pot, winners, left}) {
     return () => clearTimeout(t);
   }, [s.last?.seq]);
 
-  const N = s.players.length, me = Math.max(0, s.players.findIndex(q => q.self)), compact = area.w < 620, dim = compact ? {w: 380, h: 520} : {w: 960, h: 540}, scale = Math.min(area.w / dim.w, area.h / dim.h, 1.1), rx = compact ? .37 : .42, ry = compact ? .44 : .43;
+  const N = s.players.length, me = Math.max(0, s.players.findIndex(q => q.self)), compact = area.w < 620, dim = compact ? {w: 380, h: 520} : {w: Math.round(Math.min(1240, Math.max(860, area.w / area.h * 540))), h: 540}, scale = Math.min(area.w / dim.w, area.h / dim.h, 1.3), rx = compact ? .37 : .42, ry = compact ? .44 : .43;
   const pos = s.players.map((_, j) => { const f = ((j - me + N) % N) / N, H = Math.PI - .42, a = Math.PI / 2 + (f <= .5 ? f * 2 * H : -(1 - f) * 2 * H); return {x: 50 + Math.cos(a) * rx * 100, y: 50 + Math.sin(a) * ry * 100} });
   const vec = (a, b) => ({x: (b.x - a.x) / 100 * dim.w, y: (b.y - a.y) / 100 * dim.h});
   const settled = s.phase === 'settled', wi = winners.length ? s.players.findIndex(q => q.name === winners[0][0]) : -1;

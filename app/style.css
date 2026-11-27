@@ -39,7 +39,7 @@ input, select { width: 100%; min-width: 0; color: inherit; background: var(--bg-
 input:focus, select:focus { border-color: var(--brand-500); }
 
 /* Cabeçalho */
-header { height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+header { height: 76px; padding: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; font: 400 28px / 1 var(--serif); letter-spacing: -.02em; }
 .brand i { color: var(--brand-400); font-style: normal; }
 .brand small { display: block; font: 500 10px / 1 var(--sans); letter-spacing: .14em; margin-top: 6px; color: var(--muted); }
@@ -265,3 +265,19 @@ main.in-game { height: 100dvh; display: flex; flex-direction: column; padding: 0
 .in-game .controls .eyebrow, .in-game .controls .hint { display: none; }
 .in-game .controls .between:first-child { margin-bottom: 8px; }
 .in-game .controls h2 { font-size: 18px; }
+
+/* Cabeçalho com respiro, guia em modal e mesa como destaque */
+.in-game header { height: 68px; padding: 12px 0; }
+main.in-game { padding: 0 28px 14px; }
+.in-game aside, .in-game .foot { display: none; }
+.in-game .game-grid { grid-template-columns: minmax(0, 1fr); }
+.in-game .heading { padding: 10px 0 8px; }
+.mini { display: block; font-size: 13px; margin-bottom: 2px; }
+.mini b { color: var(--ink); font-weight: 600; }
+.modal { width: min(560px, calc(100vw - 32px)); max-height: 85dvh; overflow: auto; padding: 24px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; }
+.modal::backdrop { background: rgba(0, 0, 0, .7); }
+.modal h2 { font-size: 31px; margin-top: 4px; }
+.gitem { border-top: 1px solid var(--line); padding: 14px 0 0; margin-top: 14px; }
+.gitem h3 { font: 600 16px var(--sans); }
+.gitem p { margin-top: 4px; font-size: 14px; }
+@media (max-width: 680px) { main.in-game { padding: 0 8px 6px; } .in-game header { padding: 8px 0; height: 56px; } .header-right { gap: 6px; } .header-right button { padding: 6px 8px; } }

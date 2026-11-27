@@ -12,6 +12,7 @@ import type { AvatarStyle } from '../../poker/avatars.ts';
 import Table, { PlayingCard, fmt } from './table';
 import ChampionDialog from './champion-dialog';
 import EmotePicker from './emote-picker';
+import BrandLogo from './brand-logo';
 import Avatar from './avatar';
 import type { EmoteId } from '../../poker/emotes.ts';
 import { AVATAR_STYLES, AVATAR_LABELS } from '../../poker/avatars.ts';
@@ -543,12 +544,8 @@ export default function Page() {
       {/* Topbar: unificada no modo jogo e lobby, clássica na entrada */}
       <header className={inApp ? 'game-topbar' : ''}>
         <div className="flex min-w-0 items-center gap-[14px]">
-          <a href="/" className="brand">
-            <span className="mark">♠</span>
-            <div>
-              PokerFlow<i>.</i>
-              {!inApp && <small>PRIVATE POKER CLUB</small>}
-            </div>
+          <a href="/" className="brand" aria-label="PokerFlow — página inicial">
+            <BrandLogo variant={inApp ? 'compact' : 'full'} />
           </a>
 
           {inApp && (

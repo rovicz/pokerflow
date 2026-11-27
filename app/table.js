@@ -95,12 +95,18 @@ function Num({v}) {
 }
 
 const at = (x, y) => ({left: x + '%', top: y + '%'});
-const POT = {x: 61, y: 37}, ZAKE = {x: 50, y: 19};
+const POT = {x: 61, y: 41};
+
+// Contorno da mesa: estádio com um recorte suave no topo (lugar do dealer), como nas mesas reais.
+function shape(x0, x1, y0, y1, nd, nw, sh) {
+  const r = (y1 - y0) / 2, c = (x0 + x1) / 2, a = c - nw / 2, b = c + nw / 2;
+  return `M${x0 + r},${y0} L${a - sh},${y0} C${a - sh / 2},${y0} ${a - sh / 2},${y0 + nd} ${a},${y0 + nd} L${b},${y0 + nd} C${b + sh / 2},${y0 + nd} ${b + sh / 2},${y0} ${b + sh},${y0} L${x1 - r},${y0} A${r},${r} 0 0 1 ${x1 - r},${y1} L${x0 + r},${y1} A${r},${r} 0 0 1 ${x0 + r},${y0} Z`;
+}
 
 function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, rb}) {
   const N = s.players.length, order = (j - s.dealer - 1 + N) % N;
   const state = p.fold ? (self ? {opacity: .4, x: 0, y: 0, scale: 1} : {x: toCenter.x * .3, y: toCenter.y * .3, opacity: 0, scale: .7}) : {x: 0, y: 0, opacity: 1, scale: 1};
-  return <div className={'seat' + (self ? ' self' : '') + (active ? ' active' : '') + (p.fold ? ' folded' : '') + (win ? ' win' : '')} style={at(pos.x, pos.y)}>
+  return <div className={'seat' + (self ? ' self' : '') + (active ? ' active' : '') + (p.fold ? ' folded' : '') + (win ? ' win' : '') + (!p.fold && p.cards.length && p.stack === 0 && s.phase !== 'settled' ? ' allin' : '')} style={at(pos.x, pos.y)}>
     <motion.div className="hand" animate={state} transition={{duration: .5}}>
       {p.cards.map((c, k) => <PlayingCard key={s.hand + '-' + k} c={c} delay={.4 + (k * N + order) * .13} flipDelay={self ? .2 + k * .22 : rb + (order * 2 + k) * .18} className={self ? 'lg' : 'sm'}/>)}
     </motion.div>
@@ -110,14 +116,14 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
       {dealer && <motion.span layoutId="dealer" className="dbtn" title="Dealer" transition={{type: 'spring', stiffness: 220, damping: 22}}>D</motion.span>}
       {active && <span className="timebar" style={{width: left + '%'}}/>}
     </div>
-    <div className="status">{p.fold ? 'Desistiu' : p.cards.length && p.stack === 0 ? 'All-in' : active ? 'Pensando…' : ''}</div>
-    <div className="bubble-w"><AnimatePresence>{bubble && <motion.div key={bubble.seq} className="bubble" initial={{y: -8, opacity: 0, scale: .8}} animate={{y: 0, opacity: 1, scale: 1}} exit={{opacity: 0, y: 6}}>{bubble.txt}</motion.div>}</AnimatePresence></div>
+    <div className="status">{p.fold ? 'Desistiu' : p.cards.length && p.stack === 0 ? 'ALL-IN' : active ? 'Pensando…' : ''}</div>
+    <div className="bubble-w"><AnimatePresence>{bubble && <motion.div key={bubble.seq} className={'bubble' + (bubble.allin ? ' allin-b' : '')} initial={{y: -8, opacity: 0, scale: .8}} animate={{y: 0, opacity: 1, scale: 1}} exit={{opacity: 0, y: 6}}>{bubble.txt}</motion.div>}</AnimatePresence></div>
   </div>;
 }
 
 export default function Table({s, pot, winners, left}) {
   const wrap = useRef(null), seen = useRef(0), lastSeq = useRef(s.last?.seq);
-  const [area, setArea] = useState({w: 900, h: 500}), [bub, setBub] = useState(null), [mood, setMood] = useState({n: 'idle'}), [ai, setAi] = useState(null), hand0 = useRef(s.hand), len0 = useRef(s.board.length), ph0 = useRef(s.phase), mt = useRef(0);
+  const [area, setArea] = useState({w: 900, h: 500}), [bub, setBub] = useState(null), [mood, setMood] = useState({n: 'idle'}), hand0 = useRef(s.hand), len0 = useRef(s.board.length), ph0 = useRef(s.phase), mt = useRef(0);
   const act = (n, ms, say) => { clearTimeout(mt.current); setMood({n, say}); mt.current = setTimeout(() => setMood({n: 'idle'}), ms) };
   useEffect(() => {
     const el = wrap.current.parentElement, ro = new ResizeObserver(([e]) => setArea({w: e.contentRect.width, h: e.contentRect.height}));
@@ -136,9 +142,9 @@ export default function Table({s, pot, winners, left}) {
     if (!L || L.seq === lastSeq.current) return;
     lastSeq.current = L.seq;
     const q = s.players[L.seat], allin = q?.stack === 0 && L.type !== 'fold' && L.type !== 'check';
-    if (allin) { setAi({seq: L.seq, name: q.name, amt: q.bet}); act('wow', 2400, 'Uau, all-in!'); setTimeout(() => setAi(x => x?.seq === L.seq ? null : x), 2800) }
+    if (allin) act('wow', 2400, 'Uau, all-in!');
     else if (L.type === 'fold') act('shrug', 800);
-    setBub({seat: L.seat, seq: L.seq, txt: allin ? 'All-in' : {fold: 'Desistiu', check: 'Passou', call: 'Pagou', raise: 'Aumentou para ' + fmt(q?.bet)}[L.type]});
+    setBub({seat: L.seat, seq: L.seq, allin, txt: allin ? 'ALL-IN' : {fold: 'Desistiu', check: 'Passou', call: 'Pagou', raise: 'Aumentou para ' + fmt(q?.bet)}[L.type]});
     const t = setTimeout(() => setBub(null), 1800);
     return () => clearTimeout(t);
   }, [s.last?.seq]);
@@ -148,23 +154,27 @@ export default function Table({s, pot, winners, left}) {
   const vec = (a, b) => ({x: (b.x - a.x) / 100 * dim.w, y: (b.y - a.y) / 100 * dim.h});
   const settled = s.phase === 'settled', wi = winners.length ? s.players.findIndex(q => q.name === winners[0][0]) : -1;
   const bets = s.players.reduce((a, q) => a + q.bet, 0), won = winners.map(w => w[0]);
-  const tgt = s.phase === 'settled' ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null, zx = ZAKE.x / 100 * dim.w, zy = ZAKE.y / 100 * dim.h;
+  const tgt = s.phase === 'settled' ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null, G = compact ? {x0: .13, x1: .87, y0: .09, y1: .91, pad: 10, nd: 66, nw: 70, sh: 36, zw: 48, zh: 56} : {x0: .10, x1: .90, y0: .11, y1: .89, pad: 26, nd: 96, nw: 130, sh: 70, zw: 68, zh: 80}, X0 = G.x0 * dim.w, X1 = G.x1 * dim.w, Y0 = G.y0 * dim.h, Y1 = G.y1 * dim.h, zx = dim.w / 2, zy = Y0 + G.nd - G.zh / 2;
   const look = mood.n === 'deal' || mood.n === 'nod' || !tgt ? {x: 0, y: 1} : {x: Math.max(-1, Math.min(1, (tgt.x / 100 * dim.w - zx) / 260)), y: Math.max(-.6, Math.min(1, (tgt.y / 100 * dim.h - zy) / 260))};
   const toPot = b => settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, POT);
 
   return <div className="table-wrap" ref={wrap} style={{width: dim.w, height: dim.h, transform: `translate(-50%,-50%) scale(${scale})`}}>
-    <div className="rail"><div className="felt"><span className="felt-mark">PokerFlow</span></div></div>
-    <div className="dealer-cut"/>
-    <div className="dealer"><Zake look={look} mood={mood.n}/>
+    <svg className="tableshape" width={dim.w} height={dim.h} aria-hidden="true">
+      <defs>
+        <linearGradient id="railg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2b2b2b"/><stop offset=".55" stopColor="#141414"/><stop offset="1" stopColor="#0a0a0a"/></linearGradient>
+        <radialGradient id="feltg" cx=".5" cy=".4" r=".75"><stop offset="0" stopColor="#064EE9"/><stop offset=".62" stopColor="#051C9E"/><stop offset="1" stopColor="#081473"/></radialGradient>
+      </defs>
+      <path d={shape(X0, X1, Y0, Y1, G.nd, G.nw, G.sh)} fill="url(#railg)" stroke="rgba(246,246,243,.2)" strokeWidth="1" strokeLinejoin="round"/>
+      <path d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)} fill="url(#feltg)" stroke="rgba(246,246,243,.2)" strokeWidth="1" strokeLinejoin="round"/>
+      <path d={shape(X0 + G.pad * 2.4, X1 - G.pad * 2.4, Y0 + G.pad * 2.4, Y1 - G.pad * 2.4, G.nd, G.nw + G.pad * 2, G.sh)} fill="none" stroke="rgba(246,246,243,.26)" strokeWidth="1.5" strokeLinejoin="round"/>
+    </svg>
+    <span className="felt-mark">PokerFlow</span>
+    <div className="dealer" style={{width: G.zw, height: G.zh, top: Y0 + G.nd - G.zh}}><Zake look={look} mood={mood.n}/>
       <AnimatePresence>{mood.say && mood.n !== 'idle' && <motion.div key={mood.say} className="bubble zbubble" initial={{opacity: 0, x: -6}} animate={{opacity: 1, x: 0}} exit={{opacity: 0}}>{mood.say}</motion.div>}</AnimatePresence>
     </div>
-    <AnimatePresence>{ai && <motion.div key={ai.seq} className="allin" role="alert" initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0, scale: 1.2}}>
-      <motion.i className="allin-flash" initial={{opacity: 0}} animate={{opacity: [0, 0, .55, 0]}} transition={{duration: 1.1, times: [0, .5, .56, 1]}}/>
-      <motion.b initial={{scale: 3.2, opacity: 0, rotate: -8}} animate={{scale: 1, opacity: 1, rotate: -3, x: [0, -8, 8, -5, 5, 0]}} transition={{delay: .5, scale: {type: 'spring', stiffness: 380, damping: 14}, x: {delay: .55, duration: .4}}}>ALL-IN!</motion.b>
-      <motion.span initial={{y: 12, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{delay: .8}}>{ai.name} colocou tudo na mesa · {fmt(ai.amt)}</motion.span>
-    </motion.div>}</AnimatePresence>
 
-    <div className="spot" style={at(50, 37)}>
+
+    <div className="spot" style={at(50, 41)}>
       <motion.div key={s.hand} className="deck pc md" initial={{rotate: -8, scale: 1.1}} animate={{rotate: 0, scale: 1}}>
         <div className="pc-back" style={{transform: 'translate(-4px,-4px)'}}/><div className="pc-back" style={{transform: 'translate(-2px,-2px)'}}/><div id="deck" className="pc-back"/>
       </motion.div>
@@ -174,7 +184,7 @@ export default function Table({s, pot, winners, left}) {
       <span className="amt">Pote {fmt(settled ? winners.reduce((a, w) => a + w[1], 0) : pot)}</span>
     </div>
 
-    <div className="spot board" style={at(50, 53)}>
+    <div className="spot board" style={at(50, 57)}>
       {[0, 1, 2, 3, 4].map(i => <div className="slot" key={i}>{s.board[i] != null && <PlayingCard key={s.hand + '-' + i} c={s.board[i]} delay={Math.max(0, i - seen.current) * .08} flipDelay={.1 + Math.max(0, i - seen.current) * .14} className="md"/>}</div>)}
     </div>
     {settled && winners.length > 0 && <div className="spot winners" style={at(50, 70)}>{winners.map(([n, v]) => <span key={n}>{n} +{fmt(v)}</span>)}</div>}

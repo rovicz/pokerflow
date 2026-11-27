@@ -401,6 +401,25 @@
   pointer-events: none;
 }
 
+/* Assentos no topo da mesa: cartas encaixadas na lateral externa do plate para nunca cortar na Topbar */
+.seat.top-seat .hand {
+  bottom: auto;
+  top: -5px;
+  left: auto;
+  right: auto;
+  gap: 0;
+  z-index: 2;
+}
+.seat.top-seat.top-left .hand {
+  right: calc(100% + 4px);
+}
+.seat.top-seat.top-right .hand {
+  left: calc(100% + 4px);
+}
+.seat.top-seat .hand .pc + .pc {
+  margin-left: -10px;
+}
+
 .self .hand {
   gap: 4px;
   bottom: calc(100% - 8px);
@@ -654,6 +673,8 @@
 .table-wrap.compact .chip { width: 20px; height: 20px; font-size: 6px; left: calc(var(--s) * 22px); }
 .table-wrap.compact .chips { height: 32px; }
 .table-wrap.compact .bubble { font-size: 10px; padding: 3px 8px; }
+.table-wrap.compact .seat.top-seat .hand { top: -3px; }
+.table-wrap.compact .seat.top-seat .hand .pc + .pc { margin-left: -8px; }
 
 @media (prefers-reduced-motion: reduce) {
   .seat.active .plate { animation: none; }

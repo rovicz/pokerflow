@@ -147,8 +147,8 @@ function Num({v}) {
 }
 
 const at = (x, y) => ({left: x + '%', top: y + '%'});
-const POT = {x: 50, y: 31};
-const DECK_POS = {x: 35, y: 31};
+const POT = {x: 51, y: 33};
+const DECK_POS = {x: 38.5, y: 33};
 
 // Contorno da mesa: estádio com recorte suave no topo (lugar do dealer).
 function shape(x0, x1, y0, y1, nd, nw, sh) {
@@ -164,12 +164,15 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
     : {x: 0, y: 0, opacity: 1, scale: 1};
 
   const timerTone = left <= 18 ? 'danger' : left <= 38 ? 'warn' : 'ok';
+  const isTop = !self && pos.y < 32;
+  const topSide = isTop ? (pos.x < 50 ? ' top-seat top-left' : ' top-seat top-right') : '';
 
   return (
     <div
       className={
         'seat' +
         (self ? ' self' : '') +
+        topSide +
         (active ? ' active' : '') +
         (p.fold ? ' folded' : '') +
         (win ? ' win' : '') +
@@ -183,7 +186,7 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
           const isWinCard = hasShowdown && win && winCore.has(c);
           const isKickerCard = hasShowdown && win && !isWinCard && winKickers.has(c);
           const isDimCard = hasShowdown && !isWinCard && !isKickerCard && !p.fold;
-          const cardTilt = self ? (k === 0 ? -3.5 : 3.5) : (k === 0 ? -4 : 4);
+          const cardTilt = self ? (k === 0 ? -3.5 : 3.5) : isTop ? (k === 0 ? -6 : 6) : (k === 0 ? -4 : 4);
           return (
             <PlayingCard
               key={s.hand + '-' + k}
@@ -314,12 +317,13 @@ export default function Table({s, pot, winners, left}) {
   };
   const scale = Math.min(area.w / dim.w, area.h / dim.h);
   const rx = compact ? .38 : Math.min(.42, .48 - 84 / dim.w);
-  const ry = compact ? .42 : .415;
+  const ry = compact ? .40 : .39;
+  const cy = compact ? 51 : 51.5;
 
   const pos = s.players.map((_, j) => {
     const f = ((j - me + N) % N) / N, H = Math.PI - .42;
     const a = Math.PI / 2 + (f <= .5 ? f * 2 * H : -(1 - f) * 2 * H);
-    const y = 50 + Math.sin(a) * ry * 100;
+    const y = cy + Math.sin(a) * ry * 100;
     return {x: 50 + Math.cos(a) * rx * 100, y: compact && y > 50 && y < 70 ? 49 : y};
   });
 
@@ -347,8 +351,8 @@ export default function Table({s, pot, winners, left}) {
 
   const tgt = settled ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null;
   const G = compact
-    ? {x0: .12, x1: .88, y0: .08, y1: .88, pad: 12, nd: 60, nw: 72, sh: 34, zw: 48, zh: 56}
-    : {x0: .11, x1: .89, y0: .09, y1: .87, pad: 26, nd: 84, nw: 126, sh: 64, zw: 64, zh: 76};
+    ? {x0: .12, x1: .88, y0: .11, y1: .88, pad: 12, nd: 58, nw: 72, sh: 34, zw: 46, zh: 54}
+    : {x0: .11, x1: .89, y0: .125, y1: .87, pad: 26, nd: 82, nw: 126, sh: 64, zw: 62, zh: 74};
   const X0 = G.x0 * dim.w, X1 = G.x1 * dim.w, Y0 = G.y0 * dim.h, Y1 = G.y1 * dim.h;
   const zx = dim.w / 2, zy = Y0 + G.nd - G.zh / 2;
   const look = mood.n === 'deal' || mood.n === 'nod' || !tgt
@@ -358,8 +362,8 @@ export default function Table({s, pot, winners, left}) {
         y: Math.max(-.6, Math.min(1, (tgt.y / 100 * dim.h - zy) / 260)),
       };
 
-  const deckPos = compact ? {x: 28, y: 31} : DECK_POS;
-  const potPos = compact ? {x: 57, y: 31} : POT;
+  const deckPos = compact ? {x: 29, y: 33} : DECK_POS;
+  const potPos = compact ? {x: 56, y: 33} : POT;
   const toPot = b => settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, potPos);
   const displayPot = settled ? winners.reduce((a, w) => a + w[1], 0) : pot;
 
@@ -532,7 +536,8 @@ export default function Table({s, pot, winners, left}) {
 
       {/* Apostas na mesa por jogador */}
       {s.players.map((q, j) => {
-        const f = compact ? .24 : .30;
+        const isTopSeat = j !== me && pos[j].y < 32;
+        const f = isTopSeat ? (compact ? .22 : .25) : (compact ? .24 : .30);
         const b = j === me
           ? {x: compact ? 69 : 63, y: 74}
           : {x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f};

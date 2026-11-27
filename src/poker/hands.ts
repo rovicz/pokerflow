@@ -88,23 +88,23 @@ export function describeHand(hand: Hand | null) {
     case 1:
       return 'Royal Flush';
     case 2:
-      return `Straight Flush (${r(0)} a ${r(4)})`;
+      return 'Straight Flush';
     case 3:
       return `Quadra de ${r(0)}`;
     case 4:
-      return `Full House (${r(0)} com ${r(3)})`;
+      return 'Full House';
     case 5:
-      return `Flush (${r(0)} alta)`;
+      return 'Flush';
     case 6:
-      return `Sequência (${r(0)} a ${r(4)})`;
+      return 'Sequência';
     case 7:
       return `Trinca de ${r(0)}`;
     case 8:
-      return `Dois Pares (${r(0)} e ${r(2)})`;
+      return 'Dois Pares';
     case 9:
-      return `Um Par de ${r(0)}`;
+      return `Par de ${r(0)}`;
     default:
-      return `Carta Alta (${r(0)})`;
+      return 'Carta Alta';
   }
 }
 
@@ -113,26 +113,31 @@ export function analyzeShowdown(winnerRows: ShowdownRow[], runnerUpRow?: Showdow
     return { headline: '', decisiveIndex: null };
   }
   const { hand } = winnerRows[0];
-  const wRank = HAND_RANKINGS[hand.rank - 1];
   const wDesc = describeHand(hand);
 
   if (winnerRows.length > 1) {
     return {
-      headline: `Empate com ${wDesc} (${wRank.ordinal}/10) — pote dividido`,
+      headline: `Empate com ${wDesc} — pote dividido`,
       decisiveIndex: null,
     };
   }
 
   if (runnerUpRow?.hand) {
     const r = runnerUpRow.hand;
-    const rRank = HAND_RANKINGS[r.rank - 1];
+    const rDesc = describeHand(r);
     if (hand.rank < r.rank) {
       return {
-        headline: `${wDesc} (${wRank.ordinal}/10) venceu ${describeHand(r)} (${rRank.ordinal}/10)`,
+        headline: `${wDesc} venceu ${rDesc}`,
         decisiveIndex: null,
       };
     }
     if (hand.rank === r.rank) {
+      if (wDesc !== rDesc) {
+        return {
+          headline: `${wDesc} venceu ${rDesc}`,
+          decisiveIndex: null,
+        };
+      }
       for (let i = 0; i < 5; i++) {
         const wc = hand.cards[i],
           rc = r.cards[i];
@@ -147,7 +152,7 @@ export function analyzeShowdown(winnerRows: ShowdownRow[], runnerUpRow?: Showdow
   }
 
   return {
-    headline: `${wDesc} (${wRank.ordinal}/10)`,
+    headline: `Venceu com ${wDesc}`,
     decisiveIndex: null,
   };
 }

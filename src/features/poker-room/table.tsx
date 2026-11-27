@@ -17,7 +17,7 @@ type Mood = 'idle' | 'deal' | 'nod' | 'cheer' | 'wow' | 'shrug';
 
 import Avatar from './avatar';
 import Zake from './zake';
-import { analyzeShowdown, describeHand, HAND_RANKINGS } from '../../poker/hands.ts';
+import { analyzeShowdown, describeHand } from '../../poker/hands.ts';
 
 export const fmt = (n?: number | null) => Number(n || 0).toLocaleString('pt-BR');
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -765,7 +765,6 @@ export default function Table({
               {winners.map(([n, v]) => {
                 const wp = s.players.find((q) => q.name === n);
                 const h = s.reveal ? wp?.hand : null;
-                const rInfo = h ? HAND_RANKINGS[h.rank - 1] : null;
                 return (
                   <span key={n} className="winner-chip">
                     <svg
@@ -779,14 +778,7 @@ export default function Table({
                     </svg>
                     <strong>{n}</strong>
                     <b className="win-amt">+{fmt(v)}</b>
-                    {h && rInfo ? (
-                      <em className="win-hand">
-                        <i className="win-rank">{rInfo.ordinal}</i>
-                        {describeHand(h)}
-                      </em>
-                    ) : (
-                      <em className="win-hand">Por desistência</em>
-                    )}
+                    <em className="win-hand">{h ? describeHand(h) : 'Por desistência'}</em>
                   </span>
                 );
               })}

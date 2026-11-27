@@ -2986,3 +2986,87 @@ header.game-topbar {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+
+/* ==========================================================================
+   Modal de Confirmação de Saída da Mesa
+   ========================================================================== */
+.leave-modal {
+  max-width: 420px;
+  width: min(420px, calc(100vw - 28px));
+  padding: 20px 22px;
+}
+
+.lm-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.lm-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.34);
+  color: #fca5a5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.leave-modal h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #f6f6f3;
+}
+
+.lm-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(246, 246, 243, 0.72);
+}
+
+.lm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.lm-actions button {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lm-away {
+  border-color: rgba(245, 158, 11, 0.42);
+  color: #fde68a;
+}
+
+.lm-away:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.lm-danger {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fecaca;
+}
+
+.lm-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.34);
+  border-color: rgba(239, 68, 68, 0.72);
+}
+
+@media (max-width: 480px) {
+  .lm-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

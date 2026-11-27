@@ -297,3 +297,5 @@ select { appearance: none; -webkit-appearance: none; padding-right: 36px; backgr
 .lobby > .between { gap: 12px; flex-wrap: wrap; }
 .in-game .presets { flex-wrap: wrap; justify-content: flex-end; }
 @media (max-width: 1250px) { .in-game .presets button:nth-child(2), .in-game .presets button:nth-child(3) { display: inline-block; } }
+.fields { align-items: end; }
+.resume button { white-space: nowrap; }

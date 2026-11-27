@@ -17,6 +17,7 @@ export type Player = {
   acted?: boolean;
   actedAt?: number | null;
 };
+export type Spectator = { id: string; name: string; avatar?: AvatarInfo };
 export type GameState = {
   host: string;
   initial: number;
@@ -39,15 +40,31 @@ export type GameState = {
   current?: number;
   minRaise?: number;
   reveal?: boolean;
-  last?: { seat: number; type: Action; seq: number };
+  last?: { seat: number; type: Action; seq: number; auto?: boolean };
+  spectators?: Spectator[];
+  removed?: string[];
+  touched?: number;
   emotes?: EmoteEvent[];
 };
 export type PublicPlayer = Omit<Player, 'id'> & { self: boolean; hand: Hand | null };
-export type PublicState = Omit<GameState, 'host' | 'deck' | 'players'> & {
+export type PublicSpectator = { name: string; avatar?: AvatarInfo; self: boolean };
+export type PublicState = Omit<
+  GameState,
+  'host' | 'deck' | 'players' | 'spectators' | 'removed'
+> & {
   host: boolean;
+  role: 'player' | 'spectator';
   players: PublicPlayer[];
+  spectators: PublicSpectator[];
 };
-export type Room = { code: string; state: PublicState; version: number };
+// now = relógio do servidor (ms) para corrigir diferenças de relógio; channel = canal de tempo real da sala.
+export type Room = {
+  code: string;
+  state: PublicState;
+  version: number;
+  now?: number;
+  channel?: string;
+};
 export type Winners = [name: string, amount: number][];
 export type GameOperation =
   | 'create'
@@ -58,4 +75,6 @@ export type GameOperation =
   | 'remove'
   | 'avatar'
   | 'action'
-  | 'emote';
+  | 'emote'
+  | 'leave'
+  | 'sit';

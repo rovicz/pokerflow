@@ -29,7 +29,14 @@ export default function BrandLogo({ variant = 'full', className = '' }: BrandLog
         >
           {!isWatermark && (
             <defs>
-              <linearGradient id={gradId} x1="0" y1="5" x2="100" y2="5" gradientUnits="userSpaceOnUse">
+              <linearGradient
+                id={gradId}
+                x1="0"
+                y1="5"
+                x2="100"
+                y2="5"
+                gradientUnits="userSpaceOnUse"
+              >
                 <stop offset="0%" stopColor="#0A64FF" stopOpacity="0.35" />
                 <stop offset="45%" stopColor="#0A64FF" stopOpacity="1" />
                 <stop offset="100%" stopColor="#66A1FF" stopOpacity="0.95" />

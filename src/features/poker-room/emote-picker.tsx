@@ -119,7 +119,9 @@ export default function EmotePicker({
 
             {cooling && (
               <div className="emote-coolbar" aria-live="polite">
-                <span style={{ width: `${Math.min(100, (remaining / EMOTE_COOLDOWN_MS) * 100)}%` }} />
+                <span
+                  style={{ width: `${Math.min(100, (remaining / EMOTE_COOLDOWN_MS) * 100)}%` }}
+                />
               </div>
             )}
           </motion.div>

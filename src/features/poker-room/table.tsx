@@ -244,7 +244,7 @@ function Num({ v }: { v: number }) {
 const at = (x: number, y: number) => ({ left: x + '%', top: y + '%' });
 const POT = { x: 50, y: 33 };
 
-// Contorno da mesa: estádio com recorte suave no topo (lugar do dealer).
+// Contorno da mesa desktop: estádio horizontal com recorte suave no topo (lugar do dealer).
 function shape(x0: number, x1: number, y0: number, y1: number, nd: number, nw: number, sh: number) {
   const r = (y1 - y0) / 2,
     c = (x0 + x1) / 2,
@@ -252,6 +252,65 @@ function shape(x0: number, x1: number, y0: number, y1: number, nd: number, nw: n
     b = c + nw / 2;
   return `M${x0 + r},${y0} L${a - sh},${y0} C${a - sh / 2},${y0} ${a - sh / 2},${y0 + nd} ${a},${y0 + nd} L${b},${y0 + nd} C${b + sh / 2},${y0 + nd} ${b + sh / 2},${y0} ${b + sh},${y0} L${x1 - r},${y0} A${r},${r} 0 0 1 ${x1 - r},${y1} L${x0 + r},${y1} A${r},${r} 0 0 1 ${x0 + r},${y0} Z`;
 }
+
+// Contorno da mesa mobile (portrait): cápsula oval vertical sempre válida (sem arcos cruzados).
+function portraitShape(x0: number, x1: number, y0: number, y1: number) {
+  const r = Math.min((x1 - x0) / 2, (y1 - y0) / 2);
+  return `M${x0 + r},${y0} L${x1 - r},${y0} A${r},${r} 0 0 1 ${x1},${y0 + r} L${x1},${y1 - r} A${r},${r} 0 0 1 ${x1 - r},${y1} L${x0 + r},${y1} A${r},${r} 0 0 1 ${x0},${y1 - r} L${x0},${y0 + r} A${r},${r} 0 0 1 ${x0 + r},${y0} Z`;
+}
+
+// Posições dedicadas para mesa vertical mobile (índice 0 = jogador local na base).
+const MOBILE_SEATS: Record<number, Point[]> = {
+  2: [
+    { x: 50, y: 89 },
+    { x: 50, y: 21 },
+  ],
+  3: [
+    { x: 50, y: 89 },
+    { x: 19, y: 27 },
+    { x: 81, y: 27 },
+  ],
+  4: [
+    { x: 50, y: 89 },
+    { x: 16, y: 50 },
+    { x: 50, y: 20 },
+    { x: 84, y: 50 },
+  ],
+  5: [
+    { x: 50, y: 89 },
+    { x: 16, y: 63 },
+    { x: 22, y: 22 },
+    { x: 78, y: 22 },
+    { x: 84, y: 63 },
+  ],
+  6: [
+    { x: 50, y: 89 },
+    { x: 15, y: 64 },
+    { x: 17, y: 29 },
+    { x: 50, y: 19 },
+    { x: 83, y: 29 },
+    { x: 85, y: 64 },
+  ],
+  7: [
+    { x: 50, y: 89 },
+    { x: 15, y: 67 },
+    { x: 15, y: 40 },
+    { x: 28, y: 19 },
+    { x: 72, y: 19 },
+    { x: 85, y: 40 },
+    { x: 85, y: 67 },
+  ],
+  8: [
+    { x: 50, y: 89 },
+    { x: 15, y: 67 },
+    { x: 15, y: 42 },
+    { x: 24, y: 20 },
+    { x: 50, y: 17 },
+    { x: 76, y: 20 },
+    { x: 85, y: 42 },
+    { x: 85, y: 67 },
+  ],
+};
 
 function Seat({
   p,
@@ -299,7 +358,7 @@ function Seat({
 
   const timerTone = left <= 18 ? 'danger' : left <= 38 ? 'warn' : 'ok';
   const isTop = !self && pos.y < 32;
-  const topSide = isTop ? (pos.x < 50 ? ' top-seat top-left' : ' top-seat top-right') : '';
+  const topSide = isTop ? (pos.x < 48 ? ' top-seat top-left' : ' top-seat top-right') : '';
   const emoteSide = self ? 'side-left' : pos.x < 50 ? 'side-right' : 'side-left';
 
   return (
@@ -571,23 +630,28 @@ export default function Table({
   );
   const compact = area.w < 640;
 
-  // Canvas virtual com respiro generoso para evitar colisões entre deck, board, winner badge e cartas do jogador.
+  // Canvas virtual: desktop horizontal (inalterado) vs mobile portrait dedicado.
   const baseH = 560;
-  const dim = {
-    w: Math.min(1440, Math.max(compact ? 400 : 780, (area.w / Math.max(1, area.h)) * baseH)),
-    h: baseH,
-  };
+  const dim = compact
+    ? { w: 390, h: Math.min(520, Math.max(450, (area.h / Math.max(1, area.w)) * 390)) }
+    : {
+        w: Math.min(1440, Math.max(780, (area.w / Math.max(1, area.h)) * baseH)),
+        h: baseH,
+      };
   const scale = Math.min(area.w / dim.w, area.h / dim.h);
-  const rx = compact ? 0.38 : Math.min(0.42, 0.48 - 84 / dim.w);
-  const ry = compact ? 0.4 : 0.39;
-  const cy = compact ? 51 : 51.5;
+  const rx = Math.min(0.42, 0.48 - 84 / dim.w);
+  const ry = 0.39;
+  const cy = 51.5;
 
+  const mobileLayout = MOBILE_SEATS[Math.min(8, Math.max(2, N))] ?? MOBILE_SEATS[2];
   const pos = s.players.map((_, j) => {
-    const f = ((j - me + N) % N) / N,
+    const rel = (j - me + N) % N;
+    if (compact) return mobileLayout[rel] ?? { x: 50, y: 21 };
+    const f = rel / N,
       H = Math.PI - 0.42;
     const a = Math.PI / 2 + (f <= 0.5 ? f * 2 * H : -(1 - f) * 2 * H);
     const y = cy + Math.sin(a) * ry * 100;
-    return { x: 50 + Math.cos(a) * rx * 100, y: compact && y > 50 && y < 70 ? 49 : y };
+    return { x: 50 + Math.cos(a) * rx * 100, y };
   });
 
   const vec = (a: Point, b: Point) => ({
@@ -643,15 +707,15 @@ export default function Table({
 
   const tgt = settled ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null;
   const G = compact
-    ? { x0: 0.12, x1: 0.88, y0: 0.11, y1: 0.88, pad: 12, nd: 58, nw: 72, sh: 34, zw: 58, zh: 70 }
+    ? { x0: 0.08, x1: 0.92, y0: 0.11, y1: 0.87, pad: 12, nd: 0, nw: 0, sh: 0, zw: 46, zh: 55 }
     : { x0: 0.11, x1: 0.89, y0: 0.125, y1: 0.87, pad: 26, nd: 82, nw: 126, sh: 64, zw: 82, zh: 98 };
   const X0 = G.x0 * dim.w,
     X1 = G.x1 * dim.w,
     Y0 = G.y0 * dim.h,
     Y1 = G.y1 * dim.h;
-  const dealerTop = Y0 + G.nd - G.zh;
+  const dealerTop = compact ? Y0 - G.zh * 0.78 : Y0 + G.nd - G.zh;
   const zx = dim.w / 2,
-    zy = Y0 + G.nd - G.zh / 2;
+    zy = compact ? Y0 : Y0 + G.nd - G.zh / 2;
   const look =
     mood.n === 'deal' || mood.n === 'nod' || !tgt
       ? { x: 0, y: 1 }
@@ -660,9 +724,11 @@ export default function Table({
           y: Math.max(-0.6, Math.min(1, ((tgt.y / 100) * dim.h - zy) / 260)),
         };
 
-  const potPos = POT;
+  const potPos = compact ? { x: 54, y: 34 } : POT;
   const toPot = (b: Point) => (settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, potPos));
   const displayPot = settled ? winners.reduce((a, w) => a + w[1], 0) : pot;
+  const tblPath = (x0: number, x1: number, y0: number, y1: number, nw = G.nw) =>
+    compact ? portraitShape(x0, x1, y0, y1) : shape(x0, x1, y0, y1, G.nd, nw, G.sh);
 
   return (
     <>
@@ -700,7 +766,7 @@ export default function Table({
           </defs>
           {/* Rail externo */}
           <path
-            d={shape(X0, X1, Y0, Y1, G.nd, G.nw, G.sh)}
+            d={tblPath(X0, X1, Y0, Y1)}
             fill="url(#railg)"
             stroke="url(#railRim)"
             strokeWidth="1.5"
@@ -708,20 +774,18 @@ export default function Table({
           />
           {/* Borda interna do rail (sombra) */}
           <path
-            d={shape(
+            d={tblPath(
               X0 + G.pad - 3,
               X1 - G.pad + 3,
               Y0 + G.pad - 3,
               Y1 - G.pad + 3,
-              G.nd,
               G.nw + G.pad - 3,
-              G.sh,
             )}
             fill="#040b2a"
           />
           {/* Feltro principal */}
           <path
-            d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
+            d={tblPath(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nw + G.pad)}
             fill="url(#feltg)"
             stroke="rgba(143, 184, 255, .28)"
             strokeWidth="1.2"
@@ -729,25 +793,23 @@ export default function Table({
           />
           {/* Textura + iluminação central do feltro */}
           <path
-            d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
+            d={tblPath(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nw + G.pad)}
             fill="url(#feltGrain)"
             strokeLinejoin="round"
           />
           <path
-            d={shape(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nd, G.nw + G.pad, G.sh)}
+            d={tblPath(X0 + G.pad, X1 - G.pad, Y0 + G.pad, Y1 - G.pad, G.nw + G.pad)}
             fill="url(#feltGlow)"
             strokeLinejoin="round"
           />
           {/* Linha de apostas interna */}
           <path
-            d={shape(
+            d={tblPath(
               X0 + G.pad * 2.35,
               X1 - G.pad * 2.35,
               Y0 + G.pad * 2.35,
               Y1 - G.pad * 2.35,
-              G.nd,
               G.nw + G.pad * 1.9,
-              G.sh,
             )}
             fill="none"
             stroke="rgba(219, 233, 255, .18)"
@@ -757,6 +819,23 @@ export default function Table({
         </svg>
 
         <BrandLogo variant="watermark" className="felt-mark" />
+
+        {/* No mobile, baralho compacto fica na linha do pote para liberar 100% da largura ao board */}
+        {compact && (
+          <div className="spot mobile-deck-spot" style={at(27, 34)}>
+            <motion.div
+              key={s.hand}
+              className="deck pc deck-sz"
+              initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
+              animate={{ rotate: 0, scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 20 }}
+            >
+              <div className="pc-back" style={{ transform: 'translate(-3px,-3px)' }} />
+              <div className="pc-back" style={{ transform: 'translate(-1.5px,-1.5px)' }} />
+              <div id="deck" className="pc-back" />
+            </motion.div>
+          </div>
+        )}
 
         {/* Pote centralizado na linha superior */}
         <div className="spot pot-spot" style={at(potPos.x, potPos.y)}>
@@ -777,21 +856,23 @@ export default function Table({
           </motion.div>
         </div>
 
-        {/* Cartas comunitárias (Board) com baralho ancorado à esquerda */}
-        <div className="spot board" style={at(50, compact ? 52 : 50)}>
-          <div className="deck-anchor">
-            <motion.div
-              key={s.hand}
-              className="deck pc deck-sz"
-              initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
-              animate={{ rotate: 0, scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-            >
-              <div className="pc-back" style={{ transform: 'translate(-4px,-4px)' }} />
-              <div className="pc-back" style={{ transform: 'translate(-2px,-2px)' }} />
-              <div id="deck" className="pc-back" />
-            </motion.div>
-          </div>
+        {/* Cartas comunitárias (Board) com baralho ancorado à esquerda no desktop */}
+        <div className="spot board" style={at(50, compact ? 50 : 50)}>
+          {!compact && (
+            <div className="deck-anchor">
+              <motion.div
+                key={s.hand}
+                className="deck pc deck-sz"
+                initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 240, damping: 20 }}
+              >
+                <div className="pc-back" style={{ transform: 'translate(-4px,-4px)' }} />
+                <div className="pc-back" style={{ transform: 'translate(-2px,-2px)' }} />
+                <div id="deck" className="pc-back" />
+              </motion.div>
+            </div>
+          )}
           {[0, 1, 2, 3, 4].map((i) => {
             const card = s.board[i];
             const hasShowdown = settled && s.reveal && card != null && winCore.size > 0;

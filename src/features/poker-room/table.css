@@ -705,9 +705,9 @@
   }
 }
 
-/* Compact / Mobile */
+/* Compact / Mobile (Mesa Portrait) */
 .table-wrap.compact .felt-mark {
-  font-size: 38px;
+  font-size: 36px;
 }
 .table-wrap.compact .pc.lg {
   --w: 56px;
@@ -715,28 +715,32 @@
 }
 .table-wrap.compact .pc.md,
 .table-wrap.compact .board {
-  --w: 50px;
-  --h: 70px;
+  --w: 52px;
+  --h: 72px;
 }
 .table-wrap.compact .pc.sm {
-  --w: 36px;
-  --h: 50px;
+  --w: 34px;
+  --h: 48px;
 }
 .table-wrap.compact .pc.deck-sz {
-  --w: 38px;
-  --h: 54px;
+  --w: 32px;
+  --h: 44px;
 }
 .table-wrap.compact .board {
   @apply gap-[5px];
 }
 .table-wrap.compact .plate {
-  @apply min-w-[98px];
-  @apply max-w-[122px];
-  @apply p-[5px_7px_7px_6px];
-  @apply gap-[6px];
+  @apply min-w-[88px];
+  @apply max-w-[112px];
+  @apply p-[4px_7px_6px_5px];
+  @apply gap-[5px];
 }
 .table-wrap.compact .self .plate {
-  @apply min-w-[124px];
+  @apply min-w-[126px];
+  @apply max-w-[152px];
+}
+.table-wrap.compact .mobile-deck-spot {
+  z-index: 2;
 }
 .table-wrap.compact .avatar {
   @apply w-[24px];

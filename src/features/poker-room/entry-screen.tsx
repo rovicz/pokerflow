@@ -159,7 +159,7 @@ export default function EntryScreen({ send, pending, error, notice, setError, on
 
   return (
     <>
-      <section className="landing">
+      <section className={'landing' + (!invited ? ' has-leaderboard' : '')}>
         <motion.div
           className="hero"
           initial={reducedMotion ? false : { opacity: 0, y: 16 }}
@@ -507,8 +507,8 @@ export default function EntryScreen({ send, pending, error, notice, setError, on
             </>
           )}
         </motion.div>
+        {!invited && <HomeLeaderboard />}
       </section>
-      {!invited && <HomeLeaderboard />}
       <footer className="landing-foot">
         <span>PokerFlow · Texas Hold’em privado entre amigos</span>
         <span>Apenas fichas virtuais</span>

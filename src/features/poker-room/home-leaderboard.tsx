@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion, useReducedMotion } from 'motion/react';
 import {
   LEADERBOARD_CATEGORIES,
   categoryValue,
@@ -9,10 +10,11 @@ import {
 } from '../../poker/leaderboard.ts';
 import type { AvatarStyle } from '../../poker/avatars.ts';
 import Avatar from './avatar';
-import { IconTrophy } from './ui';
 import { fmt } from './table';
 
+// Widget irmão do card "Entre no clube" na tela inicial: mesmo visual .panel, abas .seg e lista vertical limpa.
 export default function HomeLeaderboard() {
+  const reducedMotion = useReducedMotion();
   const [category, setCategory] = useState<LeaderboardCategory>('matches_won');
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,55 +38,46 @@ export default function HomeLeaderboard() {
   const cat = LEADERBOARD_CATEGORIES.find((c) => c.id === category) ?? LEADERBOARD_CATEGORIES[0];
 
   return (
-    <section className="panel home-lb" aria-label="Ranking do clube">
-      <div className="hlb-head">
-        <div className="hlb-title">
-          <span className="hlb-ico" aria-hidden="true">
-            <IconTrophy />
-          </span>
-          <div>
-            <div className="eyebrow">RANKING DO CLUBE</div>
-            <h2>Top jogadores</h2>
-          </div>
-        </div>
+    <motion.aside
+      className="panel home-lb-widget"
+      aria-label="Ranking do clube"
+      initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="eyebrow">RANKING DO CLUBE</div>
+      <h2>Top jogadores</h2>
 
-        <div className="hlb-controls">
-          <div className="hlb-tabs" role="tablist" aria-label="Categoria do ranking">
-            {LEADERBOARD_CATEGORIES.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                role="tab"
-                aria-selected={category === c.id}
-                className={category === c.id ? 'on' : ''}
-                onClick={() => setCategory(c.id)}
-              >
-                {c.short}
-              </button>
-            ))}
-          </div>
-          <Link href="/ranking" className="hlb-all-link">
-            Ver ranking completo →
-          </Link>
-        </div>
+      <div className="seg hlb-seg" role="tablist" aria-label="Categoria do ranking">
+        {LEADERBOARD_CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            role="tab"
+            aria-selected={category === c.id}
+            className={category === c.id ? 'on' : ''}
+            onClick={() => setCategory(c.id)}
+          >
+            {c.short}
+          </button>
+        ))}
       </div>
 
       {loading && rows.length === 0 ? (
         <p className="hlb-empty">Carregando classificação…</p>
       ) : rows.length === 0 ? (
         <p className="hlb-empty">
-          Nenhuma partida ranqueada ainda. Jogue com 2 ou mais amigos logados para inaugurar o
-          pódio!
+          Nenhuma partida ranqueada ainda. Jogue com 2+ amigos logados para inaugurar o pódio!
         </p>
       ) : (
-        <div className="hlb-grid">
+        <ol className="hlb-list">
           {rows.map((r, i) => (
-            <div key={r.username} className={`hlb-card is-p${i + 1}` + (r.isMe ? ' is-me' : '')}>
-              <span className="hlb-rank">{i + 1}º</span>
+            <li key={r.username} className={`hlb-row is-p${i + 1}` + (r.isMe ? ' is-me' : '')}>
+              <span className="hlb-pos">{i + 1}º</span>
               <Avatar
                 a={{ style: r.avatarStyle as AvatarStyle, seed: r.avatarSeed }}
                 name={r.displayName}
-                size={38}
+                size={32}
               />
               <div className="hlb-who">
                 <b>{r.displayName}</b>
@@ -94,10 +87,14 @@ export default function HomeLeaderboard() {
                 <strong>{fmt(categoryValue(r, category))}</strong>
                 <small>{cat.unit}</small>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
-    </section>
+
+      <Link href="/ranking" className="outline wide hlb-cta">
+        Ver ranking completo →
+      </Link>
+    </motion.aside>
   );
 }

@@ -178,6 +178,15 @@ export default function Topbar({
 
         <div className="header-right">
           {!inApp && <span className="private">● Mesa privada</span>}
+          <button
+            className="icon-btn"
+            onClick={onToggleMute}
+            aria-pressed={muted}
+            title={muted ? 'Ativar som' : 'Silenciar som'}
+          >
+            {muted ? <IconSoundOff /> : <IconSoundOn />}
+            <span className="btn-txt">{muted ? 'Mudo' : 'Som'}</span>
+          </button>
           {!inGame && (
             <Link href="/ranking" className="icon-btn topbar-link-btn" title="Ver ranking do clube">
               <IconTrophy />
@@ -229,15 +238,6 @@ export default function Topbar({
                 </button>
               )
             ))}
-          <button
-            className="icon-btn"
-            onClick={onToggleMute}
-            aria-pressed={muted}
-            title={muted ? 'Ativar som' : 'Silenciar som'}
-          >
-            {muted ? <IconSoundOff /> : <IconSoundOn />}
-            <span className="btn-txt">{muted ? 'Mudo' : 'Som'}</span>
-          </button>
           {s && (
             <button
               className="icon-btn"

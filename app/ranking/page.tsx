@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../src/features/auth/use-auth';
 import {
@@ -20,9 +20,9 @@ type LeaderboardPayload = {
   me: { rank: number; entry: LeaderboardRow } | null;
 };
 
-function winRate(won: number, played: number): string {
-  if (!played) return '0%';
-  return Math.round((won / played) * 100) + '%';
+function winRateNum(won: number, played: number): number {
+  if (!played) return 0;
+  return Math.round((won / played) * 100);
 }
 
 export default function RankingPage() {
@@ -30,6 +30,7 @@ export default function RankingPage() {
   const [category, setCategory] = useState<LeaderboardCategory>('matches_won');
   const [data, setData] = useState<LeaderboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -52,7 +53,18 @@ export default function RankingPage() {
     LEADERBOARD_CATEGORIES.find((c) => c.id === category) ?? LEADERBOARD_CATEGORIES[0];
   const rows = data?.rows ?? [];
   const top3 = rows.slice(0, 3);
-  const rest = rows.slice(3);
+
+  const rankedRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows
+      .map((row, idx) => ({ row, rank: idx + 1 }))
+      .filter(
+        ({ row }) =>
+          !q || row.displayName.toLowerCase().includes(q) || row.username.toLowerCase().includes(q),
+      );
+  }, [rows, query]);
+
+  const myRate = data?.me ? winRateNum(data.me.entry.handsWon, data.me.entry.handsPlayed) : 0;
 
   return (
     <div className="ranking-shell">
@@ -63,13 +75,25 @@ export default function RankingPage() {
           </Link>
           <div className="game-meta">
             <span className="meta-pill accent">Ranking do Clube</span>
-            {data && <span className="meta-pill hide-sm">{fmt(data.totalPlayers)} jogadores</span>}
+            {data && (
+              <span className="meta-pill hide-sm">
+                {fmt(data.totalPlayers)} {data.totalPlayers === 1 ? 'jogador' : 'jogadores'}
+              </span>
+            )}
           </div>
         </div>
         <div className="profile-topbar-right">
           {user && (
-            <Link href="/perfil" className="outline profile-back-btn">
-              {profile?.display_name || 'Meu perfil'}
+            <Link href="/perfil" className="rk-user-pill">
+              <Avatar
+                a={{
+                  style: (profile?.avatar_style || 'adventurer') as AvatarStyle,
+                  seed: profile?.avatar_seed || user.id,
+                }}
+                name={profile?.display_name || 'Perfil'}
+                size={22}
+              />
+              <span>{profile?.display_name || 'Meu perfil'}</span>
             </Link>
           )}
           <Link href="/" className="outline profile-back-btn">
@@ -79,7 +103,7 @@ export default function RankingPage() {
       </header>
 
       <main className="ranking-page">
-        {/* Barra de categorias */}
+        {/* Cabeçalho editorial + seletor de categorias */}
         <div className="rk-head">
           <div className="rk-title-block">
             <div className="eyebrow">LEADERBOARD OFICIAL · MESAS COM 2+ HUMANOS</div>
@@ -102,170 +126,267 @@ export default function RankingPage() {
           </div>
         </div>
 
-        {/* Grid fluido 2 colunas em 100dvh */}
+        {/* Grid equilibrada 2 colunas sem vazios mortos */}
         <div className="rk-grid">
-          {/* Esquerda: Pódio Top 3 + Tabela Classificatória */}
-          <section className="panel rk-board-card">
-            {loading && !data ? (
-              <p className="rk-empty">Carregando classificação…</p>
-            ) : rows.length === 0 ? (
-              <div className="rk-empty-state">
-                <div className="eyebrow">CLUBE ABERTO</div>
-                <h2>Nenhuma partida ranqueada ainda</h2>
-                <p>
-                  Jogue mesas com pelo menos 2 jogadores humanos autenticados para registrar suas
-                  vitórias e inaugurar o pódio!
-                </p>
-                <Link href="/" className="primary reset-home-link">
-                  Abrir uma mesa agora →
-                </Link>
+          {/* Esquerda: Pódio Top 3 + Tabela Completa */}
+          <div className="rk-main">
+            <section className="panel rk-podium-card" aria-label="Pódio do clube">
+              <div className="rk-section-head">
+                <div>
+                  <div className="eyebrow">PÓDIO DO CLUBE</div>
+                  <h2>Top 3 em {catMeta.label}</h2>
+                </div>
+                <span className="rk-badge-subtle">
+                  {rows.length} {rows.length === 1 ? 'classificado' : 'classificados'}
+                </span>
               </div>
-            ) : (
-              <>
+
+              {loading && !data ? (
+                <p className="rk-empty">Carregando classificação…</p>
+              ) : rows.length === 0 ? (
+                <div className="rk-empty-state">
+                  <div className="eyebrow">CLUBE ABERTO</div>
+                  <h3>Nenhuma partida ranqueada ainda</h3>
+                  <p>
+                    Jogue mesas com pelo menos 2 jogadores humanos autenticados para registrar suas
+                    vitórias e inaugurar o pódio.
+                  </p>
+                  <Link href="/" className="primary reset-home-link">
+                    Abrir uma mesa agora →
+                  </Link>
+                </div>
+              ) : (
                 <div className="rk-podium">
                   {[top3[1], top3[0], top3[2]].map((r, slot) => {
                     const place = slot === 1 ? 1 : slot === 0 ? 2 : 3;
-                    if (!r) return <div key={place} className="rk-pod-slot is-empty" />;
+                    if (!r) {
+                      return (
+                        <div key={place} className={`rk-pod-slot is-vacant is-p${place}`}>
+                          <span className="rk-medal">{place}º</span>
+                          <div className="rk-vacant-ring" aria-hidden="true">
+                            ?
+                          </div>
+                          <strong className="rk-pod-name">Vaga aberta</strong>
+                          <small className="rk-pod-handle">Convide amigos para o pódio</small>
+                        </div>
+                      );
+                    }
+                    const rate = winRateNum(r.handsWon, r.handsPlayed);
                     return (
                       <div
                         key={r.username}
                         className={`rk-pod-slot is-p${place}` + (r.isMe ? ' is-me' : '')}
                       >
                         <span className="rk-medal">{place}º</span>
-                        <Avatar
-                          a={{ style: r.avatarStyle as AvatarStyle, seed: r.avatarSeed }}
-                          name={r.displayName}
-                          size={place === 1 ? 64 : 52}
-                        />
+                        <div className="rk-pod-av">
+                          <Avatar
+                            a={{ style: r.avatarStyle as AvatarStyle, seed: r.avatarSeed }}
+                            name={r.displayName}
+                            size={place === 1 ? 68 : 54}
+                          />
+                        </div>
                         <strong className="rk-pod-name">{r.displayName}</strong>
                         <small className="rk-pod-handle">@{r.username}</small>
                         <div className="rk-pod-score">
                           <b>{fmt(categoryValue(r, category))}</b>
                           <span>{catMeta.unit}</span>
                         </div>
+                        <span className="rk-pod-sub">
+                          {rate}% aprov. · {fmt(r.handsPlayed)} mãos
+                        </span>
                       </div>
                     );
                   })}
                 </div>
+              )}
+            </section>
 
-                {rest.length > 0 && (
-                  <div className="rk-table-wrap">
-                    <table className="rk-table">
-                      <thead>
+            {/* Tabela Classificatória Completa (sempre visível quando houver jogadores) */}
+            {rows.length > 0 && (
+              <section className="panel rk-table-card" aria-label="Classificação geral">
+                <div className="rk-section-head">
+                  <div>
+                    <div className="eyebrow">CLASSIFICAÇÃO GERAL</div>
+                    <h2>Todos os jogadores</h2>
+                  </div>
+                  {rows.length >= 4 && (
+                    <input
+                      type="search"
+                      className="rk-search"
+                      placeholder="Filtrar por nome ou @…"
+                      aria-label="Filtrar jogadores no ranking"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <div className="rk-table-wrap">
+                  <table className="rk-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Jogador</th>
+                        <th className="num is-active-col">{catMeta.short}</th>
+                        {category !== 'matches_won' && <th className="num hide-sm">Partidas</th>}
+                        {category !== 'total_chips_won' && <th className="num hide-sm">Fichas</th>}
+                        <th className="num hide-xs">Mãos</th>
+                        <th className="num hide-xs">Aprov.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rankedRows.length === 0 ? (
                         <tr>
-                          <th>#</th>
-                          <th>Jogador</th>
-                          <th className="num">{catMeta.short}</th>
-                          <th className="num hide-xs">Mãos</th>
-                          <th className="num hide-sm">Aprov.</th>
+                          <td colSpan={6} className="rk-no-match">
+                            Nenhum jogador encontrado para “{query}”.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {rest.map((r, i) => (
+                      ) : (
+                        rankedRows.map(({ row: r, rank }) => (
                           <tr key={r.username} className={r.isMe ? 'is-me' : ''}>
-                            <td className="rk-pos">{i + 4}º</td>
+                            <td className="rk-pos">
+                              <span className={rank <= 3 ? `rk-rank-pill is-p${rank}` : ''}>
+                                {rank}º
+                              </span>
+                            </td>
                             <td>
                               <div className="rk-player-cell">
                                 <Avatar
                                   a={{ style: r.avatarStyle as AvatarStyle, seed: r.avatarSeed }}
                                   name={r.displayName}
-                                  size={28}
+                                  size={32}
                                 />
                                 <div>
-                                  <b>{r.displayName}</b>
+                                  <span className="rk-name-row">
+                                    <b>{r.displayName}</b>
+                                    {r.isMe && <em className="rk-you-tag">Você</em>}
+                                  </span>
                                   <small>@{r.username}</small>
                                 </div>
                               </div>
                             </td>
                             <td className="num rk-main-val">{fmt(categoryValue(r, category))}</td>
+                            {category !== 'matches_won' && (
+                              <td className="num hide-sm">{fmt(r.matchesWon)}</td>
+                            )}
+                            {category !== 'total_chips_won' && (
+                              <td className="num hide-sm">{fmt(r.totalChipsWon)}</td>
+                            )}
                             <td className="num hide-xs">{fmt(r.handsPlayed)}</td>
-                            <td className="num hide-sm">{winRate(r.handsWon, r.handsPlayed)}</td>
+                            <td className="num hide-xs">
+                              {winRateNum(r.handsWon, r.handsPlayed)}%
+                            </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             )}
-          </section>
+          </div>
 
-          {/* Direita: Sua Posição / CTA */}
-          <aside className="panel rk-me-card">
-            {user && data?.me ? (
-              <>
-                <div className="profile-card-head">
-                  <div className="eyebrow">SUA POSIÇÃO</div>
-                  <h2>
-                    #{data.me.rank} <span className="rk-of-total">de {fmt(data.totalPlayers)}</span>
-                  </h2>
-                  <p>
-                    Classificação atual em <b>{catMeta.label}</b>.
-                  </p>
-                </div>
+          {/* Direita: Sua Posição + Regras do Clube */}
+          <aside className="rk-side">
+            <div className="panel rk-me-card">
+              {user && data?.me ? (
+                <>
+                  <div className="rk-me-top">
+                    <div>
+                      <div className="eyebrow">SUA POSIÇÃO</div>
+                      <h2>
+                        #{data.me.rank}{' '}
+                        <span className="rk-of-total">de {fmt(data.totalPlayers)}</span>
+                      </h2>
+                    </div>
+                    <span className="rk-cat-chip">{catMeta.short}</span>
+                  </div>
 
-                <div className="rk-me-hero">
-                  <Avatar
-                    a={{
-                      style: data.me.entry.avatarStyle as AvatarStyle,
-                      seed: data.me.entry.avatarSeed,
-                    }}
-                    name={data.me.entry.displayName}
-                    size={54}
-                  />
-                  <div>
-                    <strong>{data.me.entry.displayName}</strong>
-                    <small>@{data.me.entry.username}</small>
+                  <div className="rk-me-hero">
+                    <Avatar
+                      a={{
+                        style: data.me.entry.avatarStyle as AvatarStyle,
+                        seed: data.me.entry.avatarSeed,
+                      }}
+                      name={data.me.entry.displayName}
+                      size={48}
+                    />
+                    <div className="rk-me-id">
+                      <strong>{data.me.entry.displayName}</strong>
+                      <small>@{data.me.entry.username}</small>
+                    </div>
                   </div>
-                </div>
 
-                <div className="rk-me-stats">
-                  <div className="rk-stat-box">
-                    <small>Partidas vencidas</small>
-                    <b>{fmt(data.me.entry.matchesWon)}</b>
+                  <div className="rk-me-stats">
+                    <div
+                      className={'rk-stat-box' + (category === 'matches_won' ? ' is-active' : '')}
+                    >
+                      <small>Partidas vencidas</small>
+                      <b>{fmt(data.me.entry.matchesWon)}</b>
+                    </div>
+                    <div
+                      className={
+                        'rk-stat-box' + (category === 'total_chips_won' ? ' is-active' : '')
+                      }
+                    >
+                      <small>Banco acumulado</small>
+                      <b>{fmt(data.me.entry.totalChipsWon)}</b>
+                    </div>
+                    <div className={'rk-stat-box' + (category === 'hands_won' ? ' is-active' : '')}>
+                      <small>Mãos vencidas</small>
+                      <b>{fmt(data.me.entry.handsWon)}</b>
+                    </div>
+                    <div
+                      className={'rk-stat-box' + (category === 'biggest_pot' ? ' is-active' : '')}
+                    >
+                      <small>Maior pote</small>
+                      <b>{fmt(data.me.entry.biggestPot)}</b>
+                    </div>
                   </div>
-                  <div className="rk-stat-box">
-                    <small>Banco acumulado</small>
-                    <b>{fmt(data.me.entry.totalChipsWon)}</b>
-                  </div>
-                  <div className="rk-stat-box">
-                    <small>Mãos vencidas</small>
-                    <b>{fmt(data.me.entry.handsWon)}</b>
-                  </div>
-                  <div className="rk-stat-box">
-                    <small>Maior pote</small>
-                    <b>{fmt(data.me.entry.biggestPot)}</b>
-                  </div>
-                </div>
 
-                <div className="rk-me-footer">
-                  <span className="rk-rate-pill">
-                    Aproveitamento em mãos:{' '}
-                    <b>{winRate(data.me.entry.handsWon, data.me.entry.handsPlayed)}</b>
-                  </span>
+                  <div className="rk-rate-block">
+                    <div className="rk-rate-head">
+                      <span>Aproveitamento em mãos</span>
+                      <b>{myRate}%</b>
+                    </div>
+                    <div className="rk-progress" aria-hidden="true">
+                      <span style={{ width: `${Math.min(100, myRate)}%` }} />
+                    </div>
+                  </div>
+
                   <Link href="/perfil" className="outline wide reset-home-link">
                     Personalizar meu perfil
                   </Link>
+                </>
+              ) : (
+                <div className="rk-guest-cta">
+                  <div className="eyebrow">DISPUTE O PÓDIO</div>
+                  <h2>Entre no ranking oficial</h2>
+                  <p>
+                    Crie sua conta gratuita com e-mail confirmado para registrar automaticamente
+                    suas vitórias, maior pote e banco acumulado em mesas contra amigos.
+                  </p>
+                  <Link href="/" className="primary wide reset-home-link">
+                    {user ? 'Jogar uma mesa agora →' : 'Voltar e criar conta →'}
+                  </Link>
                 </div>
-              </>
-            ) : (
-              <div className="rk-guest-cta">
-                <div className="eyebrow">DISPUTE O PÓDIO</div>
-                <h2>Entre no ranking oficial</h2>
-                <p>
-                  Crie sua conta gratuita com e-mail confirmado para registrar automaticamente suas
-                  vitórias, maior pote e banco acumulado em mesas contra amigos.
-                </p>
-                <ul className="rk-rules-list">
-                  <li>Válido em mesas com 2 ou mais jogadores humanos.</li>
-                  <li>Gravação 100% autoritativa no servidor (anti-fraude).</li>
-                  <li>4 categorias independentes para disputar.</li>
-                </ul>
-                <Link href="/" className="primary wide reset-home-link">
-                  {user ? 'Jogar uma mesa agora →' : 'Voltar e criar conta →'}
-                </Link>
-              </div>
-            )}
+              )}
+            </div>
+
+            <div className="panel rk-info-card">
+              <div className="eyebrow">REGRAS OFICIAIS</div>
+              <h3>Como funciona a pontuação</h3>
+              <ul className="rk-rules-list">
+                <li>
+                  Contabiliza automaticamente mesas com <b>2+ jogadores humanos</b> autenticados.
+                </li>
+                <li>Mesas solo contra bots não alteram o ranking do clube (anti-farm).</li>
+                <li>Gravação 100% autoritativa no servidor ao fim de cada mão e partida.</li>
+              </ul>
+              <Link href="/" className="primary wide reset-home-link">
+                Abrir mesa ranqueada →
+              </Link>
+            </div>
           </aside>
         </div>
       </main>

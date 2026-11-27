@@ -17,6 +17,11 @@ export type SendExtra = {
   type?: string;
   amount?: number;
   seat?: number;
+  targetUid?: string;
+  vote?: 'yes' | 'no';
+  indices?: number[];
+  mode?: 'start' | 'lobby';
+  active?: boolean;
   avatar?: { style: AvatarStyle; seed: string };
 };
 export type Connection = 'ok' | 'offline';
@@ -114,9 +119,11 @@ export function useRoom() {
           return exit('Esta sala não existe mais. Ela pode ter expirado por inatividade.');
         if (r.status === 403)
           return exit(
-            body && typeof body === 'object' && 'removed' in body
-              ? 'Você foi removido da sala pelo anfitrião.'
-              : 'Você não está mais nesta sala.',
+            body && typeof body === 'object' && 'banned' in body && body.banned
+              ? 'Você foi expulso desta sala por votação.'
+              : body && typeof body === 'object' && 'removed' in body
+                ? 'Você foi removido da sala pelo anfitrião.'
+                : 'Você não está mais nesta sala.',
           );
       }
       if (!r.ok) throw Error(errorOf(body, 'Não foi possível concluir.'));
@@ -166,14 +173,17 @@ export function useRoom() {
       if (!g) return;
       const t = Date.now() + offset.current;
       const s = g.state;
-      const due =
-        s.botActAt ??
-        s.deadline ??
-        (s.phase === 'settled' &&
+      const dueCandidates = [
+        s.botActAt,
+        s.deadline,
+        s.banVote?.expiresAt,
+        s.phase === 'settled' &&
         s.pausedFor == null &&
-        s.players.filter((q) => q.stack > 0).length >= 2
+        s.players.filter((q) => !q.kicked && !q.left && !q.sittingOut && q.stack > 0).length >= 2
           ? s.nextHandAt
-          : null);
+          : null,
+      ].filter((v): v is number => typeof v === 'number');
+      const due = dueCandidates.length ? Math.min(...dueCandidates) : null;
       if (!socket.current || ++n % 20 === 0) void send('state', {}, true);
       else if (due != null && t >= due + 80 && Date.now() - asked.current > 450) {
         asked.current = Date.now();
@@ -210,9 +220,25 @@ export function useRoom() {
     }
   }
 
-  // Espectador sai avisando o servidor; jogador só deixa a tela (o anfitrião remove quem não voltar).
+  // Jogador ou espectador avisa o servidor ao sair (transfere anfitrião e libera o assento com segurança).
   async function leave() {
-    if (latest.current?.state.role === 'spectator') await send('leave');
+    const cur = latest.current;
+    if (cur && token.current) {
+      try {
+        await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            op: 'leave',
+            token: token.current,
+            code: cur.code,
+            version: cur.version,
+          }),
+        });
+      } catch {
+        // Sai localmente mesmo sem rede
+      }
+    }
     exit();
   }
 

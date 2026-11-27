@@ -1,5 +1,25 @@
-import type { GameState, Hand, Player } from './game-types.ts';
+import type {
+  ActiveStreet,
+  GameState,
+  Hand,
+  HandLogEntry,
+  HandRecord,
+  HandShowdownEntry,
+  HandWinnerSummary,
+  Player,
+} from './game-types.ts';
+import { describeHand } from './hands.ts';
 import { randomInt } from 'node:crypto';
+
+const MAX_HAND_HISTORY = 12;
+const MAX_HAND_LOG = 40;
+
+function pushLog(s: GameState, entry: Omit<HandLogEntry, 'seq'>) {
+  const list = (s.handLog ??= []);
+  const seq = (list[list.length - 1]?.seq ?? 0) + 1;
+  list.push({ seq, ...entry });
+  if (list.length > MAX_HAND_LOG) s.handLog = list.slice(-MAX_HAND_LOG);
+}
 export function deck() {
   const d = Array.from({ length: 52 }, (_, i) => i);
   for (let i = 51; i > 0; i--) {
@@ -107,20 +127,227 @@ function turn(s: GameState, i: number) {
     s.botActAt = null;
   }
 }
+function pushRoomNotice(s: GameState, text: string) {
+  s.roomNotice = {
+    seq: (s.roomNotice?.seq ?? 0) + 1,
+    text,
+    at: Date.now(),
+  };
+}
+
+const eligibleToPlay = (p: Player) => !p.kicked && !p.left && !p.sittingOut && p.stack > 0;
+const remainingWithChips = (p: Player) => !p.kicked && !p.left && p.stack > 0;
+
+function purgeDeparted(s: GameState) {
+  let removedBeforeDealer = 0;
+  const kept: Player[] = [];
+  for (let i = 0; i < s.players.length; i++) {
+    if (s.players[i].kicked || s.players[i].left) {
+      if (i <= s.dealer) removedBeforeDealer++;
+    } else {
+      kept.push(s.players[i]);
+    }
+  }
+  if (kept.length !== s.players.length) {
+    s.players = kept;
+    s.dealer = s.players.length ? Math.max(-1, s.dealer - removedBeforeDealer) : -1;
+  }
+}
+
+export function transferHostIfNeeded(s: GameState) {
+  const hostActive = s.players.some((p) => p.id === s.host && !p.bot && !p.kicked && !p.left);
+  if (hostActive) return false;
+  const nextHost = s.players.find((p) => !p.bot && !p.kicked && !p.left);
+  if (!nextHost) return false;
+  s.host = nextHost.id;
+  pushRoomNotice(s, `${nextHost.name} agora é o anfitrião da sala.`);
+  return true;
+}
+
+export function kickFromTable(s: GameState, targetId: string) {
+  const idx = s.players.findIndex((p) => p.id === targetId);
+  if (idx < 0) return false;
+  if (!s.removed?.includes(targetId)) (s.removed ??= []).push(targetId);
+  if (!s.banned?.includes(targetId)) (s.banned ??= []).push(targetId);
+
+  if (s.phase === 'waiting' || s.phase === 'settled') {
+    s.players.splice(idx, 1);
+    if (idx <= s.dealer) s.dealer = Math.max(-1, s.dealer - 1);
+    if (s.phase === 'settled' && s.players.filter(eligibleToPlay).length < 2) {
+      delete s.nextHandAt;
+      delete s.pausedFor;
+    }
+    transferHostIfNeeded(s);
+    return true;
+  }
+
+  // Em mão ativa: preserva p.total no pote para conservação de fichas, dá fold e avança o turno se necessário.
+  const target = s.players[idx];
+  target.kicked = true;
+  if (!target.fold) {
+    target.fold = true;
+    target.acted = true;
+    target.actedAt = s.current ?? 0;
+    pushLog(s, { street: s.phase, kind: 'fold', actor: target.name, auto: true });
+    if (s.turn === idx) {
+      s.last = { seat: idx, type: 'fold', seq: (s.last?.seq || 0) + 1, auto: true };
+      progress(s, idx);
+    } else if (live(s).length === 1) {
+      settle(s);
+    }
+  }
+  transferHostIfNeeded(s);
+  return true;
+}
+
+export function leaveTable(s: GameState, id: string) {
+  const idx = s.players.findIndex((p) => p.id === id);
+  if (idx < 0) return false;
+  const target = s.players[idx];
+  const wasHost = s.host === id;
+  if (s.banVote?.targetId === id) s.banVote = null;
+
+  if (s.phase === 'waiting' || s.phase === 'settled') {
+    s.players.splice(idx, 1);
+    if (idx <= s.dealer) s.dealer = Math.max(-1, s.dealer - 1);
+    if (s.phase === 'settled' && s.players.filter(eligibleToPlay).length < 2) {
+      delete s.nextHandAt;
+      delete s.pausedFor;
+    }
+    if (!transferHostIfNeeded(s) && !wasHost) {
+      pushRoomNotice(s, `${target.name} saiu da mesa.`);
+    }
+    return true;
+  }
+
+  // Em mão ativa: saída segura sem banimento e com 100% de conservação de fichas.
+  target.left = true;
+  if (!target.fold) {
+    target.fold = true;
+    target.acted = true;
+    target.actedAt = s.current ?? 0;
+    pushLog(s, { street: s.phase, kind: 'fold', actor: target.name, auto: true });
+    if (s.turn === idx) {
+      s.last = { seat: idx, type: 'fold', seq: (s.last?.seq || 0) + 1, auto: true };
+      progress(s, idx);
+    } else if (live(s).length === 1) {
+      settle(s);
+    }
+  }
+  if (!transferHostIfNeeded(s)) {
+    pushRoomNotice(s, `${target.name} saiu da mesa.`);
+  }
+  return true;
+}
+
+export function setSitOut(s: GameState, id: string, active: boolean) {
+  const idx = s.players.findIndex((p) => p.id === id && !p.bot && !p.kicked && !p.left);
+  if (idx < 0) throw Error('Jogador inválido');
+  const p = s.players[idx];
+  if (!!p.sittingOut === active) return s;
+  p.sittingOut = active;
+
+  if (active && s.phase !== 'waiting' && s.phase !== 'settled' && s.turn === idx) {
+    const due = Math.max(0, (s.current ?? 0) - p.bet);
+    act(s, id, due > 0 ? 'fold' : 'check');
+  } else if (s.phase === 'settled') {
+    const readyCount = s.players.filter(eligibleToPlay).length;
+    if (readyCount < 2) {
+      delete s.nextHandAt;
+      delete s.pausedFor;
+    } else if (s.nextHandAt == null && s.pausedFor == null) {
+      s.nextHandAt = Date.now() + 5000;
+    }
+  }
+  return s;
+}
+
+export function showCards(s: GameState, id: string, indices?: unknown) {
+  if (s.phase !== 'settled' || s.reveal)
+    throw Error('Mostrar cartas só vale após vitória por desistência');
+  const p = s.players.find((q) => q.id === id && !q.kicked && !q.left);
+  if (!p || p.fold || p.cards.length !== 2)
+    throw Error('Apenas o vencedor pode mostrar suas cartas');
+  const raw = Array.isArray(indices) ? indices : [0, 1];
+  const valid = [...new Set(raw.filter((x): x is number => x === 0 || x === 1))].sort();
+  if (!valid.length) throw Error('Cartas inválidas');
+  const merged = [...new Set([...(p.shown ?? []), ...valid])].sort();
+  p.shown = merged;
+
+  // Atualiza o último registro no histórico da mesa se corresponder à mão atual.
+  const lastRec = s.history?.[s.history.length - 1];
+  if (lastRec && lastRec.hand === s.hand && !lastRec.reveal) {
+    lastRec.shown = {
+      name: p.name,
+      cards: p.cards.map((c, idx) => (merged.includes(idx) ? c : -1)),
+    };
+  }
+  return s;
+}
+
+export function rematch(s: GameState, id: string, mode: unknown) {
+  if (s.host !== id) throw Error('Somente o anfitrião pode iniciar a revanche');
+  if (s.phase !== 'settled') throw Error('A partida ainda está em andamento');
+  if (s.players.filter(remainingWithChips).length >= 2) {
+    throw Error('A partida ainda tem jogadores com fichas');
+  }
+  const targetMode = mode === 'lobby' ? 'lobby' : 'start';
+  purgeDeparted(s);
+  for (const p of s.players) {
+    p.stack = s.initial;
+    p.cards = [];
+    p.bet = 0;
+    p.total = 0;
+    p.fold = false;
+    p.sittingOut = false;
+    delete p.shown;
+    p.acted = false;
+    p.actedAt = null;
+  }
+  s.dealer = -1;
+  s.turn = -1;
+  s.hand = 0;
+  s.board = [];
+  s.result = [];
+  s.handLog = [];
+  s.history = [];
+  s.reveal = false;
+  s.banVote = null;
+  delete s.sbSeat;
+  delete s.bbSeat;
+  delete s.current;
+  delete s.minRaise;
+  delete s.last;
+  delete s.nextHandAt;
+  delete s.pausedFor;
+  s.deadline = null;
+  s.botActAt = null;
+
+  if (targetMode === 'start' && s.players.length >= 2) {
+    s.phase = 'waiting';
+    start(s);
+  } else {
+    s.phase = 'waiting';
+  }
+  return s;
+}
+
 export function start(s: GameState) {
   if (!['waiting', 'settled'].includes(s.phase)) throw Error('Mão em andamento');
-  if (s.players.filter((p) => p.stack > 0).length < 2) throw Error('Mínimo de dois jogadores');
+  purgeDeparted(s);
+  if (s.players.filter(eligibleToPlay).length < 2) throw Error('Mínimo de dois jogadores');
   delete s.nextHandAt;
   delete s.pausedFor;
   s.deck = deck();
   s.board = [];
   s.result = [];
-  s.dealer = next(s, s.dealer, (p) => p.stack > 0);
+  s.dealer = next(s, s.dealer, eligibleToPlay);
   for (const p of s.players) {
     p.cards = [];
     p.bet = 0;
     p.total = 0;
-    p.fold = p.stack === 0;
+    p.fold = p.stack === 0 || !!p.sittingOut;
+    delete p.shown;
     p.acted = false;
     p.actedAt = null;
   }
@@ -140,6 +367,23 @@ export function start(s: GameState) {
   s.minRaise = s.bb;
   s.phase = 'preflop';
   s.hand++;
+  s.handLog = [];
+  if (s.players[sb].bet > 0) {
+    pushLog(s, {
+      street: 'preflop',
+      kind: 'sb',
+      actor: s.players[sb].name,
+      amount: s.players[sb].bet,
+    });
+  }
+  if (s.players[bb].bet > 0) {
+    pushLog(s, {
+      street: 'preflop',
+      kind: 'bb',
+      actor: s.players[bb].name,
+      amount: s.players[bb].bet,
+    });
+  }
   progress(s, bb);
   return s;
 }
@@ -171,6 +415,44 @@ function settle(s: GameState) {
     });
   }
   s.reveal = survivors.length > 1;
+
+  // Grava resumo seguro no histórico da mesa (nunca inclui cartas de quem desistiu ou não foi ao showdown).
+  const potTotal = s.result.reduce((sum, r) => sum + r.amount, 0);
+  const wonByName = new Map<string, number>();
+  for (const r of s.result) wonByName.set(r.name, (wonByName.get(r.name) ?? 0) + r.amount);
+  const handNameByPlayer = new Map<string, string>();
+  let showdown: HandShowdownEntry[] | undefined;
+  if (s.reveal) {
+    showdown = survivors
+      .filter((p) => p.cards.length === 2)
+      .map((p) => {
+        const h = bestHand([...p.cards, ...s.board]);
+        const handName = h ? describeHand(h) : '';
+        handNameByPlayer.set(p.name, handName);
+        return {
+          name: p.name,
+          cards: [...p.cards],
+          handName,
+          won: wonByName.has(p.name),
+        };
+      });
+  }
+  const winnersSummary: HandWinnerSummary[] = [...wonByName.entries()].map(([name, amount]) => ({
+    name,
+    amount,
+    ...(s.reveal && handNameByPlayer.get(name) ? { handName: handNameByPlayer.get(name) } : {}),
+  }));
+  const record: HandRecord = {
+    hand: s.hand,
+    at: Date.now(),
+    pot: potTotal,
+    board: [...s.board],
+    reveal: s.reveal,
+    winners: winnersSummary,
+    ...(showdown ? { showdown } : {}),
+  };
+  s.history = [...(s.history ?? []), record].slice(-MAX_HAND_HISTORY);
+
   s.phase = 'settled';
   s.turn = -1;
   s.deadline = null;
@@ -179,7 +461,11 @@ function settle(s: GameState) {
     p.total = 0;
     p.bet = 0;
   }
-  s.nextHandAt = Date.now() + 15000;
+  if (s.players.filter(eligibleToPlay).length >= 2) {
+    s.nextHandAt = Date.now() + 15000;
+  } else {
+    delete s.nextHandAt;
+  }
 }
 function progress(s: GameState, from: number) {
   if (live(s).length === 1) {
@@ -199,8 +485,16 @@ function progress(s: GameState, from: number) {
   }
   s.deck!.pop()!;
   let count = s.phase === 'preflop' ? 3 : 1;
-  while (count--) s.board.push(s.deck!.pop()!);
-  s.phase = s.phase === 'preflop' ? 'flop' : s.phase === 'flop' ? 'turn' : 'river';
+  const dealt: number[] = [];
+  while (count--) {
+    const c = s.deck!.pop()!;
+    s.board.push(c);
+    dealt.push(c);
+  }
+  const nextStreet: ActiveStreet =
+    s.phase === 'preflop' ? 'flop' : s.phase === 'flop' ? 'turn' : 'river';
+  s.phase = nextStreet;
+  pushLog(s, { street: nextStreet, kind: 'street', cards: dealt });
   s.current = 0;
   s.minRaise = s.bb;
   for (const p of s.players) {
@@ -211,7 +505,7 @@ function progress(s: GameState, from: number) {
   progress(s, s.dealer);
 }
 export function betweenHands(s: GameState, id: string, type: unknown) {
-  if (s.phase !== 'settled' || s.players.filter((p) => p.stack > 0).length < 2)
+  if (s.phase !== 'settled' || s.players.filter(eligibleToPlay).length < 2)
     throw Error('Sem próxima mão disponível');
   const now = Date.now();
   if (type === 'tick') {
@@ -266,18 +560,30 @@ export function act(s: GameState, id: string, type: unknown, amount?: unknown) {
   } else throw Error('Ação inválida');
   p.acted = true;
   p.actedAt = s.current!;
+  if (s.phase !== 'waiting' && s.phase !== 'settled') {
+    const isAllIn = (type === 'call' || type === 'raise') && p.stack === 0;
+    pushLog(s, {
+      street: s.phase,
+      kind: isAllIn ? 'allin' : type,
+      actor: p.name,
+      ...(type === 'call' || type === 'raise' ? { amount: p.bet } : {}),
+      ...(auto ? { auto: true } : {}),
+    });
+  }
   s.last = { seat: s.turn, type, seq: (s.last?.seq || 0) + 1, ...(auto ? { auto } : {}) };
   progress(s, s.turn);
   return s;
 }
 export function view(s: GameState, id: string) {
-  const { deck, removed, spectators, ...safe } = s;
+  const { deck, removed, banned, banVote, voteCooldowns, spectators, ...safe } = s;
   return {
     ...safe,
     players: s.players.map(({ cards, ...p }) => ({
       ...p,
       cards:
-        p.id === id || (s.phase === 'settled' && s.reveal && !p.fold) ? cards : cards.map(() => -1),
+        p.id === id || (s.phase === 'settled' && s.reveal && !p.fold)
+          ? cards
+          : cards.map((c, idx) => (s.phase === 'settled' && p.shown?.includes(idx) ? c : -1)),
       hand: s.phase === 'settled' && s.reveal && !p.fold ? bestHand([...cards, ...s.board]) : null,
     })),
   };

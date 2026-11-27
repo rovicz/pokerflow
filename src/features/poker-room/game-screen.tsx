@@ -7,6 +7,8 @@ import { HAND_RANKINGS, analyzeShowdown, describeHand } from '../../poker/hands.
 import type { SendExtra } from './use-room.ts';
 import Table, { fmt } from './table';
 import EmotePicker from './emote-picker';
+import BanVoteBanner from './ban-vote-banner';
+import HandHistory from './hand-history';
 import Avatar from './avatar';
 import { ActionButton, MiniCard, Tip } from './ui';
 import { sfx } from './sound';
@@ -20,6 +22,8 @@ type Props = {
   sendEmote: (e: EmoteId) => void;
   emotesMuted: boolean;
   onToggleEmotesMute: () => void;
+  mutedUids: Set<string>;
+  onTogglePlayerMute: (uid: string) => void;
   onLeave: () => void;
 };
 
@@ -33,6 +37,8 @@ export default function GameScreen({
   sendEmote,
   emotesMuted,
   onToggleEmotesMute,
+  mutedUids,
+  onTogglePlayerMute,
   onLeave,
 }: Props) {
   const reducedMotion = useReducedMotion();
@@ -63,7 +69,16 @@ export default function GameScreen({
   const rangePct =
     max > min ? Math.min(100, Math.max(0, ((amount - min) / (max - min)) * 100)) : 100;
   const nextLeft = Math.max(0, Math.ceil(((s.nextHandAt ?? now) - now) / 1000));
-  const hasNext = s.players.filter((q) => q.stack > 0).length >= 2;
+  const readyPlayersCount = s.players.filter(
+    (q) => !q.kicked && !q.left && !q.sittingOut && q.stack > 0,
+  ).length;
+  const remainingChipsCount = s.players.filter((q) => !q.kicked && !q.left && q.stack > 0).length;
+  const hasNext = readyPlayersCount >= 2;
+  const waitingForAway = !hasNext && remainingChipsCount >= 2;
+  const rematchSeats = s.players.filter((q) => !q.kicked && !q.left).length;
+  const canShowMuck =
+    !watching && s.phase === 'settled' && !s.reveal && !!p && !p.fold && p.cards.length === 2;
+  const shownCount = p?.shown?.length ?? 0;
   const winners = Object.entries(
     s.result.reduce<Record<string, number>>((a, r) => {
       a[r.name] = (a[r.name] || 0) + r.amount;
@@ -100,7 +115,7 @@ export default function GameScreen({
     const L = s.last;
     if (!L?.auto) return;
     const who = s.players[L.seat];
-    if (!who) return;
+    if (!who || who.kicked) return;
     setToast(
       (who.self ? 'Você perdeu' : who.name + ' perdeu') +
         ' a vez (tempo esgotado) e ' +
@@ -109,6 +124,30 @@ export default function GameScreen({
     const t = setTimeout(() => setToast(''), 4000);
     return () => clearTimeout(t);
   }, [s.last?.seq]);
+
+  // Aviso de resultado da votação de expulsão.
+  useEffect(() => {
+    const vn = s.voteNotice;
+    if (!vn || now - vn.at > 8000) return;
+    setToast(
+      vn.kind === 'banned'
+        ? `${vn.targetName} foi expulso da sala por votação.`
+        : vn.kind === 'rejected'
+          ? `A votação para expulsar ${vn.targetName} foi rejeitada.`
+          : `A votação para expulsar ${vn.targetName} expirou.`,
+    );
+    const t = setTimeout(() => setToast(''), 4500);
+    return () => clearTimeout(t);
+  }, [s.voteNotice?.seq]);
+
+  // Aviso de eventos da sala (transferência de anfitrião, saída da mesa).
+  useEffect(() => {
+    const rn = s.roomNotice;
+    if (!rn || now - rn.at > 8000) return;
+    setToast(rn.text);
+    const t = setTimeout(() => setToast(''), 4500);
+    return () => clearTimeout(t);
+  }, [s.roomNotice?.seq]);
 
   // Atalhos de teclado na vez do jogador (F = Fold, C = Check/Call, R = Raise/Bet, A = All-in)
   useEffect(() => {
@@ -140,12 +179,32 @@ export default function GameScreen({
   return (
     <div className="arena">
       <div className="table-area">
-        <Table s={s} pot={pot} winners={winners} left={left} emotesMuted={emotesMuted} />
+        <BanVoteBanner
+          vote={s.banVote}
+          now={now}
+          pending={pending}
+          onVote={(targetUid, vote) => send('vote_kick', { targetUid, vote })}
+        />
+        <Table
+          s={s}
+          pot={pot}
+          winners={winners}
+          left={left}
+          emotesMuted={emotesMuted}
+          mutedUids={mutedUids}
+          onTogglePlayerMute={onTogglePlayerMute}
+          onStartVoteKick={
+            !watching ? (targetUid) => send('vote_kick', { targetUid, vote: 'yes' }) : undefined
+          }
+          onShowCard={canShowMuck ? (idx) => send('show_cards', { indices: [idx] }) : undefined}
+          pending={pending}
+        />
         {toast && (
           <p className="toast" role="status">
             {toast}
           </p>
         )}
+        <HandHistory s={s} />
         {!watching && (
           <EmotePicker onSend={sendEmote} muted={emotesMuted} onToggleMute={onToggleEmotesMute} />
         )}
@@ -219,13 +278,26 @@ export default function GameScreen({
                 </div>
               </div>
 
-              <div className={'timer' + (left <= 5 ? ' urgent' : left <= 10 ? ' warn' : '')}>
-                <div className="timer-row">
-                  <small>Tempo</small>
-                  <b>{left}s</b>
-                </div>
-                <div className="track">
-                  <div style={{ width: timePct + '%' }} />
+              <div className="dock-head-right">
+                {!p?.sittingOut && (
+                  <button
+                    type="button"
+                    className="outline sm-btn sitout-btn"
+                    disabled={pending}
+                    title="Ficar ausente (pula as próximas mãos sem sair da sala)"
+                    onClick={() => send('sit_out', { active: true })}
+                  >
+                    Ausente
+                  </button>
+                )}
+                <div className={'timer' + (left <= 5 ? ' urgent' : left <= 10 ? ' warn' : '')}>
+                  <div className="timer-row">
+                    <small>Tempo</small>
+                    <b>{left}s</b>
+                  </div>
+                  <div className="track">
+                    <div style={{ width: timePct + '%' }} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -258,6 +330,21 @@ export default function GameScreen({
               <span className="metric sh-stack">
                 Suas fichas <b>{fmt(p?.stack)}</b>
               </span>
+            </div>
+          )}
+
+          {/* Barra de estado Ausente (Sit Out) */}
+          {p?.sittingOut && (
+            <div className="sitout-bar" role="status">
+              <span>Você está ausente — pulando as mãos sem perder suas fichas.</span>
+              <button
+                type="button"
+                className="primary sm-btn"
+                disabled={pending}
+                onClick={() => send('sit_out', { active: false })}
+              >
+                Voltar para o jogo
+              </button>
             </div>
           )}
 
@@ -477,11 +564,71 @@ export default function GameScreen({
                   </>
                 ) : null}
 
+                {/* Show / Muck opcional quando o jogador vence por desistência */}
+                {canShowMuck && (
+                  <div className="show-muck-bar">
+                    <div className="sm-copy">
+                      <strong>
+                        {shownCount >= 2
+                          ? 'Cartas reveladas na mesa'
+                          : shownCount === 1
+                            ? '1 carta revelada na mesa'
+                            : 'Você venceu sem showdown'}
+                      </strong>
+                      {shownCount < 2 && (
+                        <small>Mostre sua mão ou clique em uma carta para revelar só ela.</small>
+                      )}
+                    </div>
+                    {shownCount < 2 ? (
+                      <button
+                        type="button"
+                        className="outline sm-btn show-cards-btn"
+                        disabled={pending}
+                        onClick={() => send('show_cards', { indices: [0, 1] })}
+                      >
+                        {shownCount === 1 ? 'Mostrar a outra' : 'Mostrar cartas'}
+                      </button>
+                    ) : (
+                      <span className="sm-done-tag">✓ Reveladas</span>
+                    )}
+                  </div>
+                )}
+
                 <div className="end-footer">
-                  {!hasNext ? (
+                  {waitingForAway ? (
                     <span className="end-note">
-                      Partida encerrada · É preciso ter dois jogadores com fichas para continuar.
+                      Aguardando jogadores ausentes voltarem para iniciar a próxima mão…
                     </span>
+                  ) : !hasNext ? (
+                    <>
+                      <span className="end-note">
+                        {s.host
+                          ? 'Partida encerrada · Inicie uma revanche com os mesmos jogadores.'
+                          : 'Partida encerrada · Aguardando o anfitrião iniciar a revanche…'}
+                      </span>
+                      {s.host && (
+                        <div className="rematch-actions">
+                          {rematchSeats >= 2 && (
+                            <button
+                              type="button"
+                              className="primary sm-btn"
+                              disabled={pending}
+                              onClick={() => send('rematch', { mode: 'start' })}
+                            >
+                              Revanche agora ↻
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="outline sm-btn"
+                            disabled={pending}
+                            onClick={() => send('rematch', { mode: 'lobby' })}
+                          >
+                            Voltar ao Lobby
+                          </button>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <>
                       <span className="end-note">
@@ -497,18 +644,31 @@ export default function GameScreen({
                           'Distribuindo a próxima mão…'
                         )}
                       </span>
-                      {s.host && (
-                        <button
-                          type="button"
-                          className="outline sm-btn"
-                          disabled={pending || (s.pausedFor == null && !nextLeft)}
-                          onClick={() =>
-                            send('interval', { type: s.pausedFor != null ? 'resume' : 'pause' })
-                          }
-                        >
-                          {s.pausedFor != null ? 'Retomar contagem' : 'Pausar intervalo'}
-                        </button>
-                      )}
+                      <div className="end-footer-btns">
+                        {!p?.sittingOut && (
+                          <button
+                            type="button"
+                            className="outline sm-btn sitout-btn"
+                            disabled={pending}
+                            title="Pular as próximas mãos sem sair da sala"
+                            onClick={() => send('sit_out', { active: true })}
+                          >
+                            Ficar ausente
+                          </button>
+                        )}
+                        {s.host && (
+                          <button
+                            type="button"
+                            className="outline sm-btn"
+                            disabled={pending || (s.pausedFor == null && !nextLeft)}
+                            onClick={() =>
+                              send('interval', { type: s.pausedFor != null ? 'resume' : 'pause' })
+                            }
+                          >
+                            {s.pausedFor != null ? 'Retomar contagem' : 'Pausar intervalo'}
+                          </button>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>

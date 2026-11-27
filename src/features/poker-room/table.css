@@ -706,21 +706,29 @@
 }
 
 /* Compact / Mobile (Mesa Portrait) */
+.mobile-deck-origin {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
 .table-wrap.compact .felt-mark {
   font-size: 36px;
 }
 .table-wrap.compact .pc.lg {
-  --w: 56px;
-  --h: 78px;
+  --w: 58px;
+  --h: 80px;
 }
 .table-wrap.compact .pc.md,
 .table-wrap.compact .board {
-  --w: 52px;
-  --h: 72px;
+  --w: 54px;
+  --h: 75px;
 }
 .table-wrap.compact .pc.sm {
-  --w: 34px;
-  --h: 48px;
+  --w: 30px;
+  --h: 42px;
 }
 .table-wrap.compact .pc.deck-sz {
   --w: 32px;
@@ -729,18 +737,21 @@
 .table-wrap.compact .board {
   @apply gap-[5px];
 }
+.table-wrap.compact .hand {
+  bottom: calc(100% - 6px);
+}
+.table-wrap.compact .self .hand {
+  bottom: calc(100% - 8px);
+}
 .table-wrap.compact .plate {
   @apply min-w-[88px];
-  @apply max-w-[112px];
+  @apply max-w-[114px];
   @apply p-[4px_7px_6px_5px];
   @apply gap-[5px];
 }
 .table-wrap.compact .self .plate {
   @apply min-w-[126px];
   @apply max-w-[152px];
-}
-.table-wrap.compact .mobile-deck-spot {
-  z-index: 2;
 }
 .table-wrap.compact .avatar {
   @apply w-[24px];
@@ -759,6 +770,15 @@
 .table-wrap.compact .status {
   @apply text-[9px];
 }
+.table-wrap.compact .blind-badge {
+  left: -6px;
+  top: -8px;
+  right: auto;
+  min-width: 24px;
+  height: 18px;
+  font-size: 9px;
+  padding: 0 5px;
+}
 .table-wrap.compact .pot-pill {
   @apply p-[4px_10px];
   @apply gap-[5px];
@@ -769,24 +789,30 @@
 .table-wrap.compact .pot-val {
   @apply text-[12px];
 }
+.table-wrap.compact .bet {
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+.table-wrap.compact .bet .amt {
+  margin-top: 0;
+  font-size: 10px;
+  padding: 1px 6px;
+}
 .table-wrap.compact .chip {
-  @apply w-[20px];
-  @apply h-[20px];
+  @apply w-[18px];
+  @apply h-[18px];
   @apply text-[6px];
-  left: calc(var(--s) * 22px);
+  left: calc(var(--s) * 19px);
+  bottom: calc(var(--i) * 2px);
 }
 .table-wrap.compact .chips {
-  @apply h-[32px];
+  @apply h-[20px];
+  margin-right: 0 !important;
 }
 .table-wrap.compact .bubble {
   @apply text-[10px];
   @apply p-[3px_8px];
-}
-.table-wrap.compact .seat.top-seat .hand {
-  @apply top-[-3px];
-}
-.table-wrap.compact .seat.top-seat .hand .pc + .pc {
-  @apply ml-[-8px];
 }
 
 /* ==========================================================================
@@ -1044,4 +1070,176 @@
   .seat.active .plate {
     animation: none;
   }
+}
+
+/* ==========================================================================
+   Menu Contextual do Jogador (Mute / Unmute e Votação de Expulsão)
+   ========================================================================== */
+.seat.has-menu {
+  z-index: 40;
+}
+
+.plate.is-interactive {
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.plate.is-interactive:hover,
+.plate.is-interactive:focus-visible {
+  border-color: rgba(102, 161, 255, 0.55);
+  outline: none;
+}
+
+.muted-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  color: rgba(248, 113, 113, 0.92);
+  vertical-align: middle;
+}
+
+.player-menu {
+  position: absolute;
+  left: 50%;
+  margin-left: -105px;
+  width: 210px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(16, 18, 26, 0.97);
+  border: 1px solid rgba(246, 246, 243, 0.18);
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(10, 100, 255, 0.14);
+  backdrop-filter: blur(12px);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.player-menu.is-below {
+  top: calc(100% + 8px);
+}
+
+.player-menu.is-above {
+  bottom: calc(100% + 10px);
+}
+
+.pm-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 8px;
+  border-bottom: 1px solid rgba(246, 246, 243, 0.1);
+  margin-bottom: 2px;
+}
+
+.pm-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.pm-who b {
+  font-size: 12px;
+  color: #f6f6f3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-who small {
+  font-size: 10px;
+  color: rgba(246, 246, 243, 0.56);
+}
+
+.pm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #f6f6f3;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.pm-item:hover:not(:disabled),
+.pm-item:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.pm-item.is-active {
+  background: rgba(10, 100, 255, 0.16);
+  border-color: rgba(102, 161, 255, 0.35);
+}
+
+.pm-item.is-danger {
+  color: #fca5a5;
+}
+
+.pm-item.is-danger:hover:not(:disabled),
+.pm-item.is-danger:focus-visible:not(:disabled) {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.32);
+}
+
+.pm-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pm-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.pm-col {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.pm-hint {
+  font-size: 10px;
+  color: rgba(246, 246, 243, 0.55);
+  margin-top: 2px;
+}
+
+.table-wrap.compact .player-menu {
+  width: 192px;
+  margin-left: -96px;
+}
+
+.seat.is-away .plate {
+  opacity: 0.62;
+  filter: saturate(0.65);
+}
+
+.pc.is-clickable {
+  cursor: pointer;
+}
+
+.pc.is-clickable:hover .pc-face,
+.pc.is-clickable:focus-visible .pc-face {
+  transform: translateY(-8px);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.55),
+    0 0 0 2px rgba(102, 161, 255, 0.85);
 }

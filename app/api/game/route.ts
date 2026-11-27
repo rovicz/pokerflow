@@ -4,11 +4,21 @@ import { openRoomStore } from '../../../src/server/room-store.ts';
 import { notifyRoom, roomChannel } from '../../../src/server/room-notify.ts';
 import { allow } from '../../../src/server/rate-limit.ts';
 import { randomBytes } from 'node:crypto';
-import { start, act, view, betweenHands } from '../../../src/poker/engine.ts';
+import {
+  start,
+  act,
+  view,
+  betweenHands,
+  showCards,
+  rematch,
+  leaveTable,
+  setSitOut,
+} from '../../../src/poker/engine.ts';
 import { resolveDue } from '../../../src/poker/timeouts.ts';
 import { cleanAvatar } from '../../../src/poker/avatars.ts';
 import { isEmoteId, pushEmote } from '../../../src/poker/emotes.ts';
 import { createBotPlayer, isBotDifficulty } from '../../../src/poker/bot-ai.ts';
+import { castBanVote, projectBanVote, publicPlayerUid } from '../../../src/poker/moderation.ts';
 export const runtime = 'nodejs';
 
 const MAX_SPECTATORS = 30;
@@ -104,9 +114,20 @@ export async function POST(req: Request) {
     if (!data) return reply({ error: 'Sala não encontrada' }, 404);
     data = await settleDue(store, code, data);
     const s: GameState = data.state;
-    if (s.removed?.includes(id))
-      return reply({ error: 'Você foi removido desta sala pelo anfitrião.', removed: true }, 403);
-    const member = s.players.find((p) => p.id === id);
+    if (s.removed?.includes(id)) {
+      const banned = !!s.banned?.includes(id);
+      return reply(
+        {
+          error: banned
+            ? 'Você foi expulso desta sala por votação.'
+            : 'Você foi removido desta sala pelo anfitrião.',
+          removed: true,
+          ...(banned ? { banned: true } : {}),
+        },
+        403,
+      );
+    }
+    const member = s.players.find((p) => p.id === id && !p.left);
     const watcher = s.spectators?.find((p) => p.id === id);
     if (b.op === 'join' && !member && !watcher) {
       if (!name) throw Error('Informe seu nome');
@@ -141,8 +162,22 @@ export async function POST(req: Request) {
             avatar: watcher.avatar,
           });
         }
-      } else if (b.op === 'leave' || b.op === 'sit') throw Error('Comando inválido');
-      else if (b.op === 'emote') {
+      } else if (b.op === 'sit') throw Error('Comando inválido');
+      else if (b.op === 'leave') {
+        let cur: Row = data;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          leaveTable(cur.state, id);
+          cur.state.touched = Date.now();
+          if (await store.update(code, cur.version, cur.state)) {
+            await notifyRoom(code, cur.version + 1);
+            return reply({ left: true });
+          }
+          const fresh = await store.read(code);
+          if (!fresh) return reply({ left: true });
+          cur = await settleDue(store, code, fresh);
+        }
+        return reply({ left: true });
+      } else if (b.op === 'emote') {
         if (s.phase === 'waiting') throw Error('As reações ficam disponíveis durante a partida');
         if (!isEmoteId(b.emote)) throw Error('Reação inválida');
         let cur: Row = data;
@@ -161,6 +196,36 @@ export async function POST(req: Request) {
           cur = fresh;
         }
         return reply(ok(code, cur.state, id, cur.version));
+      } else if (b.op === 'vote_kick') {
+        const targetUid = typeof b.targetUid === 'string' ? b.targetUid : '';
+        const vote = b.vote === 'no' ? 'no' : b.vote === 'yes' ? 'yes' : null;
+        if (!targetUid || !vote) throw Error('Voto inválido');
+        let cur: Row = data;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          castBanVote(cur.state, id, targetUid, vote);
+          cur.state.touched = Date.now();
+          if (await store.update(code, cur.version, cur.state)) {
+            await notifyRoom(code, cur.version + 1);
+            return reply(ok(code, cur.state, id, cur.version + 1));
+          }
+          const fresh = await store.read(code);
+          if (!fresh) return reply({ error: 'Sala não encontrada' }, 404);
+          cur = await settleDue(store, code, fresh);
+          if (cur.state.removed?.includes(id)) {
+            const banned = !!cur.state.banned?.includes(id);
+            return reply(
+              {
+                error: banned
+                  ? 'Você foi expulso desta sala por votação.'
+                  : 'Você foi removido desta sala pelo anfitrião.',
+                removed: true,
+                ...(banned ? { banned: true } : {}),
+              },
+              403,
+            );
+          }
+        }
+        return reply({ error: 'Conflito; tente novamente' }, 409);
       } else {
         if (b.version !== data.version)
           return reply({ error: 'Estado atualizado; tente novamente' }, 409);
@@ -190,9 +255,16 @@ export async function POST(req: Request) {
             throw Error('Jogador inválido');
           const [gone] = s.players.splice(b.seat, 1);
           if (!gone.bot) (s.removed ??= []).push(gone.id);
+          if (s.banVote?.targetId === gone.id) s.banVote = null;
         } else if (b.op === 'avatar') {
           if (s.phase !== 'waiting') throw Error('O avatar só pode ser trocado na sala de espera');
           member!.avatar = cleanAvatar(b.avatar, member!.name);
+        } else if (b.op === 'show_cards') {
+          showCards(s, id, b.indices);
+        } else if (b.op === 'rematch') {
+          rematch(s, id, b.mode);
+        } else if (b.op === 'sit_out') {
+          setSitOut(s, id, !!b.active);
         } else if (b.op === 'action') act(s, id, b.type, b.amount);
         else throw Error('Comando inválido');
       }
@@ -214,12 +286,18 @@ function project(s: GameState, id: string): PublicState {
     role: s.players.some((p) => p.id === id) ? 'player' : 'spectator',
     players: v.players.map((p) => {
       const { id: pid, ...rest } = p;
-      return { ...rest, self: pid === id };
+      return {
+        ...rest,
+        uid: publicPlayerUid(pid),
+        self: pid === id,
+        ...(pid === s.host ? { isHost: true } : {}),
+      };
     }),
     spectators: (s.spectators ?? []).map((p) => ({
       name: p.name,
       avatar: p.avatar,
       self: p.id === id,
     })),
+    banVote: projectBanVote(s, id),
   };
 }

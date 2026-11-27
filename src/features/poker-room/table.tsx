@@ -19,6 +19,7 @@ import Avatar from './avatar';
 import Zake from './zake';
 import BrandLogo from './brand-logo';
 import NotoEmoji from './noto-emoji';
+import PlayerMenu from './player-menu';
 import { sfx } from './sound';
 import { analyzeShowdown, describeHand } from '../../poker/hands.ts';
 import type { EmoteEvent } from '../../poker/emotes.ts';
@@ -39,6 +40,8 @@ export function PlayingCard({
   kicker = false,
   dim = false,
   tilt = 0,
+  onClick,
+  title,
 }: {
   c: number;
   delay?: number;
@@ -48,6 +51,8 @@ export function PlayingCard({
   kicker?: boolean;
   dim?: boolean;
   tilt?: number;
+  onClick?: () => void;
+  title?: string;
 }) {
   const box = useRef<HTMLDivElement>(null),
     face = useRef<HTMLDivElement>(null),
@@ -127,10 +132,24 @@ export function PlayingCard({
         'pc ' +
         className +
         (highlight ? ' is-win' : kicker ? ' is-kicker' : '') +
-        (dim ? ' is-dim' : '')
+        (dim ? ' is-dim' : '') +
+        (onClick ? ' is-clickable' : '')
       }
-      role="img"
+      role={onClick ? 'button' : 'img'}
+      tabIndex={onClick ? 0 : undefined}
+      title={title}
       aria-label={up ? r + ' de ' + s : 'Carta virada'}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       <div ref={face} className="pc-in" style={{ transform: 'rotateY(180deg)' }}>
         <div className={'pc-face' + (isRed ? ' red' : '')}>
@@ -260,55 +279,57 @@ function portraitShape(x0: number, x1: number, y0: number, y1: number) {
 }
 
 // Posições dedicadas para mesa vertical mobile (índice 0 = jogador local na base).
-const MOBILE_SEATS: Record<number, Point[]> = {
+// Cada assento define (x, y) do plate e (bx, by) da ficha de aposta na zona limpa do feltro.
+type MobileSeat = { x: number; y: number; bx: number; by: number };
+const MOBILE_SEATS: Record<number, MobileSeat[]> = {
   2: [
-    { x: 50, y: 89 },
-    { x: 50, y: 21 },
+    { x: 50, y: 90, bx: 75, by: 75 },
+    { x: 50, y: 20, bx: 50, by: 36 },
   ],
   3: [
-    { x: 50, y: 89 },
-    { x: 19, y: 27 },
-    { x: 81, y: 27 },
+    { x: 50, y: 90, bx: 75, by: 75 },
+    { x: 20, y: 24, bx: 31, by: 37 },
+    { x: 80, y: 24, bx: 69, by: 37 },
   ],
   4: [
-    { x: 50, y: 89 },
-    { x: 16, y: 50 },
-    { x: 50, y: 20 },
-    { x: 84, y: 50 },
+    { x: 50, y: 90, bx: 75, by: 75 },
+    { x: 16, y: 50, bx: 31, by: 58 },
+    { x: 50, y: 20, bx: 50, by: 36 },
+    { x: 84, y: 50, bx: 69, by: 58 },
   ],
   5: [
-    { x: 50, y: 89 },
-    { x: 16, y: 63 },
-    { x: 22, y: 22 },
-    { x: 78, y: 22 },
-    { x: 84, y: 63 },
+    { x: 50, y: 90, bx: 76, by: 75 },
+    { x: 16, y: 65, bx: 31, by: 67 },
+    { x: 21, y: 22, bx: 31, by: 36 },
+    { x: 79, y: 22, bx: 69, by: 36 },
+    { x: 84, y: 65, bx: 69, by: 67 },
   ],
   6: [
-    { x: 50, y: 89 },
-    { x: 15, y: 64 },
-    { x: 17, y: 29 },
-    { x: 50, y: 19 },
-    { x: 83, y: 29 },
-    { x: 85, y: 64 },
+    { x: 50, y: 90, bx: 76, by: 75 },
+    { x: 16, y: 65, bx: 31, by: 67 },
+    { x: 17, y: 28, bx: 31, by: 38 },
+    { x: 50, y: 19, bx: 50, by: 35 },
+    { x: 83, y: 28, bx: 69, by: 38 },
+    { x: 84, y: 65, bx: 69, by: 67 },
   ],
   7: [
-    { x: 50, y: 89 },
-    { x: 15, y: 67 },
-    { x: 15, y: 40 },
-    { x: 28, y: 19 },
-    { x: 72, y: 19 },
-    { x: 85, y: 40 },
-    { x: 85, y: 67 },
+    { x: 50, y: 90, bx: 76, by: 75 },
+    { x: 16, y: 68, bx: 31, by: 69 },
+    { x: 15, y: 41, bx: 30, by: 41 },
+    { x: 25, y: 20, bx: 33, by: 34 },
+    { x: 75, y: 20, bx: 67, by: 34 },
+    { x: 85, y: 41, bx: 70, by: 41 },
+    { x: 84, y: 68, bx: 69, by: 69 },
   ],
   8: [
-    { x: 50, y: 89 },
-    { x: 15, y: 67 },
-    { x: 15, y: 42 },
-    { x: 24, y: 20 },
-    { x: 50, y: 17 },
-    { x: 76, y: 20 },
-    { x: 85, y: 42 },
-    { x: 85, y: 67 },
+    { x: 50, y: 90, bx: 76, by: 75 },
+    { x: 16, y: 68, bx: 31, by: 69 },
+    { x: 15, y: 42, bx: 30, by: 42 },
+    { x: 22, y: 21, bx: 32, by: 35 },
+    { x: 50, y: 17, bx: 50, by: 34 },
+    { x: 78, y: 21, bx: 68, by: 35 },
+    { x: 85, y: 42, bx: 70, by: 42 },
+    { x: 84, y: 68, bx: 69, by: 69 },
   ],
 };
 
@@ -329,6 +350,17 @@ function Seat({
   winCore,
   winKickers,
   settled,
+  compact,
+  muted,
+  menuOpen,
+  onToggleMenu,
+  onCloseMenu,
+  onToggleMute,
+  canVoteKick,
+  voteKickReason,
+  onVoteKick,
+  onShowCard,
+  pending,
 }: {
   p: PublicPlayer;
   j: number;
@@ -346,6 +378,17 @@ function Seat({
   winCore: Set<number>;
   winKickers: Set<number>;
   settled: boolean;
+  compact: boolean;
+  muted: boolean;
+  menuOpen: boolean;
+  onToggleMenu?: () => void;
+  onCloseMenu: () => void;
+  onToggleMute?: () => void;
+  canVoteKick: boolean;
+  voteKickReason?: string;
+  onVoteKick?: () => void;
+  onShowCard?: (index: number) => void;
+  pending?: boolean;
 }) {
   const N = s.players.length,
     order = (j - s.dealer - 1 + N) % N;
@@ -357,7 +400,7 @@ function Seat({
     : { x: 0, y: 0, opacity: 1, scale: 1 };
 
   const timerTone = left <= 18 ? 'danger' : left <= 38 ? 'warn' : 'ok';
-  const isTop = !self && pos.y < 32;
+  const isTop = !compact && !self && pos.y < 32;
   const topSide = isTop ? (pos.x < 48 ? ' top-seat top-left' : ' top-seat top-right') : '';
   const emoteSide = self ? 'side-left' : pos.x < 50 ? 'side-right' : 'side-left';
 
@@ -370,7 +413,9 @@ function Seat({
         (active ? ' active' : '') +
         (p.fold ? ' folded' : '') +
         (win ? ' win' : '') +
-        (isAllIn ? ' allin' : '')
+        (isAllIn ? ' allin' : '') +
+        (p.sittingOut || p.left ? ' is-away' : '') +
+        (menuOpen ? ' has-menu' : '')
       }
       style={at(pos.x, pos.y)}
     >
@@ -395,6 +440,9 @@ function Seat({
               : k === 0
                 ? -4
                 : 4;
+          const canRevealThis =
+            self && settled && !s.reveal && !p.fold && !!onShowCard && !(p.shown ?? []).includes(k);
+          const isVoluntaryShown = settled && !s.reveal && (p.shown ?? []).includes(k);
           return (
             <PlayingCard
               key={s.hand + '-' + k}
@@ -402,17 +450,35 @@ function Seat({
               delay={0.32 + (k * N + order) * 0.11}
               flipDelay={self ? 0.18 + k * 0.18 : rb + (order * 2 + k) * 0.15}
               className={self ? 'lg' : 'sm'}
-              highlight={isWinCard}
+              highlight={isWinCard || isVoluntaryShown}
               kicker={isKickerCard}
               dim={isDimCard}
               tilt={cardTilt}
+              onClick={canRevealThis ? () => onShowCard(k) : undefined}
+              title={canRevealThis ? 'Clique para mostrar esta carta na mesa' : undefined}
             />
           );
         })}
       </motion.div>
 
       <motion.div
-        className="plate"
+        className={'plate' + (!self && onToggleMenu ? ' is-interactive' : '')}
+        role={!self && onToggleMenu ? 'button' : undefined}
+        tabIndex={!self && onToggleMenu ? 0 : undefined}
+        aria-haspopup={!self && onToggleMenu ? 'menu' : undefined}
+        aria-expanded={!self && onToggleMenu ? menuOpen : undefined}
+        aria-label={!self && onToggleMenu ? 'Opções para ' + p.name : undefined}
+        onClick={!self && onToggleMenu ? onToggleMenu : undefined}
+        onKeyDown={
+          !self && onToggleMenu
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onToggleMenu();
+                }
+              }
+            : undefined
+        }
         initial={{ opacity: 0, scale: 0.92 }}
         animate={win ? { opacity: 1, scale: 1, y: [0, -4, 0] } : { opacity: 1, scale: 1, y: 0 }}
         transition={
@@ -429,6 +495,28 @@ function Seat({
             {p.name}
             {self ? <span className="you-tag">Você</span> : null}
             {p.bot ? <span className="bot-tag">Bot</span> : null}
+            {muted && !self ? (
+              <span
+                className="muted-tag"
+                title="Emotes deste jogador estão silenciados"
+                aria-label="Silenciado"
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <line x1="23" y1="9" x2="17" y2="15" />
+                  <line x1="17" y1="9" x2="23" y2="15" />
+                </svg>
+              </span>
+            ) : null}
           </b>
           <small className="stack-val">
             <i className="chip-dot" aria-hidden="true" />
@@ -457,18 +545,42 @@ function Seat({
       </motion.div>
 
       <div className="status">
-        {p.fold
-          ? 'Desistiu'
-          : isAllIn
-            ? 'ALL-IN'
-            : active
-              ? self
-                ? 'Sua vez'
-                : 'Pensando…'
-              : win
-                ? 'Venceu!'
-                : ''}
+        {p.kicked
+          ? 'Expulso'
+          : p.left
+            ? 'Saiu'
+            : p.sittingOut
+              ? 'Ausente'
+              : settled && !s.reveal && (p.shown?.length ?? 0) > 0
+                ? 'Mostrou a mão!'
+                : p.fold
+                  ? 'Desistiu'
+                  : isAllIn
+                    ? 'ALL-IN'
+                    : active
+                      ? self
+                        ? 'Sua vez'
+                        : 'Pensando…'
+                      : win
+                        ? 'Venceu!'
+                        : ''}
       </div>
+
+      <AnimatePresence>
+        {menuOpen && !self && onToggleMute && (
+          <PlayerMenu
+            player={p}
+            muted={muted}
+            onToggleMute={onToggleMute}
+            canVoteKick={canVoteKick}
+            voteKickReason={voteKickReason}
+            onVoteKick={onVoteKick}
+            pending={pending}
+            align={pos.y > 58 ? 'above' : 'below'}
+            onClose={onCloseMenu}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="bubble-w">
         <AnimatePresence>
@@ -513,18 +625,29 @@ export default function Table({
   winners,
   left,
   emotesMuted = false,
+  mutedUids,
+  onTogglePlayerMute,
+  onStartVoteKick,
+  onShowCard,
+  pending = false,
 }: {
   s: PublicState;
   pot: number;
   winners: Winners;
   left: number;
   emotesMuted?: boolean;
+  mutedUids?: Set<string>;
+  onTogglePlayerMute?: (uid: string) => void;
+  onStartVoteKick?: (uid: string) => void;
+  onShowCard?: (index: number) => void;
+  pending?: boolean;
 }) {
   const wrap = useRef<HTMLDivElement>(null),
     seen = useRef(0),
     lastSeq = useRef(s.last?.seq);
   const [area, setArea] = useState({ w: 960, h: 560 });
   const [bub, setBub] = useState<Bubble | null>(null);
+  const [openMenuUid, setOpenMenuUid] = useState<string | null>(null);
   const [activeEmotes, setActiveEmotes] = useState<Record<number, EmoteEvent>>({});
   const seenEmoteSeq = useRef((s.emotes || []).reduce((m, e) => Math.max(m, e.seq), 0));
   const emoteTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
@@ -548,8 +671,10 @@ export default function Table({
     seenEmoteSeq.current = incoming.reduce((m, e) => Math.max(m, e.seq), seenEmoteSeq.current);
     let played = false;
     for (const ev of incoming) {
-      const isSelf = !!s.players[ev.seat]?.self;
-      if (emotesMuted && !isSelf) continue;
+      const sender = s.players[ev.seat];
+      const isSelf = !!sender?.self;
+      const isIndividuallyMuted = !!sender?.uid && !!mutedUids?.has(sender.uid);
+      if (!isSelf && (emotesMuted || isIndividuallyMuted)) continue;
       if (!played) {
         sfx.emote();
         played = true;
@@ -565,7 +690,25 @@ export default function Table({
         });
       }, 3200);
     }
-  }, [s.emotes, emotesMuted, s.players]);
+  }, [s.emotes, emotesMuted, mutedUids, s.players]);
+
+  // Remove imediatamente a bolha ativa se o jogador for silenciado.
+  useEffect(() => {
+    if (!mutedUids?.size) return;
+    setActiveEmotes((cur) => {
+      let changed = false;
+      const next = { ...cur };
+      for (const seatKey of Object.keys(next)) {
+        const idx = Number(seatKey);
+        const sender = s.players[idx];
+        if (sender && !sender.self && mutedUids.has(sender.uid)) {
+          delete next[idx];
+          changed = true;
+        }
+      }
+      return changed ? next : cur;
+    });
+  }, [mutedUids, s.players]);
 
   const act = (n: Mood, ms: number, say?: string) => {
     clearTimeout(mt.current);
@@ -596,6 +739,18 @@ export default function Table({
     len0.current = s.board.length;
     ph0.current = s.phase;
   }, [s.hand, s.board.length, s.phase]);
+
+  const shownKey = s.players.map((q) => (q.shown ?? []).join(',')).join('|');
+  const prevShownKey = useRef(shownKey);
+  useEffect(() => {
+    if (shownKey !== prevShownKey.current) {
+      prevShownKey.current = shownKey;
+      if (s.phase === 'settled' && !s.reveal && s.players.some((q) => (q.shown?.length ?? 0) > 0)) {
+        act('wow', 2200, 'Olha o blefe!');
+        sfx.flip();
+      }
+    }
+  }, [shownKey, s.phase, s.reveal]);
 
   useEffect(() => {
     const L = s.last;
@@ -707,13 +862,13 @@ export default function Table({
 
   const tgt = settled ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null;
   const G = compact
-    ? { x0: 0.08, x1: 0.92, y0: 0.11, y1: 0.87, pad: 12, nd: 0, nw: 0, sh: 0, zw: 46, zh: 55 }
+    ? { x0: 0.035, x1: 0.965, y0: 0.055, y1: 0.92, pad: 10, nd: 0, nw: 0, sh: 0, zw: 44, zh: 52 }
     : { x0: 0.11, x1: 0.89, y0: 0.125, y1: 0.87, pad: 26, nd: 82, nw: 126, sh: 64, zw: 82, zh: 98 };
   const X0 = G.x0 * dim.w,
     X1 = G.x1 * dim.w,
     Y0 = G.y0 * dim.h,
     Y1 = G.y1 * dim.h;
-  const dealerTop = compact ? Y0 - G.zh * 0.78 : Y0 + G.nd - G.zh;
+  const dealerTop = compact ? Y0 - G.zh * 0.44 : Y0 + G.nd - G.zh;
   const zx = dim.w / 2,
     zy = compact ? Y0 : Y0 + G.nd - G.zh / 2;
   const look =
@@ -724,7 +879,7 @@ export default function Table({
           y: Math.max(-0.6, Math.min(1, ((tgt.y / 100) * dim.h - zy) / 260)),
         };
 
-  const potPos = compact ? { x: 54, y: 34 } : POT;
+  const potPos = compact ? { x: 50, y: 31 } : POT;
   const toPot = (b: Point) => (settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, potPos));
   const displayPot = settled ? winners.reduce((a, w) => a + w[1], 0) : pot;
   const tblPath = (x0: number, x1: number, y0: number, y1: number, nw = G.nw) =>
@@ -820,23 +975,6 @@ export default function Table({
 
         <BrandLogo variant="watermark" className="felt-mark" />
 
-        {/* No mobile, baralho compacto fica na linha do pote para liberar 100% da largura ao board */}
-        {compact && (
-          <div className="spot mobile-deck-spot" style={at(27, 34)}>
-            <motion.div
-              key={s.hand}
-              className="deck pc deck-sz"
-              initial={{ rotate: -10, scale: 1.08, opacity: 0.7 }}
-              animate={{ rotate: 0, scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-            >
-              <div className="pc-back" style={{ transform: 'translate(-3px,-3px)' }} />
-              <div className="pc-back" style={{ transform: 'translate(-1.5px,-1.5px)' }} />
-              <div id="deck" className="pc-back" />
-            </motion.div>
-          </div>
-        )}
-
         {/* Pote centralizado na linha superior */}
         <div className="spot pot-spot" style={at(potPos.x, potPos.y)}>
           <ChipStack
@@ -857,7 +995,7 @@ export default function Table({
         </div>
 
         {/* Cartas comunitárias (Board) com baralho ancorado à esquerda no desktop */}
-        <div className="spot board" style={at(50, compact ? 50 : 50)}>
+        <div className="spot board" style={at(50, compact ? 49 : 50)}>
           {!compact && (
             <div className="deck-anchor">
               <motion.div
@@ -937,12 +1075,16 @@ export default function Table({
 
         {/* Apostas na mesa por jogador */}
         {s.players.map((q, j) => {
+          const rel = (j - me + N) % N;
+          const mSeat = mobileLayout[rel];
           const isTopSeat = j !== me && pos[j].y < 32;
-          const f = isTopSeat ? (compact ? 0.22 : 0.25) : compact ? 0.24 : 0.3;
+          const f = isTopSeat ? 0.25 : 0.3;
           const b =
-            j === me
-              ? { x: compact ? 69 : 63, y: 74 }
-              : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
+            compact && mSeat
+              ? { x: mSeat.bx, y: mSeat.by }
+              : j === me
+                ? { x: 63, y: 74 }
+                : { x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f };
           return (
             <div key={'b' + j} className="spot bet" style={at(b.x, b.y)}>
               <ChipStack amount={q.bet} from={vec(b, pos[j])} to={toPot(b)} />
@@ -964,31 +1106,62 @@ export default function Table({
         })}
 
         {/* Assentos dos jogadores */}
-        {s.players.map((q, j) => (
-          <Seat
-            key={j}
-            p={q}
-            j={j}
-            pos={pos[j]}
-            s={s}
-            self={q.self}
-            active={j === s.turn}
-            blind={j === sbSeat ? 'SB' : j === bbSeat ? 'BB' : null}
-            left={j === s.turn ? Math.min(100, (left / s.seconds) * 100) : 0}
-            win={settled && won.includes(q.name)}
-            winCore={winCore}
-            winKickers={winKickers}
-            settled={settled}
-            rb={
-              s.board.length > seen.current
-                ? 0.65 + (s.board.length - seen.current) * 0.2 + 0.25
-                : 0.18
-            }
-            toCenter={vec(pos[j], { x: 50, y: 50 })}
-            bubble={bub?.seat === j ? bub : null}
-            emote={activeEmotes[j] ?? null}
-          />
-        ))}
+        {s.players.map((q, j) => {
+          const humanCount = s.players.filter((pl) => !pl.bot && !pl.kicked).length;
+          const canVoteKick =
+            !!onStartVoteKick &&
+            !q.self &&
+            !q.bot &&
+            !q.isHost &&
+            !q.kicked &&
+            humanCount >= 3 &&
+            !s.banVote;
+          const voteKickReason = s.banVote
+            ? 'Votação em andamento'
+            : humanCount < 3
+              ? 'Requer 3+ humanos'
+              : undefined;
+          return (
+            <Seat
+              key={j}
+              p={q}
+              j={j}
+              pos={pos[j]}
+              s={s}
+              self={q.self}
+              active={j === s.turn}
+              blind={j === sbSeat ? 'SB' : j === bbSeat ? 'BB' : null}
+              left={j === s.turn ? Math.min(100, (left / s.seconds) * 100) : 0}
+              win={settled && won.includes(q.name)}
+              winCore={winCore}
+              winKickers={winKickers}
+              settled={settled}
+              compact={compact}
+              muted={!!mutedUids?.has(q.uid)}
+              menuOpen={openMenuUid === q.uid}
+              onToggleMenu={
+                !q.self && onTogglePlayerMute
+                  ? () => setOpenMenuUid((cur) => (cur === q.uid ? null : q.uid))
+                  : undefined
+              }
+              onCloseMenu={() => setOpenMenuUid(null)}
+              onToggleMute={onTogglePlayerMute ? () => onTogglePlayerMute(q.uid) : undefined}
+              canVoteKick={canVoteKick}
+              voteKickReason={voteKickReason}
+              onVoteKick={onStartVoteKick ? () => onStartVoteKick(q.uid) : undefined}
+              onShowCard={q.self ? onShowCard : undefined}
+              pending={pending}
+              rb={
+                s.board.length > seen.current
+                  ? 0.65 + (s.board.length - seen.current) * 0.2 + 0.25
+                  : 0.18
+              }
+              toCenter={vec(pos[j], { x: 50, y: 50 })}
+              bubble={bub?.seat === j ? bub : null}
+              emote={activeEmotes[j] ?? null}
+            />
+          );
+        })}
       </div>
 
       {/* Dealer Zake renderizado fora do transform: scale() da mesa para nitidez vetorial 1:1 */}
@@ -1001,6 +1174,7 @@ export default function Table({
         }}
       >
         <Zake look={look} mood={mood.n} />
+        {compact && <span id="deck" className="mobile-deck-origin" aria-hidden="true" />}
         <AnimatePresence>
           {mood.say && mood.n !== 'idle' && (
             <motion.div

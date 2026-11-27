@@ -18,8 +18,74 @@ export type Player = {
   avatar?: AvatarInfo;
   bot?: BotProfile;
   fold?: boolean;
+  kicked?: boolean;
+  left?: boolean;
+  sittingOut?: boolean;
+  shown?: number[];
   acted?: boolean;
   actedAt?: number | null;
+};
+export type BanVote = {
+  targetId: string;
+  targetName: string;
+  startedBy: string;
+  yes: string[];
+  no: string[];
+  startedAt: number;
+  expiresAt: number;
+};
+export type PublicBanVote = {
+  targetUid: string;
+  targetName: string;
+  yesCount: number;
+  noCount: number;
+  required: number;
+  eligible: number;
+  expiresAt: number;
+  myVote: 'yes' | 'no' | null;
+  canVote: boolean;
+};
+export type VoteNotice = {
+  seq: number;
+  kind: 'banned' | 'rejected' | 'expired';
+  targetName: string;
+  at: number;
+};
+export type ActiveStreet = Exclude<Phase, 'waiting' | 'settled'>;
+export type HandLogEntry = {
+  seq: number;
+  street: ActiveStreet;
+  kind: 'sb' | 'bb' | 'fold' | 'check' | 'call' | 'raise' | 'allin' | 'street';
+  actor?: string;
+  amount?: number;
+  cards?: number[];
+  auto?: boolean;
+};
+export type HandWinnerSummary = {
+  name: string;
+  amount: number;
+  handName?: string;
+};
+export type HandShowdownEntry = {
+  name: string;
+  cards: number[];
+  handName: string;
+  won: boolean;
+};
+export type RoomNotice = {
+  seq: number;
+  text: string;
+  at: number;
+};
+export type HandRecord = {
+  hand: number;
+  at: number;
+  pot: number;
+  board: number[];
+  reveal: boolean;
+  winners: HandWinnerSummary[];
+  showdown?: HandShowdownEntry[];
+  shown?: { name: string; cards: number[] };
 };
 export type Spectator = { id: string; name: string; avatar?: AvatarInfo };
 export type GameState = {
@@ -49,19 +115,32 @@ export type GameState = {
   last?: { seat: number; type: Action; seq: number; auto?: boolean };
   spectators?: Spectator[];
   removed?: string[];
+  banned?: string[];
+  banVote?: BanVote | null;
+  voteCooldowns?: Record<string, number>;
+  voteNotice?: VoteNotice | null;
+  roomNotice?: RoomNotice | null;
+  handLog?: HandLogEntry[];
+  history?: HandRecord[];
   touched?: number;
   emotes?: EmoteEvent[];
 };
-export type PublicPlayer = Omit<Player, 'id'> & { self: boolean; hand: Hand | null };
+export type PublicPlayer = Omit<Player, 'id'> & {
+  uid: string;
+  self: boolean;
+  isHost?: boolean;
+  hand: Hand | null;
+};
 export type PublicSpectator = { name: string; avatar?: AvatarInfo; self: boolean };
 export type PublicState = Omit<
   GameState,
-  'host' | 'deck' | 'players' | 'spectators' | 'removed'
+  'host' | 'deck' | 'players' | 'spectators' | 'removed' | 'banned' | 'banVote' | 'voteCooldowns'
 > & {
   host: boolean;
   role: 'player' | 'spectator';
   players: PublicPlayer[];
   spectators: PublicSpectator[];
+  banVote?: PublicBanVote | null;
 };
 // now = relógio do servidor (ms) para corrigir diferenças de relógio; channel = canal de tempo real da sala.
 export type Room = {
@@ -83,5 +162,9 @@ export type GameOperation =
   | 'action'
   | 'emote'
   | 'add_bot'
+  | 'vote_kick'
+  | 'show_cards'
+  | 'rematch'
+  | 'sit_out'
   | 'leave'
   | 'sit';

@@ -1,19 +1,36 @@
 import type { PublicState } from '../../poker/game-types.ts';
 // Efeitos sintetizados com Web Audio: sem arquivos de áudio para baixar.
 let ctx: AudioContext | null = null;
+let bus: GainNode | null = null;
 let muted = false;
 export const setMuted = (v: boolean) => {
   muted = v;
 };
 function audio() {
   if (typeof window === 'undefined' || muted) return null;
-  ctx ??= new (
-    window.AudioContext ||
-    (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext!
-  )();
+  if (!ctx) {
+    ctx = new (
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext!
+    )();
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16;
+    comp.knee.value = 20;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.005;
+    comp.release.value = 0.12;
+    bus = ctx.createGain();
+    bus.gain.value = 0.85;
+    comp.connect(bus).connect(ctx.destination);
+    (ctx as AudioContext & { _in?: AudioNode })._in = comp;
+  }
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
 }
+function out(a: AudioContext): AudioNode {
+  return (a as AudioContext & { _in?: AudioNode })._in ?? a.destination;
+}
+const jitter = (v: number, spread = 0.1) => v * (1 + (Math.random() * 2 - 1) * spread);
 function tone(
   freq: number,
   dur: number,
@@ -22,7 +39,8 @@ function tone(
     vol = 0.2,
     at = 0,
     to,
-  }: { type?: OscillatorType; vol?: number; at?: number; to?: number } = {},
+    attack = 0.004,
+  }: { type?: OscillatorType; vol?: number; at?: number; to?: number; attack?: number } = {},
 ) {
   const a = audio();
   if (!a) return;
@@ -32,9 +50,10 @@ function tone(
   o.type = type;
   o.frequency.setValueAtTime(freq, t);
   if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
-  g.gain.setValueAtTime(vol, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + Math.min(attack, dur * 0.35));
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(a.destination);
+  o.connect(g).connect(out(a));
   o.start(t);
   o.stop(t + dur + 0.02);
 }
@@ -63,16 +82,92 @@ function noise(
   f.frequency.setValueAtTime(freq, t);
   if (to) f.frequency.exponentialRampToValueAtTime(to, t + dur);
   g.gain.setValueAtTime(vol, t);
-  src.connect(f).connect(g).connect(a.destination);
+  src.connect(f).connect(g).connect(out(a));
   src.start(t);
 }
+// Ruído rosa amortecido com passa-baixa e ataque suave para simular papel/cartão deslizando no feltro.
+function softNoise(
+  dur: number,
+  {
+    freq = 1400,
+    to,
+    q = 0.9,
+    lp = 2900,
+    vol = 0.16,
+    at = 0,
+    attack = 0.008,
+  }: {
+    freq?: number;
+    to?: number;
+    q?: number;
+    lp?: number;
+    vol?: number;
+    at?: number;
+    attack?: number;
+  } = {},
+) {
+  const a = audio();
+  if (!a) return;
+  const d0 = jitter(dur, 0.09);
+  const t = a.currentTime + at;
+  const len = Math.max(1, Math.ceil(a.sampleRate * d0));
+  const buf = a.createBuffer(1, len, a.sampleRate);
+  const ch = buf.getChannelData(0);
+  // Filtro rosa simples (Paul Kellet reduzido): remove aspereza aguda do ruído branco
+  let b0 = 0,
+    b1 = 0,
+    b2 = 0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    b0 = 0.997 * b0 + w * 0.029;
+    b1 = 0.985 * b1 + w * 0.032;
+    b2 = 0.95 * b2 + w * 0.048;
+    const env = Math.pow(1 - i / len, 1.35);
+    ch[i] = (b0 + b1 + b2 + w * 0.18) * env;
+  }
+  const src = a.createBufferSource();
+  src.buffer = buf;
+
+  const bp = a.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = q;
+  bp.frequency.setValueAtTime(jitter(freq, 0.11), t);
+  if (to) bp.frequency.exponentialRampToValueAtTime(jitter(to, 0.11), t + d0);
+
+  const lpf = a.createBiquadFilter();
+  lpf.type = 'lowpass';
+  lpf.frequency.setValueAtTime(lp, t);
+
+  const g = a.createGain();
+  const peak = jitter(vol, 0.1);
+  const atk = Math.min(attack, d0 * 0.35);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(peak, t + atk);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + d0);
+
+  src.connect(bp).connect(lpf).connect(g).connect(out(a));
+  src.start(t);
+  src.stop(t + d0 + 0.02);
+}
 export const sfx = {
-  deal: (at = 0) => noise(0.12, { freq: 2500, to: 6000, q: 0.7, vol: 0.45, at }),
-  // Carta virando: "fff" de papel (ruído varrendo para o agudo) + estalo seco no fim + batida grave na mesa.
+  // Carta deslizando no feltro: curto, quente e com micro-variação orgânica por carta.
+  deal: (at = 0) => {
+    softNoise(0.058, { freq: 1150, to: 1750, q: 0.85, lp: 2850, vol: 0.17, at, attack: 0.008 });
+    tone(jitter(132, 0.08), 0.032, { vol: 0.055, at: at + 0.024, to: 76, attack: 0.005 });
+  },
+  // Carta virando na mesa: leve dobra do cartão seguida de um pouso macio no feltro.
   flip: (at = 0) => {
-    noise(0.1, { freq: 900, to: 5200, q: 0.8, vol: 0.5, at });
-    noise(0.025, { freq: 7500, q: 1.5, vol: 0.5, at: at + 0.09 });
-    tone(150, 0.07, { vol: 0.25, at: at + 0.1, to: 70 });
+    softNoise(0.044, { freq: 1350, to: 2150, q: 0.9, lp: 3150, vol: 0.18, at, attack: 0.006 });
+    softNoise(0.028, {
+      freq: 1650,
+      to: 1150,
+      q: 1.0,
+      lp: 2550,
+      vol: 0.1,
+      at: at + 0.028,
+      attack: 0.005,
+    });
+    tone(jitter(124, 0.08), 0.044, { vol: 0.09, at: at + 0.032, to: 68, attack: 0.005 });
   },
   chip: (at = 0) => {
     tone(3200, 0.07, { type: 'triangle', vol: 0.13, at });
@@ -82,8 +177,8 @@ export const sfx = {
     for (let i = 0; i < n; i++) this.chip(at + i * 0.06 + Math.random() * 0.02);
   },
   check: () => {
-    tone(160, 0.09, { vol: 0.5, to: 70 });
-    tone(160, 0.09, { vol: 0.5, to: 70, at: 0.14 });
+    tone(160, 0.09, { vol: 0.42, to: 70 });
+    tone(160, 0.09, { vol: 0.42, to: 70, at: 0.14 });
   },
   call() {
     this.chips(3);
@@ -103,7 +198,11 @@ export const sfx = {
       tone(f, 0.4, { type: 'square', vol: 0.05, at: 0.62 + i * 0.07 }),
     );
   },
-  fold: () => noise(0.3, { freq: 1800, to: 300, q: 0.6, vol: 0.35 }),
+  // Desistir: dois deslizes curtos e abafados das duas cartas sendo devolvidas no feltro.
+  fold: () => {
+    softNoise(0.066, { freq: 980, to: 520, q: 0.8, lp: 2100, vol: 0.15, at: 0, attack: 0.012 });
+    softNoise(0.064, { freq: 880, to: 460, q: 0.8, lp: 1950, vol: 0.13, at: 0.046, attack: 0.012 });
+  },
   gather(at = 0) {
     this.chips(4, at);
   },

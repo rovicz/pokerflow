@@ -2,7 +2,7 @@
   Design: Guia de marca Sacflow v2.2026 (https://sacflow.com.br/guia-de-marca-sacflow)
   - Acento padrão SF Brand 500 · fundo escuro SF BG Dark · texto SF BG Light
   - Títulos em Behind The Nineties (400), corpo em Inter · escala base 16px, razão 1,25
-  - Cantos retos na interface (o guia não usa raio em botões, painéis ou campos)
+  - Cantos com raio de 7px em todos os elementos da interface (pedido do projeto)
   - Cores complementares: paleta do Tailwind (red-600, green-600, amber-500)
 */
 @font-face { font-family: 'Behind The Nineties'; src: url('https://sacflow.com.br/guia-de-marca-sacflow/assets/fonts/Behind-The-Nineties-Rg.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
@@ -26,7 +26,7 @@ main { max-width: 1280px; margin: auto; padding: 0 32px 24px; }
 h1, h2, h3, p { margin: 0; }
 h1, h2 { font-family: var(--serif); font-weight: 400; letter-spacing: -.01em; }
 p, small { color: var(--muted); }
-button, input, select { font: inherit; border-radius: 0; }
+button, input, select { font: inherit; border-radius: 7px; }
 button {
   cursor: pointer; color: inherit; border: 1px solid var(--line); background: var(--surface-2); padding: 10px 16px; font-weight: 500;
   transition: background .15s, border-color .15s, transform .15s;
@@ -189,3 +189,60 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
   .fields { gap: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Raio 7px em tudo */
+.panel, .hint, .bet-panel, .stagebar, .error, .lobby-seat, .mark, .tip::after, details, .track, .track div, .stat { border-radius: 7px; }
+.stat, details { border-radius: 0; }
+.range { border-radius: 7px; }
+
+/* Jogo em 100% da altura da tela, sem scroll */
+main.in-game { height: 100dvh; display: flex; flex-direction: column; padding: 0 16px 8px; overflow: hidden; }
+.in-game header { height: 52px; flex: none; }
+.in-game .brand { font-size: 24px; }
+.in-game .mark { width: 32px; height: 32px; font-size: 20px; }
+.in-game .heading { padding: 4px 0 6px; flex: none; }
+.in-game .heading .eyebrow { display: none; }
+.in-game .heading h1 { font-size: 22px; margin: 0; }
+.in-game .room-stats b { font-size: 17px; }
+.in-game .game-grid { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr) 240px; gap: 12px; }
+.in-game .game-main { display: flex; flex-direction: column; min-height: 0; gap: 0; }
+.in-game .stagebar { padding: 4px; flex: none; }
+.in-game aside { min-height: 0; overflow-y: auto; gap: 8px; }
+.in-game aside .panel { padding: 12px 14px; }
+.in-game .stack { font-size: 25px; margin: 4px 0 6px; }
+.in-game .stat { padding: 6px 0; }
+.in-game footer { flex: none; margin: 4px 0 0; }
+.in-game .controls { flex: none; padding: 10px 14px; }
+.in-game .controls h2 { font-size: 20px; }
+.in-game .hint { margin: 8px 0; padding: 6px 10px; font-size: 13px; }
+.in-game .action { min-height: 44px; font-size: 15px; }
+.in-game .action small, .in-game .action-wrap p { display: none; }
+.in-game .bet-panel { display: grid; grid-template-columns: auto minmax(80px, 1fr) auto; gap: 14px; align-items: center; padding: 8px 12px; margin-top: 8px; }
+.in-game .range { margin: 0; }
+.in-game .end { margin-top: 8px; }
+@media (max-width: 1050px) {
+  .in-game aside { display: none; }
+  .in-game .game-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 680px) {
+  main.in-game { padding: 0 8px 6px; }
+  .in-game header { height: 46px; }
+  .in-game .heading { padding: 4px 0; }
+  .in-game .heading h1 { font-size: 19px; }
+  .in-game .eyebrow { display: none; }
+  .in-game .room-stats small { display: none; }
+  .in-game .stagebar span { font-size: 10px; }
+  .in-game .bet-panel { grid-template-columns: 1fr; gap: 6px; }
+  .in-game .bet-panel .between { gap: 8px; }
+  .in-game .presets button { padding: 5px 9px; font-size: 12px; }
+  .in-game .action { min-height: 40px; font-size: 13px; }
+  .in-game .timer { min-width: 70px; }
+  .in-game footer span { display: none; }
+}
+@media (max-height: 760px) and (min-width: 681px) {
+  .in-game .stagebar, .in-game footer { display: none; }
+  .in-game header { height: 44px; }
+}
+.in-game .controls .eyebrow, .in-game .controls .hint { display: none; }
+.in-game .controls .between:first-child { margin-bottom: 8px; }
+.in-game .controls h2 { font-size: 18px; }

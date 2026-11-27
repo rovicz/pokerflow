@@ -4,7 +4,7 @@ Texas Hold’em privado para 2–8 amigos. Apenas fichas virtuais.
 
 ## Executar localmente
 
-Requisitos: Node.js 22, npm e projeto Supabase. Execute `npm install`, copie `.env.example` para `.env.local`, configure as variáveis do seu projeto, execute `supabase/schema.sql` no SQL Editor e rode `npm run dev`. Testes: `npm test`. Build: `npm run build`.
+Requisitos: Node.js 22.18 ou posterior na série 22, npm e projeto Supabase. Execute `npm install`, copie `.env.example` para `.env.local`, configure as variáveis do seu projeto, execute `supabase/schema.sql` no SQL Editor e rode `npm run dev`. Valide com `npm test`, `npm run typecheck` e `npm run build`.
 
 Sem `SUPABASE_URL` configurada, `npm run dev` usa um banco em memória (só para desenvolvimento; some ao reiniciar).
 

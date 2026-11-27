@@ -17,7 +17,10 @@ type Mood = 'idle' | 'deal' | 'nod' | 'cheer' | 'wow' | 'shrug';
 
 import Avatar from './avatar';
 import Zake from './zake';
+import NotoEmoji from './noto-emoji';
+import { sfx } from './sound';
 import { analyzeShowdown, describeHand } from '../../poker/hands.ts';
+import type { EmoteEvent } from '../../poker/emotes.ts';
 
 export const fmt = (n?: number | null) => Number(n || 0).toLocaleString('pt-BR');
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -262,6 +265,7 @@ function Seat({
   win,
   toCenter,
   bubble,
+  emote,
   rb,
   winCore,
   winKickers,
@@ -278,6 +282,7 @@ function Seat({
   win: boolean;
   toCenter: Point;
   bubble: Bubble | null;
+  emote: EmoteEvent | null;
   rb: number;
   winCore: Set<number>;
   winKickers: Set<number>;
@@ -295,6 +300,7 @@ function Seat({
   const timerTone = left <= 18 ? 'danger' : left <= 38 ? 'warn' : 'ok';
   const isTop = !self && pos.y < 32;
   const topSide = isTop ? (pos.x < 50 ? ' top-seat top-left' : ' top-seat top-right') : '';
+  const emoteSide = self ? 'side-left' : pos.x < 50 ? 'side-right' : 'side-left';
 
   return (
     <div
@@ -416,6 +422,23 @@ function Seat({
           )}
         </AnimatePresence>
       </div>
+
+      <div className={'emote-wrap ' + emoteSide}>
+        <AnimatePresence mode="wait">
+          {emote && (
+            <motion.div
+              key={emote.seq}
+              className="emote-bubble"
+              initial={{ opacity: 0, scale: 0.35, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.78, y: -10 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+            >
+              <NotoEmoji id={emote.emote} size={62} play />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -425,22 +448,60 @@ export default function Table({
   pot,
   winners,
   left,
+  emotesMuted = false,
 }: {
   s: PublicState;
   pot: number;
   winners: Winners;
   left: number;
+  emotesMuted?: boolean;
 }) {
   const wrap = useRef<HTMLDivElement>(null),
     seen = useRef(0),
     lastSeq = useRef(s.last?.seq);
   const [area, setArea] = useState({ w: 960, h: 560 });
   const [bub, setBub] = useState<Bubble | null>(null);
+  const [activeEmotes, setActiveEmotes] = useState<Record<number, EmoteEvent>>({});
+  const seenEmoteSeq = useRef((s.emotes || []).reduce((m, e) => Math.max(m, e.seq), 0));
+  const emoteTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const [mood, setMood] = useState<{ n: Mood; say?: string }>({ n: 'idle' });
   const hand0 = useRef(s.hand),
     len0 = useRef(s.board.length),
     ph0 = useRef(s.phase),
     mt = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    const timers = emoteTimers.current;
+    return () => {
+      Object.values(timers).forEach((t) => clearTimeout(t));
+    };
+  }, []);
+
+  useEffect(() => {
+    const list = s.emotes || [];
+    const incoming = list.filter((e) => e.seq > seenEmoteSeq.current);
+    if (!incoming.length) return;
+    seenEmoteSeq.current = incoming.reduce((m, e) => Math.max(m, e.seq), seenEmoteSeq.current);
+    let played = false;
+    for (const ev of incoming) {
+      const isSelf = !!s.players[ev.seat]?.self;
+      if (emotesMuted && !isSelf) continue;
+      if (!played) {
+        sfx.emote();
+        played = true;
+      }
+      setActiveEmotes((cur) => ({ ...cur, [ev.seat]: ev }));
+      clearTimeout(emoteTimers.current[ev.seat]);
+      emoteTimers.current[ev.seat] = setTimeout(() => {
+        setActiveEmotes((cur) => {
+          if (cur[ev.seat]?.seq !== ev.seq) return cur;
+          const next = { ...cur };
+          delete next[ev.seat];
+          return next;
+        });
+      }, 3200);
+    }
+  }, [s.emotes, emotesMuted, s.players]);
 
   const act = (n: Mood, ms: number, say?: string) => {
     clearTimeout(mt.current);
@@ -838,6 +899,7 @@ export default function Table({
           }
           toCenter={vec(pos[j], { x: 50, y: 50 })}
           bubble={bub?.seat === j ? bub : null}
+          emote={activeEmotes[j] ?? null}
         />
       ))}
     </div>

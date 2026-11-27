@@ -757,6 +757,257 @@
   @apply ml-[-8px];
 }
 
+/* ==========================================================================
+   Reações Animadas (Google Noto Animated Emojis — estilo Clash Royale)
+   ========================================================================== */
+.noto-emoji {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+  user-select: none;
+  flex: none;
+}
+
+.noto-lottie {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.noto-lottie.is-ready {
+  opacity: 1;
+}
+
+.noto-lottie svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.noto-glyph {
+  line-height: 1;
+}
+
+/* Balão flutuante ancorado ao assento do jogador */
+.emote-wrap {
+  position: absolute;
+  top: -12px;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.emote-wrap.side-right {
+  left: calc(100% + 12px);
+}
+
+.emote-wrap.side-left {
+  right: calc(100% + 12px);
+}
+
+.emote-bubble {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(28, 33, 48, 0.96) 0%, rgba(16, 19, 28, 0.98) 100%);
+  border: 1.5px solid rgba(143, 184, 255, 0.55);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.62),
+    0 0 22px rgba(10, 100, 255, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.emote-bubble::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  background: rgba(20, 24, 36, 0.98);
+  border-bottom: 1.5px solid rgba(143, 184, 255, 0.55);
+  border-left: 1.5px solid rgba(143, 184, 255, 0.55);
+}
+
+.emote-wrap.side-right .emote-bubble::after {
+  left: -6px;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.emote-wrap.side-left .emote-bubble::after {
+  right: -6px;
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+.table-wrap.compact .emote-wrap {
+  top: -8px;
+}
+
+.table-wrap.compact .emote-bubble {
+  padding: 4px;
+  border-radius: 14px;
+  transform-origin: center;
+}
+
+.table-wrap.compact .emote-bubble .noto-emoji {
+  width: 46px !important;
+  height: 46px !important;
+  font-size: 30px !important;
+}
+
+/* Botão flutuante e Popover de Reações na Arena */
+.emote-dock {
+  position: absolute;
+  right: clamp(10px, 2vw, 24px);
+  bottom: clamp(8px, 1.5vh, 16px);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.emote-fab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border-radius: 99px;
+  background: linear-gradient(180deg, rgba(28, 33, 48, 0.92) 0%, rgba(16, 19, 28, 0.96) 100%);
+  border: 1px solid rgba(143, 184, 255, 0.36);
+  color: var(--bg-light);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.emote-fab:hover:not(:disabled),
+.emote-fab.is-open {
+  border-color: var(--brand-400);
+  background: linear-gradient(180deg, rgba(20, 42, 88, 0.95) 0%, rgba(14, 24, 52, 0.98) 100%);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.56),
+    0 0 20px rgba(10, 100, 255, 0.32);
+}
+
+.emote-fab.is-muted {
+  opacity: 0.72;
+  border-color: rgba(246, 246, 243, 0.2);
+}
+
+.emote-kbd {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--brand-500);
+  color: #fff;
+  font: 700 10px / 1 var(--sans);
+  border: 1.5px solid #101115;
+}
+
+.emote-popover {
+  width: min(268px, calc(100vw - 24px));
+  padding: 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(26, 30, 42, 0.97) 0%, rgba(15, 17, 24, 0.98) 100%);
+  border: 1px solid rgba(143, 184, 255, 0.28);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.7),
+    0 0 28px rgba(10, 100, 255, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.emote-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.emote-pop-head strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--brand-200);
+}
+
+.emote-mute-btn {
+  padding: 4px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(246, 246, 243, 0.85);
+}
+
+.emote-mute-btn.is-muted {
+  background: rgba(225, 29, 72, 0.16);
+  border-color: rgba(225, 29, 72, 0.45);
+  color: #fecdd3;
+}
+
+.emote-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.emote-item {
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+}
+
+.emote-item:hover:not(:disabled) {
+  background: rgba(10, 100, 255, 0.18);
+  border-color: rgba(102, 161, 255, 0.45);
+}
+
+.emote-coolbar {
+  margin-top: 10px;
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.emote-coolbar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--brand-500), var(--brand-300));
+  transition: width 0.08s linear;
+}
+
+@media (max-width: 680px) {
+  .emote-fab {
+    width: 42px;
+    height: 42px;
+  }
+  .emote-kbd {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .seat.active .plate {
     animation: none;

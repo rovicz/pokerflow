@@ -124,6 +124,10 @@ export const sfx = {
     );
     this.chips(8, at + 0.45);
   },
+  emote() {
+    tone(520, 0.08, { type: 'sine', vol: 0.12, to: 880 });
+    tone(920, 0.09, { type: 'triangle', vol: 0.08, at: 0.06, to: 1180 });
+  },
 };
 
 // Navegadores só liberam áudio após um gesto do usuário.

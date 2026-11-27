@@ -11,7 +11,9 @@ import type {
 import type { AvatarStyle } from '../../poker/avatars.ts';
 import Table, { PlayingCard, fmt } from './table';
 import ChampionDialog from './champion-dialog';
+import EmotePicker from './emote-picker';
 import Avatar from './avatar';
+import type { EmoteId } from '../../poker/emotes.ts';
 import { AVATAR_STYLES, AVATAR_LABELS } from '../../poker/avatars.ts';
 import { HAND_RANKINGS, RANKS, SUITS, analyzeShowdown, describeHand } from '../../poker/hands.ts';
 import { sfx, setMuted, unlock, playTransition } from './sound';
@@ -31,7 +33,7 @@ const GUIDE = [
   ['Showdown', 'A melhor mão elegível ganha cada pote; empates dividem o prêmio.'],
   [
     'Atalhos de teclado',
-    'Na sua vez: F para Desistir, C para Passar/Pagar, R para Apostar/Aumentar e A para All-in.',
+    'Na sua vez: F para Desistir, C para Passar/Pagar, R para Apostar/Aumentar, A para All-in e E para abrir Reações.',
   ],
 ];
 
@@ -221,6 +223,7 @@ export default function Page() {
   const [copied, Copy] = useState(false);
   const [choice, Choose] = useState({ key: '', amount: 0 });
   const [muted, Mute] = useState(false);
+  const [emotesMuted, setEmotesMuted] = useState(false);
   const [invited, Inv] = useState(false);
   const [mode, Mode] = useState('create');
   const [saved, Saved] = useState('');
@@ -256,6 +259,7 @@ export default function Page() {
     const m = localStorage.getItem('pf-mute') === '1';
     Mute(m);
     setMuted(m);
+    setEmotesMuted(localStorage.getItem('pf-emotes-mute') === '1');
     addEventListener('pointerdown', unlock, { once: true });
     addEventListener('keydown', unlock, { once: true });
     const timer = setInterval(() => T(Date.now()), 200);
@@ -474,6 +478,33 @@ export default function Page() {
     setMuted(m);
     localStorage.setItem('pf-mute', m ? '1' : '0');
     if (!m) sfx.chip();
+  }
+
+  function toggleEmotesMute() {
+    const m = !emotesMuted;
+    setEmotesMuted(m);
+    localStorage.setItem('pf-emotes-mute', m ? '1' : '0');
+  }
+
+  async function sendEmote(emote: EmoteId) {
+    const cur = latest.current;
+    if (!token.current || !cur) return;
+    const ep = epoch.current;
+    try {
+      const r = await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ op: 'emote', token: token.current, code: cur.code, emote }),
+      });
+      if (!r.ok) return;
+      const x = (await r.json()) as Room;
+      if (ep !== epoch.current || (latest.current?.code === x.code && latest.current.version > x.version))
+        return;
+      latest.current = x;
+      G(x);
+    } catch {
+      // Falha silenciosa em rede instável para não interromper o jogo
+    }
   }
 
   async function invite() {
@@ -1060,7 +1091,12 @@ export default function Page() {
         /* Arena de Jogo (Mesa + Dock de Controles) */
         <div className="arena">
           <div className="table-area">
-            <Table s={s} pot={pot} winners={winners} left={left} />
+            <Table s={s} pot={pot} winners={winners} left={left} emotesMuted={emotesMuted} />
+            <EmotePicker
+              onSend={sendEmote}
+              muted={emotesMuted}
+              onToggleMute={toggleEmotesMute}
+            />
           </div>
 
           <section

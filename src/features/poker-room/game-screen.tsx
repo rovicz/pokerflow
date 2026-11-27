@@ -8,6 +8,7 @@ import type { SendExtra } from './use-room.ts';
 import Table, { fmt } from './table';
 import EmotePicker from './emote-picker';
 import BanVoteBanner from './ban-vote-banner';
+import HandHistory from './hand-history';
 import Avatar from './avatar';
 import { ActionButton, MiniCard, Tip } from './ui';
 import { sfx } from './sound';
@@ -184,6 +185,7 @@ export default function GameScreen({
             {toast}
           </p>
         )}
+        <HandHistory s={s} />
         {!watching && (
           <EmotePicker onSend={sendEmote} muted={emotesMuted} onToggleMute={onToggleEmotesMute} />
         )}

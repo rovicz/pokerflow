@@ -48,6 +48,36 @@ export type VoteNotice = {
   targetName: string;
   at: number;
 };
+export type ActiveStreet = Exclude<Phase, 'waiting' | 'settled'>;
+export type HandLogEntry = {
+  seq: number;
+  street: ActiveStreet;
+  kind: 'sb' | 'bb' | 'fold' | 'check' | 'call' | 'raise' | 'allin' | 'street';
+  actor?: string;
+  amount?: number;
+  cards?: number[];
+  auto?: boolean;
+};
+export type HandWinnerSummary = {
+  name: string;
+  amount: number;
+  handName?: string;
+};
+export type HandShowdownEntry = {
+  name: string;
+  cards: number[];
+  handName: string;
+  won: boolean;
+};
+export type HandRecord = {
+  hand: number;
+  at: number;
+  pot: number;
+  board: number[];
+  reveal: boolean;
+  winners: HandWinnerSummary[];
+  showdown?: HandShowdownEntry[];
+};
 export type Spectator = { id: string; name: string; avatar?: AvatarInfo };
 export type GameState = {
   host: string;
@@ -80,6 +110,8 @@ export type GameState = {
   banVote?: BanVote | null;
   voteCooldowns?: Record<string, number>;
   voteNotice?: VoteNotice | null;
+  handLog?: HandLogEntry[];
+  history?: HandRecord[];
   touched?: number;
   emotes?: EmoteEvent[];
 };

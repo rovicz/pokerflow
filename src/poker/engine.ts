@@ -1,5 +1,25 @@
-import type { GameState, Hand, Player } from './game-types.ts';
+import type {
+  ActiveStreet,
+  GameState,
+  Hand,
+  HandLogEntry,
+  HandRecord,
+  HandShowdownEntry,
+  HandWinnerSummary,
+  Player,
+} from './game-types.ts';
+import { describeHand } from './hands.ts';
 import { randomInt } from 'node:crypto';
+
+const MAX_HAND_HISTORY = 12;
+const MAX_HAND_LOG = 40;
+
+function pushLog(s: GameState, entry: Omit<HandLogEntry, 'seq'>) {
+  const list = (s.handLog ??= []);
+  const seq = (list[list.length - 1]?.seq ?? 0) + 1;
+  list.push({ seq, ...entry });
+  if (list.length > MAX_HAND_LOG) s.handLog = list.slice(-MAX_HAND_LOG);
+}
 export function deck() {
   const d = Array.from({ length: 52 }, (_, i) => i);
   for (let i = 51; i > 0; i--) {
@@ -146,6 +166,7 @@ export function kickFromTable(s: GameState, targetId: string) {
     target.fold = true;
     target.acted = true;
     target.actedAt = s.current ?? 0;
+    pushLog(s, { street: s.phase, kind: 'fold', actor: target.name, auto: true });
     if (s.turn === idx) {
       s.last = { seat: idx, type: 'fold', seq: (s.last?.seq || 0) + 1, auto: true };
       progress(s, idx);
@@ -190,6 +211,23 @@ export function start(s: GameState) {
   s.minRaise = s.bb;
   s.phase = 'preflop';
   s.hand++;
+  s.handLog = [];
+  if (s.players[sb].bet > 0) {
+    pushLog(s, {
+      street: 'preflop',
+      kind: 'sb',
+      actor: s.players[sb].name,
+      amount: s.players[sb].bet,
+    });
+  }
+  if (s.players[bb].bet > 0) {
+    pushLog(s, {
+      street: 'preflop',
+      kind: 'bb',
+      actor: s.players[bb].name,
+      amount: s.players[bb].bet,
+    });
+  }
   progress(s, bb);
   return s;
 }
@@ -221,6 +259,44 @@ function settle(s: GameState) {
     });
   }
   s.reveal = survivors.length > 1;
+
+  // Grava resumo seguro no histórico da mesa (nunca inclui cartas de quem desistiu ou não foi ao showdown).
+  const potTotal = s.result.reduce((sum, r) => sum + r.amount, 0);
+  const wonByName = new Map<string, number>();
+  for (const r of s.result) wonByName.set(r.name, (wonByName.get(r.name) ?? 0) + r.amount);
+  const handNameByPlayer = new Map<string, string>();
+  let showdown: HandShowdownEntry[] | undefined;
+  if (s.reveal) {
+    showdown = survivors
+      .filter((p) => p.cards.length === 2)
+      .map((p) => {
+        const h = bestHand([...p.cards, ...s.board]);
+        const handName = h ? describeHand(h) : '';
+        handNameByPlayer.set(p.name, handName);
+        return {
+          name: p.name,
+          cards: [...p.cards],
+          handName,
+          won: wonByName.has(p.name),
+        };
+      });
+  }
+  const winnersSummary: HandWinnerSummary[] = [...wonByName.entries()].map(([name, amount]) => ({
+    name,
+    amount,
+    ...(s.reveal && handNameByPlayer.get(name) ? { handName: handNameByPlayer.get(name) } : {}),
+  }));
+  const record: HandRecord = {
+    hand: s.hand,
+    at: Date.now(),
+    pot: potTotal,
+    board: [...s.board],
+    reveal: s.reveal,
+    winners: winnersSummary,
+    ...(showdown ? { showdown } : {}),
+  };
+  s.history = [...(s.history ?? []), record].slice(-MAX_HAND_HISTORY);
+
   s.phase = 'settled';
   s.turn = -1;
   s.deadline = null;
@@ -253,8 +329,16 @@ function progress(s: GameState, from: number) {
   }
   s.deck!.pop()!;
   let count = s.phase === 'preflop' ? 3 : 1;
-  while (count--) s.board.push(s.deck!.pop()!);
-  s.phase = s.phase === 'preflop' ? 'flop' : s.phase === 'flop' ? 'turn' : 'river';
+  const dealt: number[] = [];
+  while (count--) {
+    const c = s.deck!.pop()!;
+    s.board.push(c);
+    dealt.push(c);
+  }
+  const nextStreet: ActiveStreet =
+    s.phase === 'preflop' ? 'flop' : s.phase === 'flop' ? 'turn' : 'river';
+  s.phase = nextStreet;
+  pushLog(s, { street: nextStreet, kind: 'street', cards: dealt });
   s.current = 0;
   s.minRaise = s.bb;
   for (const p of s.players) {
@@ -320,6 +404,16 @@ export function act(s: GameState, id: string, type: unknown, amount?: unknown) {
   } else throw Error('Ação inválida');
   p.acted = true;
   p.actedAt = s.current!;
+  if (s.phase !== 'waiting' && s.phase !== 'settled') {
+    const isAllIn = (type === 'call' || type === 'raise') && p.stack === 0;
+    pushLog(s, {
+      street: s.phase,
+      kind: isAllIn ? 'allin' : type,
+      actor: p.name,
+      ...(type === 'call' || type === 'raise' ? { amount: p.bet } : {}),
+      ...(auto ? { auto: true } : {}),
+    });
+  }
   s.last = { seat: s.turn, type, seq: (s.last?.seq || 0) + 1, ...(auto ? { auto } : {}) };
   progress(s, s.turn);
   return s;

@@ -20,7 +20,7 @@ const GUIDE = [
   ['Showdown', 'A melhor mão elegível ganha cada pote; empates dividem o prêmio.'],
   [
     'Atalhos de teclado',
-    'Na sua vez: F para Desistir, C para Passar/Pagar, R para Apostar/Aumentar, A para All-in e E para abrir Reações.',
+    'Na sua vez: F para Desistir, C para Passar/Pagar, R para Apostar/Aumentar, A para All-in, E para Reações e H para Histórico.',
   ],
 ];
 

@@ -14,7 +14,8 @@ Servidor:  app/api/game → poker + server/room-store
   avatares. O motor e a projeção de estado privado são executados no servidor.
 - `src/server/` contém a persistência e o acesso à configuração de servidor. O
   armazenamento da sala expõe criação, leitura e atualização por versão. Preserve
-  a comparação de versão na mesma atualização que grava o estado.
+  a comparação de versão na mesma atualização que grava o estado. `room-notify`
+  publica no Supabase Realtime Broadcast só a versão da sala; nunca publique estado.
 - `src/features/poker-room/` contém a tela da sala, mesa, diálogo de campeão,
   avatares e som. Mantenha o estado da interface próximo da tela que o coordena e
   extraia partes com responsabilidade clara para a própria pasta da funcionalidade.

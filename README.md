@@ -18,8 +18,8 @@ Importe o repositório como Next.js, raiz `/`, Node.js 24. Configure `SUPABASE_U
 
 ## Arquitetura
 
-Next.js App Router, API server-side, Supabase PostgreSQL com RLS, motor de poker independente e sincronização por polling de 1,5s. A sessão é um token aleatório armazenado no navegador. O estado é versionado para evitar atualizações concorrentes.
+Next.js App Router, API server-side, Supabase PostgreSQL com RLS, motor de poker independente e sincronização em tempo real por Supabase Realtime Broadcast (WebSocket gratuito; o canal leva só um aviso de versão e cada jogador busca o próprio estado), com polling lento de reserva quando `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` não estão definidas. Nunca assine Postgres Changes em `poker_rooms`: o estado guarda o baralho. A sessão é um token aleatório armazenado no navegador. O estado é versionado para evitar atualizações concorrentes.
 
 ## Limitações
 
-Protótipo v0.2.0: sem dinheiro real, sem autenticação Supabase, sem Realtime, sem rate limiting, sem testes E2E completos. Casos complexos de poker precisam de testes adicionais. O banco não deve ser exposto diretamente ao cliente.
+Protótipo v0.2.0: sem dinheiro real, sem autenticação Supabase, sem rate limiting, sem testes E2E completos. Casos complexos de poker precisam de testes adicionais. O banco não deve ser exposto diretamente ao cliente.

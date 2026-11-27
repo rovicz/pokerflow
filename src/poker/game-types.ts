@@ -27,6 +27,8 @@ export type GameState = {
   result: { name: string; amount: number }[];
   hand: number;
   dealer: number;
+  sbSeat?: number;
+  bbSeat?: number;
   turn: number;
   sb: number;
   bb: number;

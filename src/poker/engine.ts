@@ -123,6 +123,8 @@ export function start(s: GameState) {
   const heads = live(s).length === 2;
   let sb = heads ? s.dealer : next(s, s.dealer, (p) => !p.fold),
     bb = next(s, sb, (p) => !p.fold);
+  s.sbSeat = sb;
+  s.bbSeat = bb;
   pay(s.players[sb], s.sb);
   pay(s.players[bb], s.bb);
   s.current = s.bb;

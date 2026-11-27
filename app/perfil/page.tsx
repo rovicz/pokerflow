@@ -153,9 +153,16 @@ export default function ProfilePage() {
   return (
     <div className="profile-shell">
       <header className="profile-topbar">
-        <Link href="/" className="brand" aria-label="PokerFlow — página inicial">
-          <BrandLogo variant="compact" />
-        </Link>
+        <div className="profile-topbar-left">
+          <Link href="/" className="brand" aria-label="PokerFlow — página inicial">
+            <BrandLogo variant="compact" />
+          </Link>
+          <div className="game-meta">
+            <span className="meta-pill accent">Perfil</span>
+            {username && <span className="meta-pill">@{username}</span>}
+            {joinedAt && <span className="meta-pill hide-sm">Desde {joinedAt}</span>}
+          </div>
+        </div>
         <div className="profile-topbar-right">
           <Link href="/" className="outline profile-back-btn">
             ← Voltar para a mesa
@@ -193,235 +200,252 @@ export default function ProfilePage() {
             </Link>
           </section>
         ) : (
-          <div className="profile-container">
-            <div className="profile-hero-head">
-              <div>
-                <div className="eyebrow">MINHA CONTA</div>
-                <h1>Perfil e configurações</h1>
+          <div className="profile-grid">
+            {/* Coluna 1: Identidade & Avatar */}
+            <section className="panel profile-card profile-identity-card">
+              <div className="profile-card-head">
+                <div>
+                  <div className="eyebrow">IDENTIDADE NA MESA</div>
+                  <h2>Perfil e avatar</h2>
+                </div>
+                <p>Escolha como seus amigos te veem em todas as salas.</p>
               </div>
-              {joinedAt && <span className="profile-since">Membro desde {joinedAt}</span>}
-            </div>
 
-            <div className="profile-grid">
-              {/* Coluna Principal: Identidade & Avatar */}
-              <section className="panel profile-card">
-                <div className="profile-card-head">
-                  <div>
-                    <h2>Identidade na mesa</h2>
-                    <p>Escolha como seus amigos te veem em todas as salas.</p>
-                  </div>
+              <div className="profile-preview-box">
+                <Avatar
+                  a={{ style: avatarStyle, seed: avatarSeed || displayName || 'player' }}
+                  name={displayName || username || 'Jogador'}
+                  size={66}
+                />
+                <div className="profile-preview-meta">
+                  <strong>{displayName || username}</strong>
+                  <span>@{username}</span>
+                  <small>{user.email}</small>
+                </div>
+              </div>
+
+              <form className="auth-form profile-identity-form" onSubmit={handleSaveProfile}>
+                <div className="profile-name-fields">
+                  <label>
+                    Nome de exibição
+                    <input
+                      type="text"
+                      required
+                      minLength={2}
+                      maxLength={24}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Apelido único (@)
+                    <input
+                      type="text"
+                      required
+                      minLength={3}
+                      maxLength={20}
+                      pattern="[a-zA-Z0-9_]{3,20}"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                  </label>
                 </div>
 
-                <div className="profile-preview-box">
-                  <Avatar
-                    a={{ style: avatarStyle, seed: avatarSeed || displayName || 'player' }}
-                    name={displayName || username || 'Jogador'}
-                    size={72}
-                  />
-                  <div className="profile-preview-meta">
-                    <strong>{displayName || username}</strong>
-                    <span>@{username}</span>
-                    <small>{user.email}</small>
-                  </div>
-                </div>
-
-                <form className="auth-form" onSubmit={handleSaveProfile}>
-                  <div className="profile-name-fields">
-                    <label>
-                      Nome de exibição
-                      <input
-                        type="text"
-                        required
-                        minLength={2}
-                        maxLength={24}
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Apelido único (@)
-                      <input
-                        type="text"
-                        required
-                        minLength={3}
-                        maxLength={20}
-                        pattern="[a-zA-Z0-9_]{3,20}"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                      />
-                    </label>
+                <div className="profile-avatar-picker">
+                  <div className="between">
+                    <span className="field-lbl">Estilo do avatar</span>
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => setSeeds(mkSeeds())}
+                    >
+                      Sortear outros
+                    </button>
                   </div>
 
-                  <div className="profile-avatar-picker">
-                    <div className="between">
-                      <span className="field-lbl">Estilo do avatar</span>
+                  <div className="seg" role="tablist" aria-label="Estilo do avatar">
+                    {AVATAR_STYLES.map((st) => (
                       <button
+                        key={st}
                         type="button"
-                        className="text-button"
-                        onClick={() => setSeeds(mkSeeds())}
+                        role="tab"
+                        aria-selected={avatarStyle === st}
+                        className={avatarStyle === st ? 'on' : ''}
+                        onClick={() => setAvatarStyle(st)}
                       >
-                        Sortear outros
+                        {AVATAR_LABELS[st]}
                       </button>
-                    </div>
-
-                    <div className="seg" role="tablist" aria-label="Estilo do avatar">
-                      {AVATAR_STYLES.map((st) => (
-                        <button
-                          key={st}
-                          type="button"
-                          role="tab"
-                          aria-selected={avatarStyle === st}
-                          className={avatarStyle === st ? 'on' : ''}
-                          onClick={() => setAvatarStyle(st)}
-                        >
-                          {AVATAR_LABELS[st]}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="av-grid" role="radiogroup" aria-label="Opções de avatar">
-                      {seeds.map((sd) => {
-                        const selected = avatarSeed === sd;
-                        return (
-                          <button
-                            key={sd}
-                            type="button"
-                            role="radio"
-                            aria-checked={selected}
-                            className={'av-opt' + (selected ? ' on' : '')}
-                            onClick={() => setAvatarSeed(sd)}
-                          >
-                            <Avatar
-                              a={{ style: avatarStyle, seed: sd }}
-                              name={displayName}
-                              size={52}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
+                    ))}
                   </div>
 
-                  {profileErr && (
+                  <div className="profile-av-grid" role="radiogroup" aria-label="Opções de avatar">
+                    {seeds.map((sd) => {
+                      const selected = avatarSeed === sd;
+                      return (
+                        <button
+                          key={sd}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          className={'av-opt' + (selected ? ' on' : '')}
+                          onClick={() => setAvatarSeed(sd)}
+                        >
+                          <Avatar
+                            a={{ style: avatarStyle, seed: sd }}
+                            name={displayName}
+                            size={54}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {profileErr && (
+                  <p className="error" role="alert">
+                    {profileErr}
+                  </p>
+                )}
+                {profileOk && (
+                  <p className="notice" role="status">
+                    {profileOk}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  className="primary wide profile-save-btn"
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? 'Salvando…' : 'Salvar alterações'}
+                </button>
+              </form>
+            </section>
+
+            {/* Coluna 2: Estatísticas & Resumo da Conta */}
+            <section className="panel profile-card profile-stats-card">
+              <div className="profile-card-head">
+                <div className="eyebrow">DESEMPENHO</div>
+                <h2>Suas estatísticas</h2>
+                <p>Base para futuros leaderboards e histórico permanente do clube.</p>
+              </div>
+              <div className="profile-stats-grid">
+                <div className="pstat">
+                  <small>Mãos jogadas</small>
+                  <b>{fmt(stats?.hands_played ?? 0)}</b>
+                </div>
+                <div className="pstat">
+                  <small>Mãos vencidas</small>
+                  <b>{fmt(stats?.hands_won ?? 0)}</b>
+                </div>
+                <div className="pstat">
+                  <small>Partidas vencidas</small>
+                  <b>{fmt(stats?.matches_won ?? 0)}</b>
+                </div>
+                <div className="pstat">
+                  <small>Maior pote</small>
+                  <b>{fmt(stats?.biggest_pot ?? 0)}</b>
+                </div>
+              </div>
+              <div className="profile-account-meta">
+                <div className="pam-row">
+                  <span>Status da conta</span>
+                  <strong className="pam-verified">● E-mail confirmado</strong>
+                </div>
+                <div className="pam-row">
+                  <span>E-mail</span>
+                  <strong>{user.email}</strong>
+                </div>
+                {joinedAt && (
+                  <div className="pam-row">
+                    <span>Membro desde</span>
+                    <strong>{joinedAt}</strong>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Coluna 3: Segurança & Zona de Perigo */}
+            <div className="profile-side-col">
+              <section className="panel profile-card profile-pw-card">
+                <div className="profile-card-head">
+                  <div className="eyebrow">SEGURANÇA</div>
+                  <h2>Alterar senha</h2>
+                  <p>Confirme sua senha atual antes de escolher uma nova.</p>
+                </div>
+                <form className="auth-form profile-pw-form" onSubmit={handleChangePassword}>
+                  <label>
+                    Senha atual
+                    <input
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Nova senha (mínimo 8 caracteres)
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      maxLength={72}
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Confirmar nova senha
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      maxLength={72}
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </label>
+                  {pwErr && (
                     <p className="error" role="alert">
-                      {profileErr}
+                      {pwErr}
                     </p>
                   )}
-                  {profileOk && (
+                  {pwOk && (
                     <p className="notice" role="status">
-                      {profileOk}
+                      {pwOk}
                     </p>
                   )}
-                  <button type="submit" className="primary wide" disabled={savingProfile}>
-                    {savingProfile ? 'Salvando…' : 'Salvar alterações'}
+                  <button
+                    type="submit"
+                    className="outline wide profile-save-btn"
+                    disabled={savingPw}
+                  >
+                    {savingPw ? 'Atualizando…' : 'Atualizar senha'}
                   </button>
                 </form>
               </section>
 
-              {/* Coluna Lateral: Estatísticas, Segurança e Zona de Perigo */}
-              <div className="profile-side-col">
-                <section className="panel profile-card">
-                  <div className="profile-card-head">
-                    <h2>Suas estatísticas</h2>
-                    <p>Base para futuros leaderboards e histórico de clube.</p>
-                  </div>
-                  <div className="profile-stats-grid">
-                    <div className="pstat">
-                      <small>Mãos jogadas</small>
-                      <b>{fmt(stats?.hands_played ?? 0)}</b>
-                    </div>
-                    <div className="pstat">
-                      <small>Mãos vencidas</small>
-                      <b>{fmt(stats?.hands_won ?? 0)}</b>
-                    </div>
-                    <div className="pstat">
-                      <small>Partidas vencidas</small>
-                      <b>{fmt(stats?.matches_won ?? 0)}</b>
-                    </div>
-                    <div className="pstat">
-                      <small>Maior pote</small>
-                      <b>{fmt(stats?.biggest_pot ?? 0)}</b>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="panel profile-card">
-                  <div className="profile-card-head">
-                    <h2>Alterar senha</h2>
-                    <p>Confirme sua senha atual antes de escolher uma nova.</p>
-                  </div>
-                  <form className="auth-form" onSubmit={handleChangePassword}>
-                    <label>
-                      Senha atual
-                      <input
-                        type="password"
-                        required
-                        autoComplete="current-password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Nova senha (mínimo 8 caracteres)
-                      <input
-                        type="password"
-                        required
-                        minLength={8}
-                        maxLength={72}
-                        autoComplete="new-password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Confirmar nova senha
-                      <input
-                        type="password"
-                        required
-                        minLength={8}
-                        maxLength={72}
-                        autoComplete="new-password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                      />
-                    </label>
-                    {pwErr && (
-                      <p className="error" role="alert">
-                        {pwErr}
-                      </p>
-                    )}
-                    {pwOk && (
-                      <p className="notice" role="status">
-                        {pwOk}
-                      </p>
-                    )}
-                    <button type="submit" className="outline wide" disabled={savingPw}>
-                      {savingPw ? 'Atualizando…' : 'Atualizar senha'}
-                    </button>
-                  </form>
-                </section>
-
-                <section className="panel profile-card profile-danger-card">
-                  <div className="profile-card-head">
-                    <h2>Zona de perigo</h2>
-                    <p>
-                      Excluir sua conta remove permanentemente seu perfil, avatar salvo e
-                      estatísticas. Esta ação não pode ser desfeita.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="lm-danger wide"
-                    onClick={() => {
-                      setDeleteInput('');
-                      setDeleteErr('');
-                      deleteDialog.current?.showModal();
-                    }}
-                  >
-                    Excluir minha conta
-                  </button>
-                </section>
-              </div>
+              <section className="panel profile-card profile-danger-card">
+                <div className="profile-card-head">
+                  <h2>Zona de perigo</h2>
+                  <p>
+                    Remove permanentemente seu perfil, avatar e estatísticas. Ação irreversível.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="lm-danger wide"
+                  onClick={() => {
+                    setDeleteInput('');
+                    setDeleteErr('');
+                    deleteDialog.current?.showModal();
+                  }}
+                >
+                  Excluir minha conta
+                </button>
+              </section>
             </div>
           </div>
         )}

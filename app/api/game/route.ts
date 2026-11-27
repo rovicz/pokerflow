@@ -4,6 +4,7 @@ import { openRoomStore } from '../../../src/server/room-store.ts';
 import { randomBytes } from 'node:crypto';
 import { start, act, view, betweenHands } from '../../../src/poker/engine.ts';
 import { cleanAvatar } from '../../../src/poker/avatars.ts';
+import { isEmoteId, pushEmote } from '../../../src/poker/emotes.ts';
 export const runtime = 'nodejs';
 const reply = (x: unknown, status = 200) =>
   Response.json(x, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -71,6 +72,27 @@ export async function POST(req: Request) {
       if (!member) return reply({ error: 'Entre na sala' }, 403);
       if (b.op === 'state' || b.op === 'join')
         return reply({ code, state: project(s, id), version: data.version });
+      if (b.op === 'emote') {
+        if (s.phase === 'waiting') throw Error('As reações ficam disponíveis durante a partida');
+        if (!isEmoteId(b.emote)) throw Error('Reação inválida');
+        let cur = data;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const seatIdx = cur.state.players.findIndex((p) => p.id === id);
+          if (seatIdx < 0) return reply({ error: 'Entre na sala' }, 403);
+          const res = pushEmote(cur.state.emotes, seatIdx, b.emote);
+          if (!res.ok) {
+            return reply({ code, state: project(cur.state, id), version: cur.version });
+          }
+          cur.state.emotes = res.emotes;
+          if (await store.update(code, cur.version, cur.state)) {
+            return reply({ code, state: project(cur.state, id), version: cur.version + 1 });
+          }
+          const fresh = await store.read(code);
+          if (!fresh) return reply({ error: 'Sala não encontrada' }, 404);
+          cur = fresh;
+        }
+        return reply({ code, state: project(cur.state, id), version: cur.version });
+      }
       if (b.version !== data.version)
         return reply({ error: 'Estado atualizado; tente novamente' }, 409);
       if (b.op === 'start') {

@@ -18,5 +18,5 @@ const uri = a => {
 
 export default function Avatar({a, name, size = 28}) {
   const v = cleanAvatar(a, name);
-  return <img className="avatar" src={uri(v)} alt="" width={size} height={size} style={{width: size, height: size}}/>;
+  return <img className="avatar" src={uri(v)} alt="" width={size} height={size}/>;
 }

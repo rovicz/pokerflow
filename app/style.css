@@ -72,6 +72,25 @@ header { height: 72px; display: flex; align-items: center; justify-content: spac
 .or::before, .or::after { content: ''; height: 1px; flex: 1; background: var(--line); }
 .error { color: #fecaca; background: rgba(220, 38, 38, .14); border: 1px solid rgba(220, 38, 38, .6); padding: 10px 12px; margin-top: 12px; font-size: 14px; }
 
+/* Entrada guiada */
+.entry .lead { font-size: 16px; margin-bottom: 8px; }
+.entry .lead .code { color: var(--ink); letter-spacing: .06em; }
+.entry .step { font-size: 13px; margin-top: 10px; text-align: center; }
+.seg { display: flex; gap: 4px; padding: 4px; background: var(--bg-dark); border: 1px solid var(--line); border-radius: 7px; margin: 14px 0; flex-wrap: wrap; }
+.seg button { flex: 1; border: 0; background: transparent; padding: 8px 10px; font-size: 14px; border-radius: 7px; color: var(--muted); white-space: nowrap; }
+.seg button.on { background: var(--brand-500); color: #fff; }
+.seg button:hover:not(:disabled):not(.on) { background: var(--surface-2); }
+.resume { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin-bottom: 18px; border: 1px solid var(--brand-500); border-radius: 7px; background: rgba(10, 100, 255, .12); }
+.resume small, .resume b { display: block; }
+.picker { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px; }
+.picker .seg { margin: 10px 0; }
+.choices { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.choice { padding: 4px; background: var(--bg-dark); display: grid; place-items: center; }
+.choice.on { border-color: var(--brand-500); box-shadow: 0 0 0 2px var(--brand-500); }
+.choice .avatar { width: 100%; height: auto; aspect-ratio: 1; }
+.vacant-av { display: grid; place-items: center; width: 42px; height: 42px; border: 1px dashed var(--line); background: transparent; }
+@media (max-width: 680px) { .choices { grid-template-columns: repeat(4, 1fr); } }
+
 /* Sala */
 .heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 0 8px; }
 .heading h1 { font-size: 31px; margin-top: 6px; }

@@ -177,8 +177,8 @@ export default function EntryScreen({ send, pending, error, notice, setError, on
           <p>Texas Hold’em privado para até oito amigos. Apenas fichas virtuais.</p>
           <div className="hero-meta">
             <div className="hero-cards">
-              <PlayingCard c={12} className={invited ? 'lg' : ''} tilt={-5} />
-              <PlayingCard c={25} className={invited ? 'lg' : ''} tilt={5} />
+              <PlayingCard c={12} className="lg" tilt={-5} />
+              <PlayingCard c={25} className="lg" tilt={5} />
             </div>
             <div className="tags">
               <span>02–08 jogadores</span>

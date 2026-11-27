@@ -3,19 +3,19 @@ import {motion} from 'motion/react';
 
 // Zake, o mascote do Sacflow: caminhos do símbolo oficial #sf-icon do guia de marca (moldura, antena, olhos, sorriso, base).
 const MOODS = {
-  idle: {y: [0, -2, 0], rotate: 0, transition: {repeat: Infinity, duration: 3.2, ease: 'easeInOut'}},
-  deal: {y: [0, 3, 0, 3, 0, 3, 0], rotate: [0, -5, 5, -5, 5, -3, 0], transition: {duration: 1.6}},
-  nod: {y: [0, 5, 0], transition: {duration: .5}},
-  cheer: {y: [0, -14, 0, -14, 0, -10, 0], rotate: [0, -8, 8, -8, 8, 0], transition: {duration: 1.8}},
-  wow: {scale: [1, 1.18, 1.1, 1.18, 1], transition: {duration: 1.4}},
-  shrug: {rotate: [0, 7, -7, 0], y: [0, -3, 0], transition: {duration: .7}},
+  idle: {},
+  deal: {rotate: [0, -5, 5, -5, 5, -3, 0], transition: {duration: 1.6}},
+  nod: {rotate: [0, -4, 0], transition: {duration: .5}},
+  cheer: {rotate: [0, -8, 8, -8, 8, 0], transition: {duration: 1.8}},
+  wow: {scale: [1, 1.12, 1.06, 1.12, 1], transition: {duration: 1.4}},
+  shrug: {rotate: [0, 7, -7, 0], transition: {duration: .7}},
 };
 const EYES = {cheer: .35, wow: 1.4};
 
 // look: {x,y} entre -1 e 1 (para onde os olhos apontam). mood: chave de MOODS.
 export default function Zake({look, mood}) {
   const tilt = look.x * 6;
-  return <motion.div className="zake" key={mood} animate={MOODS[mood]}>
+  return <motion.div className="zake" key={mood} animate={MOODS[mood]} style={{transformOrigin: '50% 100%'}}>
     <svg viewBox="0 0 137 160" role="img" aria-label="Zake, o dealer" fill="currentColor">
       <motion.g animate={{rotate: tilt}} transition={{type: 'spring', stiffness: 90, damping: 12}} style={{transformBox: 'view-box', transformOrigin: '68px 150px'}}>
         <path d="M68.014 23.9998C22.8236 23.9998 0 33.0476 0 80C0 126.952 22.8236 136 68.014 136C113.204 136 136.028 126.952 136.028 80C136.028 33.0476 113.204 23.9998 68.014 23.9998ZM68.014 104.031C29.8308 104.031 12.3451 98.217 12.3451 68.0254C12.3451 37.8338 29.8308 31.9998 68.014 31.9998C106.197 31.9998 123.683 37.8142 123.683 68.0058C123.683 98.1973 106.197 104.012 68.014 104.012V104.031Z"/>

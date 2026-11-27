@@ -285,3 +285,15 @@ main.in-game { padding: 0 28px 14px; }
 .in-game .presets { gap: 6px; flex-wrap: nowrap; }
 .in-game .presets button { padding: 6px 10px; font-size: 12px; white-space: nowrap; }
 @media (max-width: 1250px) { .in-game .presets button:nth-child(2), .in-game .presets button:nth-child(3) { display: none; } }
+
+/* Selects com seta própria (a nativa ficava desalinhada) */
+select { appearance: none; -webkit-appearance: none; padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23F6F6F3' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; cursor: pointer; }
+/* Espaçamentos da sala de espera */
+.lobby > p { margin-bottom: 4px; }
+.lobby .picker { margin: 28px 0 24px; padding-top: 22px; }
+.lobby .picker .between { margin-bottom: 4px; }
+.lobby .choices { gap: 12px; }
+.lobby .choice { padding: 6px; }
+.lobby > .between { gap: 12px; flex-wrap: wrap; }
+.in-game .presets { flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 1250px) { .in-game .presets button:nth-child(2), .in-game .presets button:nth-child(3) { display: inline-block; } }

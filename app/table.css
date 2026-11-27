@@ -1,18 +1,6 @@
 /* Mesa, cartas e fichas. Tokens de cor vêm de style.css (guia de marca Sacflow). */
 .table-area { position: relative; flex: 1; min-height: 0; padding: 46px 0 30px; }
 .table-wrap { position: absolute; left: 50%; top: calc(50% + 8px); transform-origin: center; }
-.rail {
-  position: absolute; inset: 11% 10%; border-radius: 999px; padding: clamp(10px, 2.4vw, 28px);
-  background: linear-gradient(180deg, #2b2b2b, #141414 55%, #0a0a0a);
-  box-shadow: 0 0 0 1px rgba(246, 246, 243, .18), 0 34px 60px -22px #000, inset 0 2px 0 rgba(255, 255, 255, .14), inset 0 -8px 14px rgba(0, 0, 0, .6);
-}
-.felt {
-  position: relative; width: 100%; height: 100%; border-radius: 999px; display: grid; place-items: center;
-  background: radial-gradient(ellipse at 50% 38%, var(--brand-600) 0%, var(--brand-800) 62%, var(--brand-900) 100%);
-  box-shadow: inset 0 0 44px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(246, 246, 243, .2);
-}
-.felt::before { content: ''; position: absolute; inset: 7%; border-radius: 999px; border: 1.5px solid rgba(246, 246, 243, .26); }
-.felt-mark { font: 400 clamp(26px, 6vw, 76px) / 1 var(--serif); color: rgba(246, 246, 243, .1); letter-spacing: -.02em; user-select: none; }
 
 .spot { position: absolute; transform: translate(-50%, -50%); z-index: 2; display: flex; flex-direction: column; align-items: center; }
 .board { --w: 56px; --h: 78px; flex-direction: row; gap: 7px; z-index: 3; }
@@ -21,17 +9,15 @@
 .winners { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 70%; z-index: 4; }
 .winners span { border-radius: 7px; background: var(--amber); color: var(--ink-dark); padding: 4px 10px; font-size: 12px; font-weight: 600; }
 
-/* Dealer (Zake) no recorte da borda, como numa mesa de cassino */
-.dealer-cut { position: absolute; left: 50%; top: calc(11% + 2px); transform: translateX(-50%); width: 220px; height: 98px; border-radius: 0 0 999px 999px; background: linear-gradient(#0b0b0b, #1d1d1d); box-shadow: inset 0 -4px 12px rgba(0, 0, 0, .7), 0 0 0 1px rgba(246, 246, 243, .18); z-index: 1; }
-.dealer { position: absolute; left: 50%; top: calc(11% + 10px); transform: translateX(-50%); width: 68px; height: 80px; z-index: 4; color: var(--bg-light); }
+/* Dealer (Zake) de pé no recorte da mesa, com a base encostada na borda */
+.tableshape { position: absolute; left: 0; top: 0; overflow: visible; filter: drop-shadow(0 26px 30px rgba(0, 0, 0, .55)); }
+.felt-mark { position: absolute; left: 50%; top: 58%; transform: translate(-50%, -50%); font: 400 76px / 1 var(--serif); color: rgba(246, 246, 243, .1); letter-spacing: -.02em; user-select: none; pointer-events: none; }
+.dealer { position: absolute; left: 50%; transform: translateX(-50%); z-index: 4; color: var(--bg-light); }
 .zake, .zake svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .zbubble { position: absolute; left: calc(100% + 14px); top: 8px; white-space: nowrap; margin: 0; }
-
-/* All-in */
-.allin { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); z-index: 40; display: grid; justify-items: center; gap: 8px; pointer-events: none; text-align: center; }
-.allin-flash { position: absolute; left: -10%; right: -10%; top: -90px; bottom: -90px; background: radial-gradient(ellipse, rgba(246, 246, 243, .9), rgba(10, 100, 255, .55) 45%, transparent 70%); }
-.allin b { position: relative; font: 400 112px / 1 var(--serif); letter-spacing: -.02em; color: var(--amber); text-shadow: 0 5px 0 #92400e, 0 0 28px rgba(245, 158, 11, .85), 0 0 80px rgba(10, 100, 255, .95); }
-.allin span { position: relative; background: var(--amber); color: var(--ink-dark); padding: 6px 16px; border-radius: 7px; font-weight: 600; font-size: 15px; box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.seat.allin .plate { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245, 158, 11, .4), 0 8px 20px rgba(0, 0, 0, .5); }
+.seat.allin .status { color: var(--amber); font-weight: 600; letter-spacing: .08em; }
+.bubble.allin-b { background: var(--amber); letter-spacing: .08em; }
 
 /* Cartas */
 .pc { --w: 58px; --h: 80px; position: relative; width: var(--w); height: var(--h); perspective: 700px; flex: none; font-size: calc(var(--w) * .3); }
@@ -91,12 +77,8 @@
 @keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(10, 100, 255, .15), 0 8px 20px rgba(0, 0, 0, .5); } }
 
 @media (max-width: 620px) {
-  .dealer-cut { width: 140px; height: 74px; top: calc(9% + 2px); }
-  .dealer { width: 48px; height: 56px; top: calc(9% + 8px); }
-  .allin b { font-size: 60px; }
-  .allin span { font-size: 12px; }
+  .felt-mark { font-size: 30px; }
   .table-area { padding: 44px 0 30px; }
-  .rail { inset: 9% 13%; padding: 10px; }
   .pc.md { --w: 40px; --h: 56px; }
   .pc.lg { --w: 46px; --h: 64px; }
   .pc.sm { --w: 28px; --h: 39px; }
@@ -109,8 +91,6 @@
   .chip { width: 21px; height: 21px; font-size: 6px; left: calc(var(--s) * 23px); }
   .chips { height: 40px; }
   .chip::after { inset: 3px; }
-  .felt-mark { font-size: 30px; }
   .bubble { border-radius: 7px; font-size: 10px; padding: 3px 7px; }
 }
 @media (prefers-reduced-motion: reduce) { .seat.active .plate { animation: none; } }
-.allin-flash { left: 0; right: 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }

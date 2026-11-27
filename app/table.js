@@ -10,7 +10,7 @@ const SUITS = ['♠', '♥', '♦', '♣'];
 const calm = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Carta: voa do baralho (#deck) até o lugar, com leve rotação, e depois vira em 3D (estilo UNO online).
-export function PlayingCard({c, delay = 0, className = ''}) {
+export function PlayingCard({c, delay = 0, flipDelay = 0, className = ''}) {
   const box = useRef(null), face = useRef(null), ready = useRef(null), side = useRef(180), up = c >= 0;
 
   useEffect(() => {
@@ -38,8 +38,10 @@ export function PlayingCard({c, delay = 0, className = ''}) {
       await ready.current;
       const to = up ? 0 : 180;
       if (dead || side.current === to) return;
-      const a = animate(face.current, {rotateY: [side.current, to]}, {duration: calm() ? 0 : .55, ease: 'easeInOut'});
-      runs.push(a);
+      const q = calm(), d = q ? 0 : flipDelay;
+      // Domino: cada carta tomba em sequência (flipDelay escalonado) e dá um pequeno salto.
+      const a = animate(face.current, {rotateY: [side.current, to]}, {duration: q ? 0 : .5, delay: d, ease: [.3, .1, .3, 1]});
+      runs.push(a, animate(box.current, {y: [0, -16, 0], scale: [1, 1.08, 1]}, {duration: q ? 0 : .5, delay: d}));
       await a;
       if (!dead) side.current = to;
     })();
@@ -92,12 +94,12 @@ function Num({v}) {
 const at = (x, y) => ({left: x + '%', top: y + '%'});
 const POT = {x: 57, y: 33};
 
-function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble}) {
+function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, rb}) {
   const N = s.players.length, order = (j - s.dealer - 1 + N) % N;
   const state = p.fold ? (self ? {opacity: .4, x: 0, y: 0, scale: 1} : {x: toCenter.x * .3, y: toCenter.y * .3, opacity: 0, scale: .7}) : {x: 0, y: 0, opacity: 1, scale: 1};
   return <div className={'seat' + (self ? ' self' : '') + (active ? ' active' : '') + (p.fold ? ' folded' : '') + (win ? ' win' : '')} style={at(pos.x, pos.y)}>
     <motion.div className="hand" animate={state} transition={{duration: .5}}>
-      {p.cards.map((c, k) => <PlayingCard key={s.hand + '-' + k} c={c} delay={.4 + (k * N + order) * .13} className={self ? 'lg' : 'sm'}/>)}
+      {p.cards.map((c, k) => <PlayingCard key={s.hand + '-' + k} c={c} delay={.4 + (k * N + order) * .13} flipDelay={self ? .2 + k * .22 : rb + (order * 2 + k) * .18} className={self ? 'lg' : 'sm'}/>)}
     </motion.div>
     <div className="plate">
       <span className="avatar">{p.name[0]?.toUpperCase()}</span>
@@ -150,7 +152,7 @@ export default function Table({s, pot, winners, left}) {
     </div>
 
     <div className="spot board" style={at(50, 53)}>
-      {[0, 1, 2, 3, 4].map(i => <div className="slot" key={i}>{s.board[i] != null && <PlayingCard key={s.hand + '-' + i} c={s.board[i]} delay={Math.max(0, i - seen.current) * .15} className="md"/>}</div>)}
+      {[0, 1, 2, 3, 4].map(i => <div className="slot" key={i}>{s.board[i] != null && <PlayingCard key={s.hand + '-' + i} c={s.board[i]} delay={Math.max(0, i - seen.current) * .08} flipDelay={.1 + Math.max(0, i - seen.current) * .14} className="md"/>}</div>)}
     </div>
     {settled && winners.length > 0 && <div className="spot winners" style={at(50, 70)}>{winners.map(([n, v]) => <span key={n}>{n} +{fmt(v)}</span>)}</div>}
 
@@ -163,6 +165,6 @@ export default function Table({s, pot, winners, left}) {
     })}
 
     {s.players.map((q, j) => <Seat key={j} p={q} j={j} pos={pos[j]} s={s} self={q.self} active={j === s.turn} dealer={j === s.dealer}
-      left={j === s.turn ? Math.min(100, left / s.seconds * 100) : 0} win={settled && won.includes(q.name)} toCenter={vec(pos[j], {x: 50, y: 50})} bubble={bub?.seat === j ? bub : null}/>)}
+      left={j === s.turn ? Math.min(100, left / s.seconds * 100) : 0} win={settled && won.includes(q.name)} rb={s.board.length > seen.current ? .7 + (s.board.length - seen.current) * .22 + .3 : .2} toCenter={vec(pos[j], {x: 50, y: 50})} bubble={bub?.seat === j ? bub : null}/>)}
   </div>;
 }

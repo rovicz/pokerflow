@@ -5,7 +5,7 @@ import {animate} from 'motion';
 import {AnimatePresence, motion} from 'motion/react';
 import Avatar from './avatar';
 import Zake from './zake';
-import {describeHand, HAND_RANKINGS} from '../lib/hands.mjs';
+import {analyzeShowdown, describeHand, HAND_RANKINGS} from '../lib/hands.mjs';
 
 export const fmt = n => Number(n || 0).toLocaleString('pt-BR');
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -333,18 +333,20 @@ export default function Table({s, pot, winners, left}) {
   const bets = s.players.reduce((a, q) => a + q.bet, 0);
   const won = winners.map(w => w[0]);
 
-  // Conjuntos de cartas da combinação principal (core) e kickers da mão vencedora no showdown
+  // Conjuntos de cartas da combinação principal (core) + carta decisiva de desempate e kickers no showdown
   const {winCore, winKickers} = useMemo(() => {
     const core = new Set(), kickers = new Set();
     if (!settled || !s.reveal) return {winCore: core, winKickers: kickers};
-    for (const q of s.players) {
-      if (won.includes(q.name) && q.hand?.cards) {
-        const nCore = q.hand.coreCount ?? q.hand.cards.length;
-        q.hand.cards.forEach((c, idx) => {
-          if (idx < nCore) core.add(c);
-          else kickers.add(c);
-        });
-      }
+    const sdRows = s.players.filter(q => q.hand).sort((a, b) => b.hand.score - a.hand.score);
+    const wRows = sdRows.filter(q => won.includes(q.name));
+    const rRow = sdRows.find(q => !won.includes(q.name));
+    const {decisiveIndex} = analyzeShowdown(wRows, rRow);
+    for (const q of wRows) {
+      const nCore = q.hand.coreCount ?? q.hand.cards.length;
+      q.hand.cards.forEach((c, idx) => {
+        if (idx < nCore || (decisiveIndex != null && idx === decisiveIndex)) core.add(c);
+        else kickers.add(c);
+      });
     }
     return {winCore: core, winKickers: kickers};
   }, [settled, s.reveal, s.players, won.join('|')]);

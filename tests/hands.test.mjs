@@ -1,7 +1,7 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import {bestHand} from '../lib/engine.mjs';
-import {describeHand, explainVictory, rankLabel} from '../lib/hands.mjs';
+import {analyzeShowdown, describeHand, explainVictory, rankLabel} from '../lib/hands.mjs';
 
 test('classifica a melhor combinação de cinco cartas', () => {
   assert.equal(bestHand([8, 9, 10, 11, 12, 13, 14]).rank, 1);
@@ -47,12 +47,18 @@ test('ordena as 5 cartas da mão e define coreCount corretamente', () => {
   assert.equal(describeHand(pair), 'Um Par de 7');
 });
 
-test('explica vitória por categoria, desempate por kicker e empate', () => {
+test('explica vitória por categoria, desempate com carta decisiva e empate', () => {
   const fh = bestHand([8, 21, 11, 24, 37, 0, 14]);
   const pairA = bestHand([38, 18, 31, 3, 21, 26, 1]); // Par de 7, kicker A♦
   const pair4 = bestHand([15, 18, 31, 3, 21, 26, 1]); // Par de 7, kicker 10♥
 
-  assert.match(explainVictory([{name: 'Victor', hand: fh}], {name: 'Davi', hand: pairA}), /Full House.*4º.*superou.*Um Par de 7.*9º/);
-  assert.match(explainVictory([{name: 'Victor', hand: pairA}], {name: 'Totuguita', hand: pair4}), /Desempate no kicker.*A♦/);
-  assert.match(explainVictory([{name: 'Victor', hand: fh}, {name: 'Davi', hand: fh}], null), /Empate.*Full House.*4º/);
+  const byCat = analyzeShowdown([{name: 'Victor', hand: fh}], {name: 'Davi', hand: pairA});
+  assert.equal(byCat.decisiveIndex, null);
+  assert.match(byCat.headline, /Full House.*4º\/10.*venceu.*Um Par de 7.*9º\/10/);
+
+  const tiebreak = analyzeShowdown([{name: 'Victor', hand: pairA}], {name: 'Totuguita', hand: pair4});
+  assert.equal(tiebreak.decisiveIndex, 2);
+  assert.match(tiebreak.headline, /Desempate: A♦ bateu 10♥/);
+
+  assert.match(explainVictory([{name: 'Victor', hand: fh}, {name: 'Davi', hand: fh}], null), /Empate.*Full House.*4º\/10/);
 });

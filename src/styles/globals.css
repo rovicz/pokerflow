@@ -3235,6 +3235,11 @@ header.game-topbar {
   flex-direction: column;
 }
 
+.ranking-shell {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .profile-topbar {
   position: fixed;
   top: 0;
@@ -3575,13 +3580,17 @@ main.profile-page {
 }
 
 /* ==========================================================================
-   /ranking — Leaderboard do Clube (Pódio Simétrico + Tabela Completa + Painel Lateral)
+   /ranking — Leaderboard do Clube (100dvh sem scroll externo + Pódio + Tabela Completa)
    ========================================================================== */
 main.ranking-page {
   max-width: 1380px;
   margin: 0 auto;
   width: 100%;
-  padding: 84px clamp(16px, 3vw, 40px) clamp(28px, 3vw, 44px);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 80px clamp(16px, 3vw, 40px) 18px;
+  display: flex;
+  flex-direction: column;
 }
 
 .rk-user-pill {
@@ -3611,19 +3620,20 @@ main.ranking-page {
   align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: clamp(18px, 2vw, 24px);
+  gap: 12px;
+  margin-bottom: 14px;
+  flex: 0 0 auto;
 }
 
 .rk-title-block h1 {
-  margin: 4px 0 4px;
-  font-size: clamp(28px, 3vw, 38px);
+  margin: 2px 0 2px;
+  font-size: clamp(24px, 2.4vw, 32px);
   line-height: 1.08;
 }
 
 .rk-title-block p {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   color: rgba(246, 246, 243, 0.64);
 }
 
@@ -3638,12 +3648,12 @@ main.ranking-page {
 }
 
 .rk-tabs button {
-  padding: 8px 14px;
+  padding: 7px 13px;
   border: none;
   border-radius: 8px;
   background: transparent;
   color: rgba(246, 246, 243, 0.72);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   transition:
     background 0.15s ease,
@@ -3660,26 +3670,39 @@ main.ranking-page {
 }
 
 .rk-grid {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
-  gap: clamp(16px, 2vw, 24px);
-  align-items: start;
+  gap: clamp(14px, 1.8vw, 22px);
+  align-items: stretch;
 }
 
 .rk-main,
 .rk-side {
   display: flex;
   flex-direction: column;
-  gap: clamp(16px, 1.8vw, 20px);
+  gap: 14px;
   min-width: 0;
+  min-height: 0;
 }
 
-.rk-podium-card,
-.rk-table-card {
-  padding: clamp(18px, 2vw, 24px);
+.rk-podium-card {
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.rk-table-card {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .rk-section-head {
@@ -3687,12 +3710,13 @@ main.ranking-page {
   align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
+  flex: 0 0 auto;
 }
 
 .rk-section-head h2 {
   margin: 2px 0 0;
-  font-size: clamp(18px, 1.6vw, 22px);
+  font-size: clamp(17px, 1.5vw, 20px);
   line-height: 1.15;
 }
 
@@ -3700,7 +3724,7 @@ main.ranking-page {
   font-size: 12px;
   font-weight: 600;
   color: rgba(246, 246, 243, 0.62);
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(246, 246, 243, 0.09);
@@ -3709,13 +3733,13 @@ main.ranking-page {
 .rk-podium {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(10px, 1.4vw, 16px);
+  gap: clamp(10px, 1.3vw, 14px);
   align-items: end;
 }
 
 .rk-pod-slot {
   position: relative;
-  padding: 20px 14px 16px;
+  padding: 16px 12px 14px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(246, 246, 243, 0.1);
@@ -3723,14 +3747,14 @@ main.ranking-page {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 6px;
-  min-height: 204px;
+  gap: 5px;
+  min-height: 174px;
   justify-content: center;
 }
 
 .rk-pod-slot.is-p1 {
-  padding: 26px 14px 20px;
-  min-height: 232px;
+  padding: 20px 12px 16px;
+  min-height: 198px;
   background:
     radial-gradient(ellipse 85% 68% at 50% 0%, rgba(251, 191, 36, 0.2), transparent 72%),
     rgba(255, 255, 255, 0.045);
@@ -3866,7 +3890,9 @@ main.ranking-page {
 }
 
 .rk-table-wrap {
-  overflow-x: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 .rk-table {
@@ -3996,10 +4022,10 @@ main.ranking-page {
 
 .rk-me-card,
 .rk-info-card {
-  padding: clamp(18px, 1.8vw, 24px);
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 11px;
 }
 
 .rk-me-top {
@@ -4011,7 +4037,7 @@ main.ranking-page {
 
 .rk-me-top h2 {
   margin: 2px 0 0;
-  font-size: 30px;
+  font-size: 26px;
   line-height: 1.05;
 }
 
@@ -4027,7 +4053,7 @@ main.ranking-page {
 }
 
 .rk-of-total {
-  font-size: 14px;
+  font-size: 13.5px;
   font-family: var(--sans);
   font-weight: 500;
   color: rgba(246, 246, 243, 0.55);
@@ -4037,7 +4063,7 @@ main.ranking-page {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 12px;
+  padding: 9px 11px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(246, 246, 243, 0.09);
@@ -4050,7 +4076,7 @@ main.ranking-page {
 }
 
 .rk-me-id strong {
-  font-size: 15px;
+  font-size: 14.5px;
   color: #f6f6f3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4065,17 +4091,17 @@ main.ranking-page {
 .rk-me-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .rk-stat-box {
-  padding: 12px;
+  padding: 9px 11px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.032);
   border: 1px solid rgba(246, 246, 243, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
@@ -4092,7 +4118,7 @@ main.ranking-page {
 }
 
 .rk-stat-box b {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: #f6f6f3;
   font-variant-numeric: tabular-nums;
@@ -4105,14 +4131,14 @@ main.ranking-page {
 .rk-rate-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .rk-rate-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: 12px;
   color: rgba(246, 246, 243, 0.7);
 }
 
@@ -4122,7 +4148,7 @@ main.ranking-page {
 }
 
 .rk-progress {
-  height: 6px;
+  height: 5px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
@@ -4137,8 +4163,8 @@ main.ranking-page {
 }
 
 .rk-info-card h3 {
-  margin: -6px 0 0;
-  font-size: 17px;
+  margin: -4px 0 0;
+  font-size: 16px;
   color: #f6f6f3;
 }
 
@@ -4146,7 +4172,7 @@ main.ranking-page {
 .rk-empty-state {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
 }
 
@@ -4155,7 +4181,7 @@ main.ranking-page {
   align-items: center;
   text-align: center;
   max-width: 440px;
-  padding: 24px 12px;
+  padding: 20px 12px;
 }
 
 .rk-rules-list {
@@ -4163,9 +4189,9 @@ main.ranking-page {
   padding-left: 18px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  font-size: 12.5px;
-  line-height: 1.45;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.4;
   color: rgba(246, 246, 243, 0.72);
 }
 
@@ -4176,6 +4202,17 @@ main.ranking-page {
 .rk-empty {
   margin: 24px auto;
   color: rgba(246, 246, 243, 0.56);
+}
+
+@media (max-width: 1040px), (max-height: 700px) {
+  .ranking-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .rk-table-card {
+    overflow: visible;
+  }
 }
 
 @media (max-width: 1040px) {

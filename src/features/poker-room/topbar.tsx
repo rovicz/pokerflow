@@ -5,6 +5,8 @@ import type { PublicState } from '../../poker/game-types.ts';
 import { HAND_RANKINGS } from '../../poker/hands.ts';
 import { MAX_BLIND_LEVEL, blindsForLevel, handsUntilNextLevel } from '../../poker/blinds.ts';
 import BrandLogo from './brand-logo';
+import Avatar from './avatar';
+import { useAuth } from '../auth/use-auth';
 import { Tip, IconSoundOn, IconSoundOff, IconGuide, IconShare, IconCheck, IconExit } from './ui';
 
 export const phases = [
@@ -34,6 +36,7 @@ type Props = {
   copied: boolean;
   onInvite: () => void;
   onExit: () => void;
+  onOpenAuth?: (view?: 'login' | 'register') => void;
 };
 
 function fmtClock(sec: number) {
@@ -52,8 +55,10 @@ export default function Topbar({
   copied,
   onInvite,
   onExit,
+  onOpenAuth,
 }: Props) {
   const guide = useRef<HTMLDialogElement>(null);
+  const { enabled: authEnabled, user, profile, signOut } = useAuth();
   const inGame = !!s && s.phase !== 'waiting';
   const inLobby = !!s && s.phase === 'waiting';
   const inApp = inGame || inLobby;
@@ -163,6 +168,45 @@ export default function Topbar({
 
         <div className="header-right">
           {!inApp && <span className="private">● Mesa privada</span>}
+          {authEnabled &&
+            !inApp &&
+            (user ? (
+              <div className="auth-user-pill">
+                <Avatar
+                  a={
+                    profile
+                      ? {
+                          style: (profile.avatar_style as 'lorelei') || 'lorelei',
+                          seed: profile.avatar_seed || profile.username,
+                        }
+                      : undefined
+                  }
+                  name={profile?.display_name || user.email || 'Conta'}
+                  size={22}
+                />
+                <span className="auth-user-name">
+                  {profile?.display_name || user.email?.split('@')[0]}
+                </span>
+                <button
+                  type="button"
+                  className="text-button auth-signout-btn"
+                  title="Sair da conta"
+                  onClick={() => void signOut()}
+                >
+                  Sair
+                </button>
+              </div>
+            ) : (
+              onOpenAuth && (
+                <button
+                  type="button"
+                  className="outline auth-enter-btn"
+                  onClick={() => onOpenAuth('login')}
+                >
+                  Entrar
+                </button>
+              )
+            ))}
           <button
             className="icon-btn"
             onClick={onToggleMute}

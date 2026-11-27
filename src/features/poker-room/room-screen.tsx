@@ -19,6 +19,7 @@ export default function Page() {
   const [copied, setCopied] = useState(false);
   const prev = useRef<{ code: string; s: PublicState } | null>(null);
   const celebration = useRef<HTMLDialogElement>(null);
+  const leaveDialog = useRef<HTMLDialogElement>(null);
   const celebrated = useRef('');
 
   useEffect(() => {
@@ -92,12 +93,20 @@ export default function Page() {
     const me = s?.players.find((q) => q.self);
     const liveHand = !!s && !['waiting', 'settled'].includes(s.phase);
     if (me && liveHand && !me.fold) {
-      const ok = window.confirm(
-        'Sair da mesa agora? Você desistirá da mão atual e seu assento será liberado.',
-      );
-      if (!ok) return;
+      leaveDialog.current?.showModal();
+      return;
     }
     await leave();
+  }
+
+  async function confirmExit() {
+    leaveDialog.current?.close();
+    await leave();
+  }
+
+  function sitOutInstead() {
+    leaveDialog.current?.close();
+    send('sit_out', { active: true });
   }
 
   return (
@@ -126,6 +135,56 @@ export default function Page() {
         canStartImmediately={rematchSeats >= 2}
         onRematch={(mode) => send('rematch', { mode })}
       />
+      <dialog
+        ref={leaveDialog}
+        className="modal leave-modal"
+        aria-labelledby="leave-modal-title"
+        onClick={(e) => e.target === leaveDialog.current && leaveDialog.current?.close()}
+      >
+        <div className="lm-head">
+          <span className="lm-ico" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </span>
+          <div>
+            <h2 id="leave-modal-title">Sair da mesa agora?</h2>
+            <p className="lm-desc">
+              Você desistirá da mão atual e seu assento será liberado.
+              {s?.host && ' O cargo de anfitrião será transferido automaticamente.'}
+            </p>
+          </div>
+        </div>
+        <div className="lm-actions">
+          <button
+            type="button"
+            className="outline"
+            autoFocus
+            onClick={() => leaveDialog.current?.close()}
+          >
+            Continuar jogando
+          </button>
+          {!s?.players.find((q) => q.self)?.sittingOut && (
+            <button type="button" className="outline lm-away" onClick={sitOutInstead}>
+              Ficar ausente
+            </button>
+          )}
+          <button type="button" className="lm-danger" onClick={confirmExit}>
+            Sair da mesa
+          </button>
+        </div>
+      </dialog>
       {!s ? (
         <EntryScreen
           send={send}

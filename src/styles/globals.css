@@ -3235,11 +3235,6 @@ header.game-topbar {
   flex-direction: column;
 }
 
-.ranking-shell {
-  height: 100dvh;
-  overflow: hidden;
-}
-
 .profile-topbar {
   position: fixed;
   top: 0;
@@ -3580,28 +3575,56 @@ main.profile-page {
 }
 
 /* ==========================================================================
-   /ranking — Leaderboard 100% Fluido em 100dvh
+   /ranking — Leaderboard do Clube (Pódio Simétrico + Tabela Completa + Painel Lateral)
    ========================================================================== */
+main.ranking-page {
+  max-width: 1380px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 84px clamp(16px, 3vw, 40px) clamp(28px, 3vw, 44px);
+}
+
+.rk-user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 6px;
+  border-radius: 99px;
+  border: 1px solid rgba(246, 246, 243, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f6f6f3;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.rk-user-pill:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(246, 246, 243, 0.26);
+}
+
 .rk-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: clamp(12px, 1.5vw, 18px);
-  flex: 0 0 auto;
+  gap: 16px;
+  margin-bottom: clamp(18px, 2vw, 24px);
 }
 
 .rk-title-block h1 {
-  margin: 2px 0 2px;
-  font-size: clamp(22px, 2.2vw, 30px);
-  line-height: 1.1;
+  margin: 4px 0 4px;
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.08;
 }
 
 .rk-title-block p {
   margin: 0;
-  font-size: 13px;
-  color: rgba(246, 246, 243, 0.62);
+  font-size: 14px;
+  color: rgba(246, 246, 243, 0.64);
 }
 
 .rk-tabs {
@@ -3609,19 +3632,26 @@ main.profile-page {
   flex-wrap: wrap;
   gap: 4px;
   padding: 4px;
-  border-radius: 11px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(246, 246, 243, 0.1);
 }
 
 .rk-tabs button {
-  padding: 8px 13px;
+  padding: 8px 14px;
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: rgba(246, 246, 243, 0.7);
-  font-size: 12.5px;
+  color: rgba(246, 246, 243, 0.72);
+  font-size: 13px;
   font-weight: 600;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.rk-tabs button:hover {
+  color: #fff;
 }
 
 .rk-tabs button.on {
@@ -3630,34 +3660,62 @@ main.profile-page {
 }
 
 .rk-grid {
-  flex: 1 1 auto;
-  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.75fr);
-  gap: clamp(14px, 1.6vw, 20px);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+  gap: clamp(16px, 2vw, 24px);
+  align-items: start;
 }
 
-.rk-board-card {
-  padding: clamp(16px, 1.6vw, 22px);
+.rk-main,
+.rk-side {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 1.8vw, 20px);
+  min-width: 0;
+}
+
+.rk-podium-card,
+.rk-table-card {
+  padding: clamp(18px, 2vw, 24px);
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 0;
-  overflow: hidden;
+}
+
+.rk-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rk-section-head h2 {
+  margin: 2px 0 0;
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.15;
+}
+
+.rk-badge-subtle {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(246, 246, 243, 0.62);
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(246, 246, 243, 0.09);
 }
 
 .rk-podium {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: clamp(10px, 1.4vw, 16px);
   align-items: end;
-  flex: 0 0 auto;
 }
 
 .rk-pod-slot {
   position: relative;
-  padding: 16px 12px 14px;
+  padding: 20px 14px 16px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(246, 246, 243, 0.1);
@@ -3666,39 +3724,64 @@ main.profile-page {
   align-items: center;
   text-align: center;
   gap: 6px;
-}
-
-.rk-pod-slot.is-empty {
-  visibility: hidden;
+  min-height: 204px;
+  justify-content: center;
 }
 
 .rk-pod-slot.is-p1 {
-  padding-top: 22px;
+  padding: 26px 14px 20px;
+  min-height: 232px;
   background:
-    radial-gradient(ellipse 80% 70% at 50% 0%, rgba(251, 191, 36, 0.18), transparent 70%),
+    radial-gradient(ellipse 85% 68% at 50% 0%, rgba(251, 191, 36, 0.2), transparent 72%),
     rgba(255, 255, 255, 0.045);
-  border-color: rgba(251, 191, 36, 0.44);
+  border-color: rgba(251, 191, 36, 0.45);
 }
 
 .rk-pod-slot.is-p2 {
-  border-color: rgba(203, 213, 225, 0.34);
+  border-color: rgba(203, 213, 225, 0.3);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(203, 213, 225, 0.09), transparent 70%),
+    rgba(255, 255, 255, 0.032);
 }
 
 .rk-pod-slot.is-p3 {
-  border-color: rgba(217, 119, 6, 0.36);
+  border-color: rgba(217, 119, 6, 0.3);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(217, 119, 6, 0.09), transparent 70%),
+    rgba(255, 255, 255, 0.032);
+}
+
+.rk-pod-slot.is-vacant {
+  background: rgba(255, 255, 255, 0.015);
+  border-style: dashed;
+  border-color: rgba(246, 246, 243, 0.12);
+  opacity: 0.72;
 }
 
 .rk-pod-slot.is-me {
   box-shadow: 0 0 0 1.5px rgba(102, 161, 255, 0.65);
 }
 
+.rk-vacant-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(246, 246, 243, 0.2);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(246, 246, 243, 0.3);
+  margin-bottom: 4px;
+}
+
 .rk-medal {
   position: absolute;
-  top: 8px;
+  top: 10px;
   left: 10px;
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.08);
   color: rgba(246, 246, 243, 0.85);
@@ -3709,8 +3792,29 @@ main.profile-page {
   color: #fde68a;
 }
 
+.rk-pod-slot.is-p2:not(.is-vacant) .rk-medal {
+  background: rgba(203, 213, 225, 0.18);
+  color: #e2e8f0;
+}
+
+.rk-pod-slot.is-p3:not(.is-vacant) .rk-medal {
+  background: rgba(217, 119, 6, 0.2);
+  color: #fdba74;
+}
+
+.rk-pod-av {
+  padding: 3px;
+  border-radius: 50%;
+  border: 2px solid rgba(246, 246, 243, 0.14);
+}
+
+.rk-pod-slot.is-p1 .rk-pod-av {
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 22px rgba(251, 191, 36, 0.22);
+}
+
 .rk-pod-name {
-  font-size: 14px;
+  font-size: 15px;
   color: #f6f6f3;
   max-width: 100%;
   overflow: hidden;
@@ -3719,8 +3823,8 @@ main.profile-page {
 }
 
 .rk-pod-handle {
-  font-size: 11.5px;
-  color: rgba(246, 246, 243, 0.55);
+  font-size: 12px;
+  color: rgba(246, 246, 243, 0.54);
 }
 
 .rk-pod-score {
@@ -3728,14 +3832,14 @@ main.profile-page {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 99px;
-  background: rgba(10, 100, 255, 0.18);
-  border: 1px solid rgba(102, 161, 255, 0.32);
+  background: rgba(10, 100, 255, 0.2);
+  border: 1px solid rgba(102, 161, 255, 0.36);
 }
 
 .rk-pod-score b {
-  font-size: 15px;
+  font-size: 16px;
   color: #f6f6f3;
   font-variant-numeric: tabular-nums;
 }
@@ -3745,38 +3849,63 @@ main.profile-page {
   color: #93c5fd;
 }
 
+.rk-pod-sub {
+  font-size: 11.5px;
+  color: rgba(246, 246, 243, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+.rk-search {
+  width: min(260px, 100%);
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(246, 246, 243, 0.12);
+  color: #f6f6f3;
+}
+
 .rk-table-wrap {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  border-top: 1px solid rgba(246, 246, 243, 0.08);
-  padding-top: 8px;
+  overflow-x: auto;
 }
 
 .rk-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 13.5px;
 }
 
 .rk-table th {
   text-align: left;
-  padding: 8px 10px;
+  padding: 9px 10px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(246, 246, 243, 0.5);
+  color: rgba(246, 246, 243, 0.48);
+  border-bottom: 1px solid rgba(246, 246, 243, 0.09);
+}
+
+.rk-table th.is-active-col {
+  color: #93c5fd;
 }
 
 .rk-table td {
-  padding: 9px 10px;
-  border-top: 1px solid rgba(246, 246, 243, 0.06);
-  color: rgba(246, 246, 243, 0.85);
+  padding: 10px;
+  border-bottom: 1px solid rgba(246, 246, 243, 0.06);
+  color: rgba(246, 246, 243, 0.86);
+}
+
+.rk-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rk-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .rk-table tr.is-me td {
-  background: rgba(10, 100, 255, 0.14);
+  background: rgba(10, 100, 255, 0.13);
 }
 
 .rk-table .num {
@@ -3787,7 +3916,33 @@ main.profile-page {
 .rk-pos {
   font-weight: 700;
   color: rgba(246, 246, 243, 0.55);
-  width: 44px;
+  width: 52px;
+}
+
+.rk-rank-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.rk-rank-pill.is-p1 {
+  background: rgba(251, 191, 36, 0.22);
+  color: #fde68a;
+}
+
+.rk-rank-pill.is-p2 {
+  background: rgba(203, 213, 225, 0.16);
+  color: #e2e8f0;
+}
+
+.rk-rank-pill.is-p3 {
+  background: rgba(217, 119, 6, 0.18);
+  color: #fdba74;
 }
 
 .rk-main-val {
@@ -3804,30 +3959,77 @@ main.profile-page {
 .rk-player-cell div {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  line-height: 1.25;
+}
+
+.rk-name-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .rk-player-cell b {
-  font-size: 13px;
+  font-size: 13.5px;
   color: #f6f6f3;
 }
 
+.rk-you-tag {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: rgba(10, 100, 255, 0.25);
+  color: #93c5fd;
+}
+
 .rk-player-cell small {
-  font-size: 11px;
+  font-size: 11.5px;
   color: rgba(246, 246, 243, 0.52);
 }
 
-.rk-me-card {
+.rk-no-match {
+  text-align: center;
+  padding: 22px 10px;
+  color: rgba(246, 246, 243, 0.55);
+}
+
+.rk-me-card,
+.rk-info-card {
   padding: clamp(18px, 1.8vw, 24px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  align-self: start;
+  gap: 15px;
+}
+
+.rk-me-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rk-me-top h2 {
+  margin: 2px 0 0;
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.rk-cat-chip {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(10, 100, 255, 0.18);
+  border: 1px solid rgba(102, 161, 255, 0.34);
+  color: #93c5fd;
+  white-space: nowrap;
 }
 
 .rk-of-total {
   font-size: 14px;
   font-family: var(--sans);
+  font-weight: 500;
   color: rgba(246, 246, 243, 0.55);
 }
 
@@ -3835,23 +4037,27 @@ main.profile-page {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 11px 12px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(246, 246, 243, 0.09);
 }
 
-.rk-me-hero div {
+.rk-me-id {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
-.rk-me-hero strong {
+.rk-me-id strong {
   font-size: 15px;
   color: #f6f6f3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.rk-me-hero small {
+.rk-me-id small {
   font-size: 12px;
   color: #93c5fd;
 }
@@ -3865,16 +4071,24 @@ main.profile-page {
 .rk-stat-box {
   padding: 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(255, 255, 255, 0.032);
   border: 1px solid rgba(246, 246, 243, 0.08);
   display: flex;
   flex-direction: column;
   gap: 3px;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.rk-stat-box.is-active {
+  background: rgba(10, 100, 255, 0.12);
+  border-color: rgba(102, 161, 255, 0.42);
 }
 
 .rk-stat-box small {
   font-size: 11px;
-  color: rgba(246, 246, 243, 0.56);
+  color: rgba(246, 246, 243, 0.58);
 }
 
 .rk-stat-box b {
@@ -3884,19 +4098,48 @@ main.profile-page {
   font-variant-numeric: tabular-nums;
 }
 
-.rk-me-footer {
+.rk-stat-box.is-active b {
+  color: #93c5fd;
+}
+
+.rk-rate-block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
-.rk-rate-pill {
+.rk-rate-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 12.5px;
-  color: rgba(246, 246, 243, 0.72);
+  color: rgba(246, 246, 243, 0.7);
 }
 
-.rk-rate-pill b {
+.rk-rate-head b {
   color: #6ee7b7;
+  font-variant-numeric: tabular-nums;
+}
+
+.rk-progress {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.rk-progress span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--brand-500), #34d399);
+  transition: width 0.35s ease;
+}
+
+.rk-info-card h3 {
+  margin: -6px 0 0;
+  font-size: 17px;
+  color: #f6f6f3;
 }
 
 .rk-guest-cta,
@@ -3911,7 +4154,7 @@ main.profile-page {
   margin: auto;
   align-items: center;
   text-align: center;
-  max-width: 420px;
+  max-width: 440px;
   padding: 24px 12px;
 }
 
@@ -3920,28 +4163,25 @@ main.profile-page {
   padding-left: 18px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   font-size: 12.5px;
-  color: rgba(246, 246, 243, 0.7);
+  line-height: 1.45;
+  color: rgba(246, 246, 243, 0.72);
+}
+
+.rk-rules-list b {
+  color: #f6f6f3;
 }
 
 .rk-empty {
-  margin: auto;
+  margin: 24px auto;
   color: rgba(246, 246, 243, 0.56);
 }
 
-@media (max-width: 960px), (max-height: 660px) {
-  .ranking-shell {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
+@media (max-width: 1040px) {
   .profile-columns,
   .rk-grid {
     grid-template-columns: 1fr;
-  }
-  .rk-board-card {
-    overflow: visible;
   }
 }
 
@@ -3967,9 +4207,13 @@ main.profile-page {
   .rk-podium {
     grid-template-columns: 1fr;
   }
-  .rk-pod-slot.is-empty {
+  .rk-pod-slot.is-vacant {
     display: none;
   }
+  .rk-pod-slot.is-p1 {
+    min-height: 0;
+  }
+  .rk-user-pill span,
   .profile-signout {
     display: none;
   }

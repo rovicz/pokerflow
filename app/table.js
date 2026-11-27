@@ -149,8 +149,16 @@ export default function Table({s, pot, winners, left}) {
     return () => clearTimeout(t);
   }, [s.last?.seq]);
 
-  const N = s.players.length, me = Math.max(0, s.players.findIndex(q => q.self)), compact = area.w < 620, dim = compact ? {w: 380, h: 520} : {w: Math.round(Math.min(1240, Math.max(860, area.w / area.h * 540))), h: 540}, scale = Math.min(area.w / dim.w, area.h / dim.h, 1.3), rx = compact ? .37 : .42, ry = compact ? .44 : .43;
-  const pos = s.players.map((_, j) => { const f = ((j - me + N) % N) / N, H = Math.PI - .42, a = Math.PI / 2 + (f <= .5 ? f * 2 * H : -(1 - f) * 2 * H); return {x: 50 + Math.cos(a) * rx * 100, y: 50 + Math.sin(a) * ry * 100} });
+  const N = s.players.length, me = Math.max(0, s.players.findIndex(q => q.self)), compact = area.w < 620;
+  const dim = {w: Math.min(1600, Math.max(compact ? 380 : 640, area.w / Math.max(1, area.h) * 520)), h: 520};
+  const scale = Math.min(area.w / dim.w, area.h / dim.h), rx = compact ? .37 : Math.min(.43, .5 - 90 / dim.w), ry = compact ? .44 : .43;
+  const pos = s.players.map((_, j) => {
+    const f = ((j - me + N) % N) / N, H = Math.PI - .42;
+    const a = Math.PI / 2 + (f <= .5 ? f * 2 * H : -(1 - f) * 2 * H);
+    const y = 50 + Math.sin(a) * ry * 100;
+    // Keep the side seats above the community cards on narrow tables.
+    return {x: 50 + Math.cos(a) * rx * 100, y: compact && y > 50 && y < 70 ? 50 : y};
+  });
   const vec = (a, b) => ({x: (b.x - a.x) / 100 * dim.w, y: (b.y - a.y) / 100 * dim.h});
   const settled = s.phase === 'settled', wi = winners.length ? s.players.findIndex(q => q.name === winners[0][0]) : -1;
   const bets = s.players.reduce((a, q) => a + q.bet, 0), won = winners.map(w => w[0]);
@@ -158,7 +166,7 @@ export default function Table({s, pot, winners, left}) {
   const look = mood.n === 'deal' || mood.n === 'nod' || !tgt ? {x: 0, y: 1} : {x: Math.max(-1, Math.min(1, (tgt.x / 100 * dim.w - zx) / 260)), y: Math.max(-.6, Math.min(1, (tgt.y / 100 * dim.h - zy) / 260))};
   const toPot = b => settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, POT);
 
-  return <div className="table-wrap" ref={wrap} style={{width: dim.w, height: dim.h, transform: `translate(-50%,-50%) scale(${scale})`}}>
+  return <div className={'table-wrap'+(compact?' compact':'')} ref={wrap} style={{width: dim.w, height: dim.h, transform: `translate(-50%,-50%) scale(${scale})`}}>
     <svg className="tableshape" width={dim.w} height={dim.h} aria-hidden="true">
       <defs>
         <linearGradient id="railg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2b2b2b"/><stop offset=".55" stopColor="#141414"/><stop offset="1" stopColor="#0a0a0a"/></linearGradient>
@@ -184,10 +192,10 @@ export default function Table({s, pot, winners, left}) {
       <span className="amt">Pote {fmt(settled ? winners.reduce((a, w) => a + w[1], 0) : pot)}</span>
     </div>
 
-    <div className="spot board" style={at(50, 57)}>
+    <div className="spot board" style={at(50, compact ? 60 : 57)}>
       {[0, 1, 2, 3, 4].map(i => <div className="slot" key={i}>{s.board[i] != null && <PlayingCard key={s.hand + '-' + i} c={s.board[i]} delay={Math.max(0, i - seen.current) * .08} flipDelay={.1 + Math.max(0, i - seen.current) * .14} className="md"/>}</div>)}
     </div>
-    {settled && winners.length > 0 && <div className="spot winners" style={at(50, 70)}>{winners.map(([n, v]) => <span key={n}>{n} +{fmt(v)}</span>)}</div>}
+    {settled && winners.length > 0 && <div className="spot winners" style={at(50, compact ? 71 : 69)}>{winners.map(([n, v]) => <span key={n}>{n} +{fmt(v)}</span>)}</div>}
 
     {s.players.map((q, j) => {
       const f = compact ? .24 : .34, b = j === me ? {x: compact ? 70 : 63, y: 76} : {x: pos[j].x + (50 - pos[j].x) * f, y: pos[j].y + (50 - pos[j].y) * f};

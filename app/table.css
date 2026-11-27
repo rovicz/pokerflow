@@ -113,3 +113,4 @@
   .bubble { border-radius: 7px; font-size: 10px; padding: 3px 7px; }
 }
 @media (prefers-reduced-motion: reduce) { .seat.active .plate { animation: none; } }
+.allin-flash { left: 0; right: 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }

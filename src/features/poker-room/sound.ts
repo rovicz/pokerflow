@@ -3,6 +3,40 @@ import type { PublicState } from '../../poker/game-types.ts';
 let ctx: AudioContext | null = null;
 let bus: GainNode | null = null;
 let muted = false;
+
+const CARD_SAMPLES = {
+  deal: [
+    '/sounds/card-deal-1.ogg',
+    '/sounds/card-deal-2.ogg',
+    '/sounds/card-deal-3.ogg',
+    '/sounds/card-deal-4.ogg',
+  ],
+  flip: ['/sounds/card-flip-1.ogg', '/sounds/card-flip-2.ogg', '/sounds/card-flip-3.ogg'],
+  fold: ['/sounds/card-fold-1.ogg', '/sounds/card-fold-2.ogg'],
+} as const;
+type SampleGroup = keyof typeof CARD_SAMPLES;
+
+const sampleBuffers = new Map<string, AudioBuffer>();
+const lastPick: Partial<Record<SampleGroup, number>> = {};
+let preloading = false;
+
+function preloadSamples(a: AudioContext) {
+  if (preloading || typeof fetch === 'undefined') return;
+  preloading = true;
+  const urls = Object.values(CARD_SAMPLES).flat();
+  for (const url of urls) {
+    fetch(url)
+      .then((r) => (r.ok ? r.arrayBuffer() : null))
+      .then((buf) => (buf ? a.decodeAudioData(buf.slice(0)) : null))
+      .then((decoded) => {
+        if (decoded) sampleBuffers.set(url, decoded);
+      })
+      .catch(() => {
+        // Navegadores sem suporte a OGG usam o fallback Web Audio automaticamente
+      });
+  }
+}
+
 export const setMuted = (v: boolean) => {
   muted = v;
 };
@@ -25,12 +59,50 @@ function audio() {
     (ctx as AudioContext & { _in?: AudioNode })._in = comp;
   }
   if (ctx.state === 'suspended') ctx.resume();
+  preloadSamples(ctx);
   return ctx;
 }
 function out(a: AudioContext): AudioNode {
   return (a as AudioContext & { _in?: AudioNode })._in ?? a.destination;
 }
 const jitter = (v: number, spread = 0.1) => v * (1 + (Math.random() * 2 - 1) * spread);
+
+function playSample(
+  group: SampleGroup,
+  {
+    at = 0,
+    vol = 0.65,
+    rateSpread = 0.04,
+    fallback,
+  }: { at?: number; vol?: number; rateSpread?: number; fallback: () => void },
+) {
+  const a = audio();
+  if (!a) return;
+  const list = CARD_SAMPLES[group];
+  const ready: { idx: number; buf: AudioBuffer }[] = [];
+  list.forEach((url, idx) => {
+    const buf = sampleBuffers.get(url);
+    if (buf) ready.push({ idx, buf });
+  });
+  if (!ready.length) {
+    fallback();
+    return;
+  }
+  const pool =
+    ready.length > 1 && lastPick[group] != null
+      ? ready.filter((x) => x.idx !== lastPick[group])
+      : ready;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  lastPick[group] = pick.idx;
+
+  const src = a.createBufferSource();
+  src.buffer = pick.buf;
+  src.playbackRate.value = jitter(1, rateSpread);
+  const g = a.createGain();
+  g.gain.value = jitter(vol, 0.06);
+  src.connect(g).connect(out(a));
+  src.start(a.currentTime + at);
+}
 function tone(
   freq: number,
   dur: number,
@@ -150,25 +222,28 @@ function softNoise(
   src.stop(t + d0 + 0.02);
 }
 export const sfx = {
-  // Carta deslizando no feltro: curto, quente e com micro-variação orgânica por carta.
-  deal: (at = 0) => {
-    softNoise(0.058, { freq: 1150, to: 1750, q: 0.85, lp: 2850, vol: 0.17, at, attack: 0.008 });
-    tone(jitter(132, 0.08), 0.032, { vol: 0.055, at: at + 0.024, to: 76, attack: 0.005 });
-  },
-  // Carta virando na mesa: leve dobra do cartão seguida de um pouso macio no feltro.
-  flip: (at = 0) => {
-    softNoise(0.044, { freq: 1350, to: 2150, q: 0.9, lp: 3150, vol: 0.18, at, attack: 0.006 });
-    softNoise(0.028, {
-      freq: 1650,
-      to: 1150,
-      q: 1.0,
-      lp: 2550,
-      vol: 0.1,
-      at: at + 0.028,
-      attack: 0.005,
-    });
-    tone(jitter(124, 0.08), 0.044, { vol: 0.09, at: at + 0.032, to: 68, attack: 0.005 });
-  },
+  // Carta deslizando/sendo distribuída na mesa (gravação real CC0 Kenney Casino Audio + fallback Web Audio).
+  deal: (at = 0) =>
+    playSample('deal', {
+      at,
+      vol: 0.62,
+      rateSpread: 0.045,
+      fallback: () => {
+        softNoise(0.055, { freq: 1850, to: 2900, q: 0.8, lp: 4600, vol: 0.18, at, attack: 0.005 });
+        tone(jitter(140, 0.08), 0.03, { vol: 0.05, at: at + 0.022, to: 80, attack: 0.004 });
+      },
+    }),
+  // Carta abrindo/virando na mesa (gravação real CC0 Kenney Casino Audio + fallback Web Audio).
+  flip: (at = 0) =>
+    playSample('flip', {
+      at,
+      vol: 0.72,
+      rateSpread: 0.04,
+      fallback: () => {
+        softNoise(0.042, { freq: 2100, to: 3400, q: 0.85, lp: 5200, vol: 0.2, at, attack: 0.004 });
+        tone(jitter(130, 0.08), 0.04, { vol: 0.08, at: at + 0.028, to: 72, attack: 0.004 });
+      },
+    }),
   chip: (at = 0) => {
     tone(3200, 0.07, { type: 'triangle', vol: 0.13, at });
     tone(4700, 0.05, { vol: 0.07, at: at + 0.012 });
@@ -198,11 +273,17 @@ export const sfx = {
       tone(f, 0.4, { type: 'square', vol: 0.05, at: 0.62 + i * 0.07 }),
     );
   },
-  // Desistir: dois deslizes curtos e abafados das duas cartas sendo devolvidas no feltro.
-  fold: () => {
-    softNoise(0.066, { freq: 980, to: 520, q: 0.8, lp: 2100, vol: 0.15, at: 0, attack: 0.012 });
-    softNoise(0.064, { freq: 880, to: 460, q: 0.8, lp: 1950, vol: 0.13, at: 0.046, attack: 0.012 });
-  },
+  // Desistir: gravação real das cartas sendo empurradas de volta na mesa.
+  fold: () =>
+    playSample('fold', {
+      at: 0,
+      vol: 0.65,
+      rateSpread: 0.05,
+      fallback: () => {
+        softNoise(0.064, { freq: 1450, to: 820, q: 0.8, lp: 3400, vol: 0.16, at: 0, attack: 0.008 });
+        softNoise(0.06, { freq: 1280, to: 720, q: 0.8, lp: 3100, vol: 0.14, at: 0.045, attack: 0.008 });
+      },
+    }),
   gather(at = 0) {
     this.chips(4, at);
   },

@@ -1,9 +1,9 @@
 /* Mesa, cartas e fichas. Tokens de cor vêm de style.css (guia de marca Sacflow). */
-.table-area { position: relative; flex: 1; min-height: 0; padding: 46px 0 30px; }
-.table-wrap { position: absolute; left: 50%; top: calc(50% + 8px); transform-origin: center; }
+.table-area { position: relative; flex: 1; min-height: 0; padding: 8px 0 16px; }
+.table-wrap { position: absolute; left: 50%; top: calc(50% - 4px); transform-origin: center; }
 
 .spot { position: absolute; transform: translate(-50%, -50%); z-index: 2; display: flex; flex-direction: column; align-items: center; }
-.board { --w: 56px; --h: 78px; flex-direction: row; gap: 7px; z-index: 3; }
+.board { --w: 65px; --h: 90px; flex-direction: row; gap: 7px; z-index: 3; }
 .slot { position: relative; width: var(--w); height: var(--h); border: 1px dashed rgba(246, 246, 243, .3); border-radius: 7px; }
 .slot .pc { position: absolute; inset: -1px; }
 .winners { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 70%; z-index: 4; }
@@ -23,7 +23,7 @@
 .pc { --w: 58px; --h: 80px; position: relative; width: var(--w); height: var(--h); perspective: 700px; flex: none; font-size: calc(var(--w) * .3); }
 .pc.lg { --w: 58px; --h: 80px; }
 .pc.sm { --w: 38px; --h: 53px; }
-.pc.md { --w: 56px; --h: 78px; }
+.pc.md { --w: 65px; --h: 90px; }
 .deck { perspective: none; }
 .deck .pc-back { position: absolute; inset: 0; backface-visibility: visible; transform: none; }
 .pc-in { position: absolute; inset: 0; transform-style: preserve-3d; }
@@ -78,11 +78,7 @@
 
 @media (max-width: 620px) {
   .felt-mark { font-size: 30px; }
-  .table-area { padding: 44px 0 30px; }
-  .pc.md { --w: 40px; --h: 56px; }
-  .pc.lg { --w: 46px; --h: 64px; }
-  .pc.sm { --w: 28px; --h: 39px; }
-  .board { --w: 40px; --h: 56px; gap: 3px; }
+  .hero-cards .pc.lg { --w: 46px; --h: 64px; }
   .plate { min-width: 0; padding: 4px 6px; gap: 5px; }
   .avatar { border-radius: 7px; width: 22px; height: 22px; font-size: 11px; }
   .who b { font-size: 10px; max-width: 58px; }
@@ -93,4 +89,9 @@
   .chip::after { inset: 3px; }
   .bubble { border-radius: 7px; font-size: 10px; padding: 3px 7px; }
 }
+.table-wrap .pc.lg { --w: 69px; --h: 95px; }
+.table-wrap .pc.sm { --w: 45px; --h: 62px; }
+.table-wrap.compact .pc.md, .table-wrap.compact .board { --w: 51px; --h: 71px; }
+.table-wrap.compact .board { gap: 5px; }
+.table-wrap.compact .plate { min-width: 0; max-width: 92px; padding: 4px 6px; gap: 5px; }
 @media (prefers-reduced-motion: reduce) { .seat.active .plate { animation: none; } }

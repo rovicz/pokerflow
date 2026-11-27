@@ -299,3 +299,9 @@ select { appearance: none; -webkit-appearance: none; padding-right: 36px; backgr
 @media (max-width: 1250px) { .in-game .presets button:nth-child(2), .in-game .presets button:nth-child(3) { display: inline-block; } }
 .fields { align-items: end; }
 .resume button { white-space: nowrap; }
+
+main.in-game { max-width: none; height: auto; min-height: 100dvh; }
+.in-game .game-grid { flex: 1 0 auto; }
+.in-game .table-area { min-height: clamp(390px, 62dvh, 650px); }
+.in-game .end { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.lobby-seat .remove-player { min-height: 36px; }

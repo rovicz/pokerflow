@@ -57,7 +57,7 @@ O servidor valida as jogadas, aplica os prazos, distribui os potes e entrega a c
 
 ## Desenvolvimento e deploy
 
-Antes de alterar o projeto, leia o [BOOTSTRAP.md](BOOTSTRAP.md), o [mapa de regras](rules/rules-map.md) e a [regra de arquitetura](rules/architecture.md).
+Antes de alterar o projeto, leia o [BOOTSTRAP.md](BOOTSTRAP.md), o [mapa de regras](.agents/rules/rules-map.md) e a [regra de arquitetura](.agents/rules/architecture.md).
 
 ```bash
 npm run format:check

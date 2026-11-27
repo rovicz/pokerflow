@@ -12,7 +12,7 @@ import type { AvatarStyle } from '../../poker/avatars.ts';
 import Avatar from './avatar';
 import { fmt } from './table';
 
-// Widget irmão do card "Entre no clube" na tela inicial: mesmo visual .panel, abas .seg e lista vertical limpa.
+// Widget de ranking integrado sob o hero na tela inicial: mesmo visual .panel, abas .seg e pódio compacto (Top 3).
 export default function HomeLeaderboard() {
   const reducedMotion = useReducedMotion();
   const [category, setCategory] = useState<LeaderboardCategory>('matches_won');
@@ -24,7 +24,7 @@ export default function HomeLeaderboard() {
     fetch(`/api/leaderboard?category=${category}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((body: { rows?: LeaderboardRow[] } | null) => {
-        if (alive && body?.rows) setRows(body.rows.slice(0, 5));
+        if (alive && body?.rows) setRows(body.rows.slice(0, 3));
       })
       .catch(() => {})
       .finally(() => {
@@ -41,12 +41,16 @@ export default function HomeLeaderboard() {
     <motion.aside
       className="panel home-lb-widget"
       aria-label="Ranking do clube"
-      initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="eyebrow">RANKING DO CLUBE</div>
-      <h2>Top jogadores</h2>
+      <div className="hlb-head">
+        <div className="eyebrow">RANKING DO CLUBE</div>
+        <Link href="/ranking" className="hlb-more">
+          Ver ranking completo →
+        </Link>
+      </div>
 
       <div className="seg hlb-seg" role="tablist" aria-label="Categoria do ranking">
         {LEADERBOARD_CATEGORIES.map((c) => (
@@ -66,9 +70,7 @@ export default function HomeLeaderboard() {
       {loading && rows.length === 0 ? (
         <p className="hlb-empty">Carregando classificação…</p>
       ) : rows.length === 0 ? (
-        <p className="hlb-empty">
-          Nenhuma partida ranqueada ainda. Jogue com 2+ amigos logados para inaugurar o pódio!
-        </p>
+        <p className="hlb-empty">Jogue com 2+ amigos logados para inaugurar o pódio do clube.</p>
       ) : (
         <ol className="hlb-list">
           {rows.map((r, i) => (
@@ -77,7 +79,7 @@ export default function HomeLeaderboard() {
               <Avatar
                 a={{ style: r.avatarStyle as AvatarStyle, seed: r.avatarSeed }}
                 name={r.displayName}
-                size={32}
+                size={30}
               />
               <div className="hlb-who">
                 <b>{r.displayName}</b>
@@ -91,10 +93,6 @@ export default function HomeLeaderboard() {
           ))}
         </ol>
       )}
-
-      <Link href="/ranking" className="outline wide hlb-cta">
-        Ver ranking completo →
-      </Link>
     </motion.aside>
   );
 }

@@ -1,6 +1,6 @@
 import {createClient} from '@supabase/supabase-js';
 import {randomBytes} from 'node:crypto';
-import {start,act,view} from '../../../lib/engine.mjs';
+import {start,act,view,betweenHands} from '../../../lib/engine.mjs';
 import {cleanAvatar} from '../../../lib/avatars.mjs';
 export const runtime='nodejs';
 // Banco em memória só para desenvolvimento local sem Supabase configurado.

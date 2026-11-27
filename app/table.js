@@ -108,7 +108,7 @@ function ChipStack({amount, from, to}) {
   let n = 0;
   const items = piles.flatMap((p, si) => Array.from({length: p.k}, (_, i) => ({p, si, i, d: n++ * .03})));
   return (
-    <div className="chips" style={{width: Math.max(1, piles.length) * 28}}>
+    <div className="chips" style={{width: piles.length * 28, marginRight: piles.length ? 8 : 0}}>
       <AnimatePresence custom={{tx: to.x, ty: to.y, d: 0}}>
         {items.map(({p, si, i, d}) => (
           <motion.i
@@ -146,8 +146,8 @@ function Num({v}) {
 }
 
 const at = (x, y) => ({left: x + '%', top: y + '%'});
-const POT = {x: 52.5, y: 31};
-const DECK_POS = {x: 36, y: 31};
+const POT = {x: 50, y: 31};
+const DECK_POS = {x: 35, y: 31};
 
 // Contorno da mesa: estádio com recorte suave no topo (lugar do dealer).
 function shape(x0, x1, y0, y1, nd, nw, sh) {
@@ -165,7 +165,7 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
   const timerTone = left <= 18 ? 'danger' : left <= 38 ? 'warn' : 'ok';
 
   return (
-    <motion.div
+    <div
       className={
         'seat' +
         (self ? ' self' : '') +
@@ -175,9 +175,6 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
         (isAllIn ? ' allin' : '')
       }
       style={at(pos.x, pos.y)}
-      initial={{opacity: 0, scale: .92}}
-      animate={{opacity: 1, scale: 1}}
-      transition={{duration: .35, ease: [.22, 1, .36, 1]}}
     >
       <motion.div className="hand" animate={state} transition={{duration: .45, ease: [.22, 1, .36, 1]}}>
         {p.cards.map((c, k) => {
@@ -201,8 +198,9 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
 
       <motion.div
         className="plate"
-        animate={win ? {y: [0, -4, 0]} : {y: 0}}
-        transition={win ? {duration: .65, ease: [.22, 1, .36, 1]} : {duration: .2}}
+        initial={{opacity: 0, scale: .92}}
+        animate={win ? {opacity: 1, scale: 1, y: [0, -4, 0]} : {opacity: 1, scale: 1, y: 0}}
+        transition={win ? {duration: .65, ease: [.22, 1, .36, 1]} : {duration: .3, ease: [.22, 1, .36, 1]}}
       >
         <div className="avatar-ring">
           <Avatar a={p.avatar} name={p.name} size={self ? 36 : 32}/>
@@ -248,7 +246,7 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -312,7 +310,7 @@ export default function Table({s, pot, winners, left}) {
   };
   const scale = Math.min(area.w / dim.w, area.h / dim.h);
   const rx = compact ? .38 : Math.min(.42, .48 - 84 / dim.w);
-  const ry = compact ? .43 : .425;
+  const ry = compact ? .42 : .415;
 
   const pos = s.players.map((_, j) => {
     const f = ((j - me + N) % N) / N, H = Math.PI - .42;
@@ -483,28 +481,29 @@ export default function Table({s, pot, winners, left}) {
       </div>
 
       {/* Banner de vencedores em zona limpa entre o board e o jogador */}
-      <AnimatePresence>
-        {settled && winners.length > 0 && (
-          <motion.div
-            key={'win-' + s.hand}
-            className="spot winners"
-            style={at(50, compact ? 66 : 64.5)}
-            initial={{opacity: 0, y: 10, scale: .88}}
-            animate={{opacity: 1, y: 0, scale: 1}}
-            exit={{opacity: 0, y: -6, scale: .92}}
-            transition={{type: 'spring', stiffness: 320, damping: 22}}
-          >
-            {winners.map(([n, v]) => (
-              <span key={n}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
-                </svg>
-                {n} <b>+{fmt(v)}</b>
-              </span>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="spot winners-spot" style={at(50, compact ? 65.5 : 64)}>
+        <AnimatePresence>
+          {settled && winners.length > 0 && (
+            <motion.div
+              key={'win-' + s.hand}
+              className="winners"
+              initial={{opacity: 0, y: 10, scale: .88}}
+              animate={{opacity: 1, y: 0, scale: 1}}
+              exit={{opacity: 0, y: -6, scale: .92}}
+              transition={{type: 'spring', stiffness: 320, damping: 22}}
+            >
+              {winners.map(([n, v]) => (
+                <span key={n}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                  </svg>
+                  {n} <b>+{fmt(v)}</b>
+                </span>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Apostas na mesa por jogador */}
       {s.players.map((q, j) => {

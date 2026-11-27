@@ -20,9 +20,10 @@ export function PlayingCard({c, delay = 0, flipDelay = 0, className = ''}) {
       const deck = document.getElementById('deck')?.getBoundingClientRect(), r = el.getBoundingClientRect();
       if (!deck || calm()) return;
       el.style.opacity = 0;
+      const k = r.width / el.offsetWidth || 1; // a mesa é escalada para caber na tela
       const a = animate(el, {
-        x: [deck.left + deck.width / 2 - (r.left + r.width / 2), 0],
-        y: [deck.top + deck.height / 2 - (r.top + r.height / 2), 0],
+        x: [(deck.left + deck.width / 2 - (r.left + r.width / 2)) / k, 0],
+        y: [(deck.top + deck.height / 2 - (r.top + r.height / 2)) / k, 0],
         rotate: [(Math.random() - .5) * 60, 0], scale: [.55, 1], opacity: [0, 1],
       }, {delay, duration: .6, ease: [.2, .8, .2, 1], opacity: {delay, duration: .1}});
       runs.push(a);
@@ -114,10 +115,10 @@ function Seat({p, j, pos, s, self, active, dealer, left, win, toCenter, bubble, 
 
 export default function Table({s, pot, winners, left}) {
   const wrap = useRef(null), seen = useRef(0), lastSeq = useRef(s.last?.seq);
-  const [dim, setDim] = useState({w: 900, h: 500}), [bub, setBub] = useState(null);
+  const [area, setArea] = useState({w: 900, h: 500}), [bub, setBub] = useState(null);
   useEffect(() => {
-    const ro = new ResizeObserver(([e]) => setDim({w: e.contentRect.width, h: e.contentRect.height}));
-    ro.observe(wrap.current);
+    const el = wrap.current.parentElement, ro = new ResizeObserver(([e]) => setArea({w: e.contentRect.width, h: e.contentRect.height}));
+    ro.observe(el);
     return () => ro.disconnect();
   }, []);
   useEffect(() => { seen.current = s.board.length });
@@ -131,14 +132,14 @@ export default function Table({s, pot, winners, left}) {
     return () => clearTimeout(t);
   }, [s.last?.seq]);
 
-  const N = s.players.length, me = Math.max(0, s.players.findIndex(q => q.self)), compact = dim.w < 620, rx = compact ? .37 : .42, ry = compact ? .44 : .43;
+  const N = s.players.length, me = Math.max(0, s.players.findIndex(q => q.self)), compact = area.w < 620, dim = compact ? {w: 380, h: 520} : {w: 960, h: 540}, scale = Math.min(area.w / dim.w, area.h / dim.h, 1.1), rx = compact ? .37 : .42, ry = compact ? .44 : .43;
   const pos = s.players.map((_, j) => { const a = Math.PI / 2 + 2 * Math.PI * ((j - me + N) % N) / N; return {x: 50 + Math.cos(a) * rx * 100, y: 50 + Math.sin(a) * ry * 100} });
   const vec = (a, b) => ({x: (b.x - a.x) / 100 * dim.w, y: (b.y - a.y) / 100 * dim.h});
   const settled = s.phase === 'settled', wi = winners.length ? s.players.findIndex(q => q.name === winners[0][0]) : -1;
   const bets = s.players.reduce((a, q) => a + q.bet, 0), won = winners.map(w => w[0]);
   const toPot = b => settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, POT);
 
-  return <div className="table-wrap" ref={wrap}>
+  return <div className="table-wrap" ref={wrap} style={{width: dim.w, height: dim.h, transform: `translate(-50%,-50%) scale(${scale})`}}>
     <div className="rail"><div className="felt"><span className="felt-mark">PokerFlow</span></div></div>
 
     <div className="spot" style={at(43, 33)}>

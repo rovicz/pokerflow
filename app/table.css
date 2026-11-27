@@ -1,6 +1,6 @@
 /* Mesa, cartas e fichas. Tokens de cor vêm de style.css (guia de marca Sacflow). */
-.table-area { container-type: size; flex: 1; min-height: 0; display: grid; place-items: center; padding: 46px 0 30px; }
-.table-wrap { position: relative; width: min(100cqw, 100cqh * 2.15); aspect-ratio: 16 / 9.4; }
+.table-area { position: relative; flex: 1; min-height: 0; padding: 46px 0 30px; }
+.table-wrap { position: absolute; left: 50%; top: calc(50% + 8px); transform-origin: center; }
 .rail {
   position: absolute; inset: 11% 10%; border-radius: 999px; padding: clamp(10px, 2.4vw, 28px);
   background: linear-gradient(180deg, #2b2b2b, #141414 55%, #0a0a0a);
@@ -80,7 +80,6 @@
 
 @media (max-width: 620px) {
   .table-area { padding: 44px 0 30px; }
-  .table-wrap { aspect-ratio: 3 / 4.1; width: min(100cqw, 100cqh * .73); }
   .rail { inset: 9% 13%; padding: 10px; }
   .pc.md { --w: 40px; --h: 56px; }
   .pc.lg { --w: 46px; --h: 64px; }

@@ -239,3 +239,10 @@ main.in-game { height: 100dvh; display: flex; flex-direction: column; padding: 0
   .in-game .timer { min-width: 70px; }
   .in-game footer span { display: none; }
 }
+@media (max-height: 760px) and (min-width: 681px) {
+  .in-game .stagebar, .in-game footer { display: none; }
+  .in-game header { height: 44px; }
+}
+.in-game .controls .eyebrow, .in-game .controls .hint { display: none; }
+.in-game .controls .between:first-child { margin-bottom: 8px; }
+.in-game .controls h2 { font-size: 18px; }

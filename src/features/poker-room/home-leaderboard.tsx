@@ -79,7 +79,7 @@ export default function HomeLeaderboard() {
               <Avatar
                 a={{ style: r.avatarStyle as AvatarStyle, seed: r.avatarSeed }}
                 name={r.displayName}
-                size={30}
+                size={34}
               />
               <div className="hlb-who">
                 <b>{r.displayName}</b>

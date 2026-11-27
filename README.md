@@ -23,3 +23,11 @@ Next.js App Router, API server-side, Supabase PostgreSQL com RLS, motor de poker
 ## Limitações
 
 Protótipo v0.2.0: sem dinheiro real, sem autenticação Supabase, sem rate limiting, sem testes E2E completos. Casos complexos de poker precisam de testes adicionais. O banco não deve ser exposto diretamente ao cliente.
+
+## Robustez
+
+- **Prazos no servidor:** a API resolve jogadas vencidas (desistir/passar) e a próxima mão em toda requisição, então não há "gap" quando alguém perde a vez. O cliente usa o relógio do servidor (`now`) e pede o estado logo após o vencimento. No plano gratuito do Vercel não há timers abaixo de 1 dia, por isso uma sala sem ninguém conectado só avança quando alguém volta.
+- **Limpeza:** `vercel.json` agenda `/api/cron/cleanup` (diário) para apagar salas sem atividade há 7 dias. Defina `CRON_SECRET` no Vercel; sem ele o endpoint responde 401.
+- **Limites:** 40 requisições/10 s por sessão e 8 criações de mesa/10 min por IP (em memória, por instância).
+- **Espectadores:** quem entra com a partida em andamento ou a sala cheia assiste sem ver cartas privadas e pode sentar na sala de espera se abrir lugar. Quem é removido pelo anfitrião é avisado.
+- **Segurança:** cabeçalhos e CSP em `next.config.ts`; o canal de tempo real tem nome derivado do código com a chave de serviço (só membros o recebem). O token de sessão continua no `localStorage`.

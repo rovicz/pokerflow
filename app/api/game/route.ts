@@ -1,6 +1,7 @@
 import type { GameState, PublicState } from '../../../src/poker/game-types.ts';
 
 import { openRoomStore } from '../../../src/server/room-store.ts';
+import { notifyRoom } from '../../../src/server/room-notify.ts';
 import { randomBytes } from 'node:crypto';
 import { start, act, view, betweenHands } from '../../../src/poker/engine.ts';
 import { cleanAvatar } from '../../../src/poker/avatars.ts';
@@ -97,6 +98,7 @@ export async function POST(req: Request) {
     }
     if (!(await store.update(code, data.version, s)))
       return reply({ error: 'Conflito; tente novamente' }, 409);
+    await notifyRoom(code, data.version + 1);
     return reply({ code, state: project(s, id), version: data.version + 1 });
   } catch (e) {
     return reply({ error: e instanceof Error ? e.message : 'Erro' }, 400);

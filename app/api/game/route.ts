@@ -19,6 +19,7 @@ import { cleanAvatar } from '../../../src/poker/avatars.ts';
 import { isEmoteId, pushEmote } from '../../../src/poker/emotes.ts';
 import { createBotPlayer, isBotDifficulty } from '../../../src/poker/bot-ai.ts';
 import { castBanVote, projectBanVote, publicPlayerUid } from '../../../src/poker/moderation.ts';
+import { createBlindSchedule } from '../../../src/poker/blinds.ts';
 export const runtime = 'nodejs';
 
 const MAX_SPECTATORS = 30;
@@ -74,7 +75,9 @@ export async function POST(req: Request) {
         bb = Number(b.bb || 20),
         seconds = Number(b.seconds || 30),
         bots = b.bots == null ? 0 : Number(b.bots),
-        botDifficulty = isBotDifficulty(b.botDifficulty) ? b.botDifficulty : 'medium';
+        botDifficulty = isBotDifficulty(b.botDifficulty) ? b.botDifficulty : 'medium',
+        blindsMode = b.blindsMode === 'hands' || b.blindsMode === 'time' ? b.blindsMode : 'fixed',
+        blindsEvery = Number(b.blindsEvery || (blindsMode === 'time' ? 300 : 8));
       if (
         ![1000, 2000, 5000, 10000].includes(stack) ||
         ![10, 20, 50, 100].includes(bb) ||
@@ -84,6 +87,8 @@ export async function POST(req: Request) {
         bots > 7
       )
         throw Error('Configuração inválida');
+      const blinds =
+        blindsMode === 'fixed' ? null : createBlindSchedule(blindsMode, blindsEvery, bb);
       const players: Player[] = [
         { id, name, stack, cards: [], bet: 0, total: 0, avatar: cleanAvatar(b.avatar, name) },
       ];
@@ -96,6 +101,7 @@ export async function POST(req: Request) {
         initial: stack,
         sb: bb / 2,
         bb,
+        blinds,
         seconds,
         botDifficulty,
         phase: 'waiting',
@@ -265,6 +271,20 @@ export async function POST(req: Request) {
           rematch(s, id, b.mode);
         } else if (b.op === 'sit_out') {
           setSitOut(s, id, !!b.active);
+        } else if (b.op === 'blinds') {
+          if (s.host !== id || s.phase !== 'waiting') {
+            throw Error('Somente o anfitrião pode configurar os blinds na sala de espera');
+          }
+          const mode = b.blindsMode === 'hands' || b.blindsMode === 'time' ? b.blindsMode : 'fixed';
+          const baseBb = s.blinds?.baseBb ?? s.bb;
+          if (mode === 'fixed') {
+            s.blinds = null;
+          } else {
+            const every = Number(b.blindsEvery || (mode === 'time' ? 300 : 8));
+            s.blinds = createBlindSchedule(mode, every, baseBb);
+          }
+          s.bb = baseBb;
+          s.sb = baseBb / 2;
         } else if (b.op === 'action') act(s, id, b.type, b.amount);
         else throw Error('Comando inválido');
       }

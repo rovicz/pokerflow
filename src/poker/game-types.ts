@@ -8,6 +8,14 @@ export type Hand = { score: number; cards: number[]; rank: number; coreCount: nu
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
 export type BotStyle = 'tight' | 'balanced' | 'aggressive' | 'wild';
 export type BotProfile = { style: BotStyle; difficulty: BotDifficulty };
+export type BlindMode = 'fixed' | 'hands' | 'time';
+export type BlindSchedule = {
+  mode: 'hands' | 'time';
+  every: number;
+  baseBb: number;
+  level: number;
+  nextAt?: number | null;
+};
 export type Player = {
   id: string;
   name: string;
@@ -103,6 +111,7 @@ export type GameState = {
   turn: number;
   sb: number;
   bb: number;
+  blinds?: BlindSchedule | null;
   seconds: number;
   deadline?: number | null;
   botActAt?: number | null;
@@ -166,5 +175,6 @@ export type GameOperation =
   | 'show_cards'
   | 'rematch'
   | 'sit_out'
+  | 'blinds'
   | 'leave'
   | 'sit';

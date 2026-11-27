@@ -105,6 +105,7 @@ export default function Page() {
       <Topbar
         s={s ?? null}
         code={game?.code}
+        now={now}
         muted={muted}
         onToggleMute={toggleMute}
         copied={copied}

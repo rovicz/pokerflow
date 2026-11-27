@@ -5,6 +5,11 @@ import type { GameOperation, PublicState } from '../../poker/game-types.ts';
 import type { AvatarStyle } from '../../poker/avatars.ts';
 import { AVATAR_STYLES, AVATAR_LABELS } from '../../poker/avatars.ts';
 import { BOT_DIFFICULTY_LABELS } from '../../poker/bot-ai.ts';
+import {
+  BLIND_HAND_INTERVALS,
+  BLIND_TIME_INTERVALS,
+  previewBlindLevels,
+} from '../../poker/blinds.ts';
 import type { SendExtra } from './use-room.ts';
 import Avatar from './avatar';
 import BanVoteBanner from './ban-vote-banner';
@@ -65,6 +70,103 @@ export default function LobbyScreen({
             <small>Código da mesa</small>
             <b>{code}</b>
           </div>
+        </div>
+
+        {/* Faixa de estrutura de blinds (Fixos vs Modo Torneio) */}
+        <div className="lobby-blinds-bar">
+          <div className="lbb-info">
+            <span className={'lbb-badge' + (s.blinds ? ' is-tourney' : '')}>
+              {s.blinds ? 'MODO TORNEIO' : 'BLINDS FIXOS'}
+            </span>
+            {s.blinds ? (
+              <span className="lbb-text">
+                Sobe a cada{' '}
+                <b>
+                  {s.blinds.mode === 'hands'
+                    ? `${s.blinds.every} mãos`
+                    : `${s.blinds.every / 60} min`}
+                </b>{' '}
+                ·{' '}
+                {previewBlindLevels(s.blinds.baseBb, 4)
+                  .map((lv) => `${lv.sb}/${lv.bb}`)
+                  .join(' → ')}
+              </span>
+            ) : (
+              <span className="lbb-text">
+                Blinds constantes em{' '}
+                <b>
+                  {s.sb}/{s.bb}
+                </b>
+              </span>
+            )}
+          </div>
+          {s.host && (
+            <div className="lbb-controls">
+              <button
+                type="button"
+                className={'outline seat-mini-btn' + (!s.blinds ? ' is-selected' : '')}
+                disabled={pending}
+                onClick={() => send('blinds', { version, blindsMode: 'fixed' })}
+              >
+                Fixos
+              </button>
+              <button
+                type="button"
+                className={
+                  'outline seat-mini-btn' + (s.blinds?.mode === 'hands' ? ' is-selected' : '')
+                }
+                disabled={pending}
+                onClick={() =>
+                  send('blinds', {
+                    version,
+                    blindsMode: 'hands',
+                    blindsEvery: s.blinds?.mode === 'hands' ? s.blinds.every : 8,
+                  })
+                }
+              >
+                Por mãos
+              </button>
+              <button
+                type="button"
+                className={
+                  'outline seat-mini-btn' + (s.blinds?.mode === 'time' ? ' is-selected' : '')
+                }
+                disabled={pending}
+                onClick={() =>
+                  send('blinds', {
+                    version,
+                    blindsMode: 'time',
+                    blindsEvery: s.blinds?.mode === 'time' ? s.blinds.every : 300,
+                  })
+                }
+              >
+                Por tempo
+              </button>
+              {s.blinds && (
+                <select
+                  aria-label="Intervalo de subida dos blinds"
+                  className="lbb-select"
+                  disabled={pending}
+                  value={s.blinds.every}
+                  onChange={(e) =>
+                    send('blinds', {
+                      version,
+                      blindsMode: s.blinds!.mode,
+                      blindsEvery: Number(e.target.value),
+                    })
+                  }
+                >
+                  {(s.blinds.mode === 'hands' ? BLIND_HAND_INTERVALS : BLIND_TIME_INTERVALS).map(
+                    (v) => (
+                      <option key={v} value={v}>
+                        {s.blinds!.mode === 'hands' ? `${v} mãos` : `${v / 60} min`}
+                      </option>
+                    ),
+                  )}
+                </select>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="lobby-grid">

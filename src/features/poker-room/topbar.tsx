@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { motion } from 'motion/react';
 import type { PublicState } from '../../poker/game-types.ts';
 import { HAND_RANKINGS } from '../../poker/hands.ts';
+import BrandLogo from './brand-logo';
 import { Tip, IconSoundOn, IconSoundOff, IconGuide, IconShare, IconCheck, IconExit } from './ui';
 
 export const phases = [
@@ -44,12 +45,8 @@ export default function Topbar({ s, code, muted, onToggleMute, copied, onInvite,
       {/* Topbar: unificada no modo jogo e lobby, clássica na entrada */}
       <header className={inApp ? 'game-topbar' : ''}>
         <div className="flex min-w-0 items-center gap-[14px]">
-          <a href="/" className="brand">
-            <span className="mark">♠</span>
-            <div>
-              PokerFlow<i>.</i>
-              {!inApp && <small>PRIVATE POKER CLUB</small>}
-            </div>
+          <a href="/" className="brand" aria-label="PokerFlow — página inicial">
+            <BrandLogo variant={inApp ? 'compact' : 'full'} />
           </a>
 
           {inApp && (

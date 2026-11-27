@@ -17,6 +17,7 @@ type Mood = 'idle' | 'deal' | 'nod' | 'cheer' | 'wow' | 'shrug';
 
 import Avatar from './avatar';
 import Zake from './zake';
+import BrandLogo from './brand-logo';
 import NotoEmoji from './noto-emoji';
 import { sfx } from './sound';
 import { analyzeShowdown, describeHand } from '../../poker/hands.ts';
@@ -729,7 +730,7 @@ export default function Table({
           />
         </svg>
 
-        <span className="felt-mark">PokerFlow</span>
+        <BrandLogo variant="watermark" className="felt-mark" />
 
         {/* Pote centralizado na linha superior */}
         <div className="spot pot-spot" style={at(potPos.x, potPos.y)}>

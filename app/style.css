@@ -281,3 +281,7 @@ main.in-game { padding: 0 28px 14px; }
 .gitem h3 { font: 600 16px var(--sans); }
 .gitem p { margin-top: 4px; font-size: 14px; }
 @media (max-width: 680px) { main.in-game { padding: 0 8px 6px; } .in-game header { padding: 8px 0; height: 56px; } .header-right { gap: 6px; } .header-right button { padding: 6px 8px; } }
+.in-game .bet-panel > * { min-width: 0; }
+.in-game .presets { gap: 6px; flex-wrap: nowrap; }
+.in-game .presets button { padding: 6px 10px; font-size: 12px; white-space: nowrap; }
+@media (max-width: 1250px) { .in-game .presets button:nth-child(2), .in-game .presets button:nth-child(3) { display: none; } }

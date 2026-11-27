@@ -2235,27 +2235,49 @@ header.game-topbar {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(6, 8, 14, 0.52);
-  backdrop-filter: blur(3px);
+  background: rgba(6, 8, 14, 0.56);
+  backdrop-filter: blur(4px);
 }
 
+/* Desktop landscape: card flutuante elegante acima do botão no canto inferior esquerdo */
 .history-panel {
   position: fixed;
-  top: 56px;
-  left: 0;
-  bottom: 0;
-  width: min(350px, 92vw);
   z-index: 65;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, rgba(20, 22, 30, 0.98) 0%, rgba(13, 15, 21, 0.99) 100%);
-  border-right: 1px solid rgba(246, 246, 243, 0.14);
-  box-shadow: 16px 0 44px rgba(0, 0, 0, 0.6);
+  background: linear-gradient(180deg, rgba(22, 25, 35, 0.98) 0%, rgba(14, 16, 23, 0.99) 100%);
+  border: 1px solid rgba(246, 246, 243, 0.14);
   color: #f6f6f3;
+  overflow: hidden;
+}
+
+.history-panel.is-popover {
+  left: 16px;
+  bottom: 64px;
+  width: min(370px, calc(100vw - 32px));
+  max-height: min(520px, calc(100dvh - 130px));
+  border-radius: 16px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(10, 100, 255, 0.12);
+}
+
+/* Mobile & qualquer viewport retrato: Bottom-Sheet confortável e limpo */
+.history-panel.is-sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-height: 76dvh;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.7);
 }
 
 .hh-handle {
-  width: 38px;
+  width: 40px;
   height: 4px;
   border-radius: 99px;
   background: rgba(246, 246, 243, 0.24);
@@ -2268,45 +2290,56 @@ header.game-topbar {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid rgba(246, 246, 243, 0.09);
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid rgba(246, 246, 243, 0.08);
   flex: 0 0 auto;
 }
 
-.hh-title-row {
+.history-panel.is-sheet .hh-head {
+  padding-top: 8px;
+}
+
+.hh-head-left {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
 }
 
 .hh-head h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: #f6f6f3;
 }
 
-.hh-sub {
-  font-size: 11.5px;
-  color: rgba(246, 246, 243, 0.58);
-  font-variant-numeric: tabular-nums;
+.hh-phase-pill {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(10, 100, 255, 0.2);
+  border: 1px solid rgba(102, 161, 255, 0.35);
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .hh-close {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 9px;
   border: 1px solid rgba(246, 246, 243, 0.14);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(246, 246, 243, 0.8);
-  font-size: 13px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(246, 246, 243, 0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
 }
 
 .hh-close:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 .hh-tabs {
@@ -2314,27 +2347,22 @@ header.game-topbar {
   grid-template-columns: 1fr 1fr;
   gap: 6px;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(246, 246, 243, 0.08);
+  border-bottom: 1px solid rgba(246, 246, 243, 0.07);
   flex: 0 0 auto;
 }
 
 .hh-tabs button {
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: 9px;
   border: 1px solid rgba(246, 246, 243, 0.1);
   background: rgba(255, 255, 255, 0.03);
-  color: rgba(246, 246, 243, 0.68);
-  font-size: 12px;
+  color: rgba(246, 246, 243, 0.65);
+  font-size: 12.5px;
   font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.14s ease,
-    border-color 0.14s ease,
-    color 0.14s ease;
 }
 
 .hh-tabs button.active {
-  background: rgba(10, 100, 255, 0.22);
+  background: rgba(10, 100, 255, 0.24);
   border-color: rgba(102, 161, 255, 0.5);
   color: #f6f6f3;
 }
@@ -2343,39 +2371,159 @@ header.game-topbar {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 14px 18px;
+  padding: 14px 16px 20px;
 }
 
-.hh-empty {
-  margin: 24px 8px;
-  text-align: center;
-  font-size: 13px;
-  line-height: 1.5;
-  color: rgba(246, 246, 243, 0.55);
-}
-
-.hh-log {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Card de resumo no topo da mão atual */
+.hh-summary {
+  padding: 11px 13px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(246, 246, 243, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.hh-street-sep {
+.hh-summary-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 8px;
-  padding: 6px 9px;
-  border-radius: 8px;
-  background: rgba(10, 100, 255, 0.14);
-  border: 1px solid rgba(102, 161, 255, 0.24);
+  font-size: 12.5px;
+  color: rgba(246, 246, 243, 0.72);
+  font-variant-numeric: tabular-nums;
 }
 
-.hh-street-name {
+.hh-summary-top b {
+  color: #f6f6f3;
+}
+
+.hh-summary-pot {
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: rgba(251, 191, 36, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.36);
+  color: #fde68a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hh-summary-board {
+  display: flex;
+  align-items: center;
+}
+
+.hh-now {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: rgba(246, 246, 243, 0.75);
+}
+
+.hh-now b {
+  color: #93c5fd;
+}
+
+.hh-now-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+}
+
+.hh-empty {
+  margin: 18px 4px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(246, 246, 243, 0.52);
+}
+
+/* Timeline narrativa limpa */
+.hh-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hh-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(246, 246, 243, 0.84);
+}
+
+.hh-step b {
+  color: #f6f6f3;
+  font-weight: 600;
+}
+
+.hh-step-val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: rgba(148, 163, 184, 0.7);
+}
+
+.hh-step.tone-blind {
+  color: rgba(246, 246, 243, 0.62);
+  font-size: 12.5px;
+}
+.hh-step.tone-fold .hh-dot {
+  background: #f87171;
+}
+.hh-step.tone-fold .hh-step-txt {
+  color: rgba(252, 165, 165, 0.9);
+}
+.hh-step.tone-check .hh-dot {
+  background: #cbd5e1;
+}
+.hh-step.tone-call .hh-dot {
+  background: #34d399;
+}
+.hh-step.tone-call .hh-step-val {
+  color: #6ee7b7;
+}
+.hh-step.tone-raise .hh-dot {
+  background: #3b82f6;
+}
+.hh-step.tone-raise .hh-step-val {
+  color: #93c5fd;
+}
+.hh-step.tone-allin .hh-dot {
+  background: #f59e0b;
+}
+.hh-step.tone-allin .hh-step-val {
+  color: #fde68a;
+}
+
+.hh-street-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: rgba(10, 100, 255, 0.13);
+  border: 1px solid rgba(102, 161, 255, 0.25);
+}
+
+.hh-street-tag {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -2383,60 +2531,7 @@ header.game-topbar {
   color: #93c5fd;
 }
 
-.hh-log-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 9px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(246, 246, 243, 0.06);
-  font-size: 12px;
-}
-
-.hh-actor {
-  font-weight: 600;
-  color: #f6f6f3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hh-pill {
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.hh-pill.tone-blind {
-  background: rgba(148, 163, 184, 0.16);
-  color: #cbd5e1;
-}
-.hh-pill.tone-fold {
-  background: rgba(239, 68, 68, 0.16);
-  color: #fca5a5;
-}
-.hh-pill.tone-check {
-  background: rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
-}
-.hh-pill.tone-call {
-  background: rgba(16, 185, 129, 0.18);
-  color: #6ee7b7;
-}
-.hh-pill.tone-raise {
-  background: rgba(10, 100, 255, 0.24);
-  color: #93c5fd;
-}
-.hh-pill.tone-allin {
-  background: rgba(245, 158, 11, 0.24);
-  color: #fde68a;
-}
-
+/* Cards de mãos anteriores */
 .hh-cards {
   display: flex;
   flex-direction: column;
@@ -2444,82 +2539,35 @@ header.game-topbar {
 }
 
 .hh-card {
-  padding: 10px 11px;
+  padding: 11px 12px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(246, 246, 243, 0.1);
+  border: 1px solid rgba(246, 246, 243, 0.09);
   display: flex;
   flex-direction: column;
+  gap: 7px;
+}
+
+.hh-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.hh-card-top {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-}
-
-.hh-card-top strong {
-  color: #f6f6f3;
-}
-
-.hh-pot {
-  color: #fbbf24;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.hh-kind {
-  margin-left: auto;
-  padding: 2px 7px;
-  border-radius: 99px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.hh-kind.is-sd {
-  background: rgba(10, 100, 255, 0.22);
-  color: #93c5fd;
-}
-
-.hh-kind.is-fold {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(246, 246, 243, 0.72);
-}
-
-.hh-mini-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex-wrap: wrap;
-}
-
-.hh-preflop-note {
-  font-size: 11px;
-  color: rgba(246, 246, 243, 0.5);
-  font-style: italic;
-}
-
-.hh-winners {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.hh-win-line {
+.hh-win-headline {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.3;
+  color: #f6f6f3;
 }
 
 .hh-trophy {
   color: #fbbf24;
-  font-size: 12px;
+  font-size: 13px;
+  flex: 0 0 auto;
 }
 
 .hh-win-amt {
@@ -2528,9 +2576,26 @@ header.game-topbar {
   font-variant-numeric: tabular-nums;
 }
 
-.hh-win-hand {
-  color: rgba(246, 246, 243, 0.68);
+.hh-hand-num {
   font-size: 11px;
+  font-weight: 600;
+  color: rgba(246, 246, 243, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+.hh-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: rgba(246, 246, 243, 0.62);
+}
+
+.hh-mini-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 
 .hh-sd-list {
@@ -2546,8 +2611,8 @@ header.game-topbar {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 4px 6px;
-  border-radius: 7px;
+  padding: 5px 7px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.025);
 }
 
@@ -2563,7 +2628,7 @@ header.game-topbar {
 }
 
 .hh-sd-who b {
-  font-size: 11.5px;
+  font-size: 12px;
   color: #f6f6f3;
   white-space: nowrap;
   overflow: hidden;
@@ -2598,21 +2663,6 @@ header.game-topbar {
     background: #0a64ff;
     border-color: rgba(13, 15, 21, 0.9);
     color: #fff;
-  }
-  .history-panel {
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-height: 78dvh;
-    border-right: none;
-    border-top: 1px solid rgba(246, 246, 243, 0.18);
-    border-radius: 18px 18px 0 0;
-    box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.65);
-  }
-  .hh-head {
-    padding: 8px 16px 10px;
   }
 }
 

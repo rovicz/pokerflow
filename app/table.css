@@ -78,7 +78,7 @@
 
 /* Baralho e Pote */
 .deck-spot { z-index: 2; }
-.pot-spot { z-index: 3; flex-direction: row; gap: 10px; }
+.pot-spot { z-index: 3; flex-direction: row; }
 
 .pot-pill {
   display: inline-flex;
@@ -147,13 +147,17 @@
 }
 
 /* Banner de vencedores */
+.winners-spot {
+  max-width: 72%;
+  z-index: 6;
+}
+
 .winners {
+  display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  max-width: 72%;
-  z-index: 6;
 }
 
 .winners span {

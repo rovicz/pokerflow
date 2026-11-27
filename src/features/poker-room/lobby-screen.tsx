@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import type { GameOperation, PublicState } from '../../poker/game-types.ts';
 import type { AvatarStyle } from '../../poker/avatars.ts';
 import { AVATAR_STYLES, AVATAR_LABELS } from '../../poker/avatars.ts';
+import { BOT_DIFFICULTY_LABELS } from '../../poker/bot-ai.ts';
 import type { SendExtra } from './use-room.ts';
 import Avatar from './avatar';
 import { fmt } from './table';
@@ -84,8 +85,15 @@ export default function LobbyScreen({
                 <b>
                   {q ? q.name : 'Lugar disponível'}
                   {q?.self && <span className="you-tag">Você</span>}
+                  {q?.bot && <span className="bot-tag">Bot</span>}
                 </b>
-                <small>{q ? fmt(q.stack) + ' fichas' : 'Aguardando convite'}</small>
+                <small>
+                  {q
+                    ? q.bot
+                      ? `${fmt(q.stack)} fichas · ${BOT_DIFFICULTY_LABELS[q.bot.difficulty]}`
+                      : fmt(q.stack) + ' fichas'
+                    : 'Aguardando convite'}
+                </small>
                 {s.host && q && !q.self && (
                   <button
                     className="outline remove-player"
@@ -94,6 +102,20 @@ export default function LobbyScreen({
                     onClick={() => send('remove', { seat: i, version })}
                   >
                     Remover
+                  </button>
+                )}
+                {s.host && !q && s.players.length < 8 && (
+                  <button
+                    className="outline add-bot-btn"
+                    disabled={pending}
+                    onClick={() =>
+                      send('add_bot', {
+                        version,
+                        botDifficulty: s.botDifficulty ?? 'medium',
+                      })
+                    }
+                  >
+                    + Adicionar bot
                   </button>
                 )}
               </motion.div>

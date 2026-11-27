@@ -525,6 +525,17 @@
   flex: none;
 }
 
+.bot-tag {
+  @apply text-[9.5px] font-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  @apply p-[1px_5px] rounded-[4px];
+  background: rgba(148, 163, 184, 0.16);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #cbd5e1;
+  flex: none;
+}
+
 .stack-val {
   @apply inline-flex items-center gap-[5px] text-[12px] font-semibold;
   color: rgba(246, 246, 243, 0.76);

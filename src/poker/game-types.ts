@@ -5,6 +5,9 @@ export type Phase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'settled
 export type Action = 'fold' | 'check' | 'call' | 'raise';
 export type Point = { x: number; y: number };
 export type Hand = { score: number; cards: number[]; rank: number; coreCount: number };
+export type BotDifficulty = 'easy' | 'medium' | 'hard';
+export type BotStyle = 'tight' | 'balanced' | 'aggressive' | 'wild';
+export type BotProfile = { style: BotStyle; difficulty: BotDifficulty };
 export type Player = {
   id: string;
   name: string;
@@ -13,6 +16,7 @@ export type Player = {
   bet: number;
   total: number;
   avatar?: AvatarInfo;
+  bot?: BotProfile;
   fold?: boolean;
   acted?: boolean;
   actedAt?: number | null;
@@ -35,6 +39,8 @@ export type GameState = {
   bb: number;
   seconds: number;
   deadline?: number | null;
+  botActAt?: number | null;
+  botDifficulty?: BotDifficulty;
   nextHandAt?: number | null;
   pausedFor?: number;
   current?: number;
@@ -76,5 +82,6 @@ export type GameOperation =
   | 'avatar'
   | 'action'
   | 'emote'
+  | 'add_bot'
   | 'leave'
   | 'sit';

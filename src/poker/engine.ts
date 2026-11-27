@@ -96,7 +96,16 @@ function pay(p: Player, n: number) {
 }
 function turn(s: GameState, i: number) {
   s.turn = i;
-  s.deadline = Date.now() + s.seconds * 1000;
+  const now = Date.now();
+  s.deadline = now + s.seconds * 1000;
+  const bot = s.players[i]?.bot;
+  if (bot) {
+    const minMs = bot.difficulty === 'easy' ? 850 : bot.difficulty === 'hard' ? 1050 : 900;
+    const maxMs = bot.difficulty === 'easy' ? 1750 : bot.difficulty === 'hard' ? 2250 : 2000;
+    s.botActAt = now + randomInt(minMs, maxMs);
+  } else {
+    s.botActAt = null;
+  }
 }
 export function start(s: GameState) {
   if (!['waiting', 'settled'].includes(s.phase)) throw Error('Mão em andamento');
@@ -165,6 +174,7 @@ function settle(s: GameState) {
   s.phase = 'settled';
   s.turn = -1;
   s.deadline = null;
+  s.botActAt = null;
   for (const p of s.players) {
     p.total = 0;
     p.bet = 0;

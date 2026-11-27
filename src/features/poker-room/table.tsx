@@ -40,6 +40,8 @@ export function PlayingCard({
   kicker = false,
   dim = false,
   tilt = 0,
+  onClick,
+  title,
 }: {
   c: number;
   delay?: number;
@@ -49,6 +51,8 @@ export function PlayingCard({
   kicker?: boolean;
   dim?: boolean;
   tilt?: number;
+  onClick?: () => void;
+  title?: string;
 }) {
   const box = useRef<HTMLDivElement>(null),
     face = useRef<HTMLDivElement>(null),
@@ -128,10 +132,24 @@ export function PlayingCard({
         'pc ' +
         className +
         (highlight ? ' is-win' : kicker ? ' is-kicker' : '') +
-        (dim ? ' is-dim' : '')
+        (dim ? ' is-dim' : '') +
+        (onClick ? ' is-clickable' : '')
       }
-      role="img"
+      role={onClick ? 'button' : 'img'}
+      tabIndex={onClick ? 0 : undefined}
+      title={title}
       aria-label={up ? r + ' de ' + s : 'Carta virada'}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       <div ref={face} className="pc-in" style={{ transform: 'rotateY(180deg)' }}>
         <div className={'pc-face' + (isRed ? ' red' : '')}>
@@ -341,6 +359,7 @@ function Seat({
   canVoteKick,
   voteKickReason,
   onVoteKick,
+  onShowCard,
   pending,
 }: {
   p: PublicPlayer;
@@ -368,6 +387,7 @@ function Seat({
   canVoteKick: boolean;
   voteKickReason?: string;
   onVoteKick?: () => void;
+  onShowCard?: (index: number) => void;
   pending?: boolean;
 }) {
   const N = s.players.length,
@@ -394,6 +414,7 @@ function Seat({
         (p.fold ? ' folded' : '') +
         (win ? ' win' : '') +
         (isAllIn ? ' allin' : '') +
+        (p.sittingOut || p.left ? ' is-away' : '') +
         (menuOpen ? ' has-menu' : '')
       }
       style={at(pos.x, pos.y)}
@@ -419,6 +440,9 @@ function Seat({
               : k === 0
                 ? -4
                 : 4;
+          const canRevealThis =
+            self && settled && !s.reveal && !p.fold && !!onShowCard && !(p.shown ?? []).includes(k);
+          const isVoluntaryShown = settled && !s.reveal && (p.shown ?? []).includes(k);
           return (
             <PlayingCard
               key={s.hand + '-' + k}
@@ -426,10 +450,12 @@ function Seat({
               delay={0.32 + (k * N + order) * 0.11}
               flipDelay={self ? 0.18 + k * 0.18 : rb + (order * 2 + k) * 0.15}
               className={self ? 'lg' : 'sm'}
-              highlight={isWinCard}
+              highlight={isWinCard || isVoluntaryShown}
               kicker={isKickerCard}
               dim={isDimCard}
               tilt={cardTilt}
+              onClick={canRevealThis ? () => onShowCard(k) : undefined}
+              title={canRevealThis ? 'Clique para mostrar esta carta na mesa' : undefined}
             />
           );
         })}
@@ -521,17 +547,23 @@ function Seat({
       <div className="status">
         {p.kicked
           ? 'Expulso'
-          : p.fold
-            ? 'Desistiu'
-            : isAllIn
-              ? 'ALL-IN'
-              : active
-                ? self
-                  ? 'Sua vez'
-                  : 'Pensando…'
-                : win
-                  ? 'Venceu!'
-                  : ''}
+          : p.left
+            ? 'Saiu'
+            : p.sittingOut
+              ? 'Ausente'
+              : settled && !s.reveal && (p.shown?.length ?? 0) > 0
+                ? 'Mostrou a mão!'
+                : p.fold
+                  ? 'Desistiu'
+                  : isAllIn
+                    ? 'ALL-IN'
+                    : active
+                      ? self
+                        ? 'Sua vez'
+                        : 'Pensando…'
+                      : win
+                        ? 'Venceu!'
+                        : ''}
       </div>
 
       <AnimatePresence>
@@ -596,6 +628,7 @@ export default function Table({
   mutedUids,
   onTogglePlayerMute,
   onStartVoteKick,
+  onShowCard,
   pending = false,
 }: {
   s: PublicState;
@@ -606,6 +639,7 @@ export default function Table({
   mutedUids?: Set<string>;
   onTogglePlayerMute?: (uid: string) => void;
   onStartVoteKick?: (uid: string) => void;
+  onShowCard?: (index: number) => void;
   pending?: boolean;
 }) {
   const wrap = useRef<HTMLDivElement>(null),
@@ -705,6 +739,18 @@ export default function Table({
     len0.current = s.board.length;
     ph0.current = s.phase;
   }, [s.hand, s.board.length, s.phase]);
+
+  const shownKey = s.players.map((q) => (q.shown ?? []).join(',')).join('|');
+  const prevShownKey = useRef(shownKey);
+  useEffect(() => {
+    if (shownKey !== prevShownKey.current) {
+      prevShownKey.current = shownKey;
+      if (s.phase === 'settled' && !s.reveal && s.players.some((q) => (q.shown?.length ?? 0) > 0)) {
+        act('wow', 2200, 'Olha o blefe!');
+        sfx.flip();
+      }
+    }
+  }, [shownKey, s.phase, s.reveal]);
 
   useEffect(() => {
     const L = s.last;
@@ -1103,6 +1149,7 @@ export default function Table({
               canVoteKick={canVoteKick}
               voteKickReason={voteKickReason}
               onVoteKick={onStartVoteKick ? () => onStartVoteKick(q.uid) : undefined}
+              onShowCard={q.self ? onShowCard : undefined}
               pending={pending}
               rb={
                 s.board.length > seen.current

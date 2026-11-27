@@ -12,11 +12,11 @@ export function publicPlayerUid(id: string): string {
 }
 
 export function activeHumans(s: GameState): Player[] {
-  return s.players.filter((p) => !p.bot && !p.kicked);
+  return s.players.filter((p) => !p.bot && !p.kicked && !p.left);
 }
 
 export function eligibleVoters(s: GameState, targetId: string): Player[] {
-  return s.players.filter((p) => !p.bot && !p.kicked && p.id !== targetId);
+  return s.players.filter((p) => !p.bot && !p.kicked && !p.left && p.id !== targetId);
 }
 
 // Maioria absoluta (> 50%) dos humanos elegíveis (excluindo o alvo).

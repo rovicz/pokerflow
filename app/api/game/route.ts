@@ -4,7 +4,16 @@ import { openRoomStore } from '../../../src/server/room-store.ts';
 import { notifyRoom, roomChannel } from '../../../src/server/room-notify.ts';
 import { allow } from '../../../src/server/rate-limit.ts';
 import { randomBytes } from 'node:crypto';
-import { start, act, view, betweenHands } from '../../../src/poker/engine.ts';
+import {
+  start,
+  act,
+  view,
+  betweenHands,
+  showCards,
+  rematch,
+  leaveTable,
+  setSitOut,
+} from '../../../src/poker/engine.ts';
 import { resolveDue } from '../../../src/poker/timeouts.ts';
 import { cleanAvatar } from '../../../src/poker/avatars.ts';
 import { isEmoteId, pushEmote } from '../../../src/poker/emotes.ts';
@@ -118,7 +127,7 @@ export async function POST(req: Request) {
         403,
       );
     }
-    const member = s.players.find((p) => p.id === id);
+    const member = s.players.find((p) => p.id === id && !p.left);
     const watcher = s.spectators?.find((p) => p.id === id);
     if (b.op === 'join' && !member && !watcher) {
       if (!name) throw Error('Informe seu nome');
@@ -153,8 +162,22 @@ export async function POST(req: Request) {
             avatar: watcher.avatar,
           });
         }
-      } else if (b.op === 'leave' || b.op === 'sit') throw Error('Comando inválido');
-      else if (b.op === 'emote') {
+      } else if (b.op === 'sit') throw Error('Comando inválido');
+      else if (b.op === 'leave') {
+        let cur: Row = data;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          leaveTable(cur.state, id);
+          cur.state.touched = Date.now();
+          if (await store.update(code, cur.version, cur.state)) {
+            await notifyRoom(code, cur.version + 1);
+            return reply({ left: true });
+          }
+          const fresh = await store.read(code);
+          if (!fresh) return reply({ left: true });
+          cur = await settleDue(store, code, fresh);
+        }
+        return reply({ left: true });
+      } else if (b.op === 'emote') {
         if (s.phase === 'waiting') throw Error('As reações ficam disponíveis durante a partida');
         if (!isEmoteId(b.emote)) throw Error('Reação inválida');
         let cur: Row = data;
@@ -236,6 +259,12 @@ export async function POST(req: Request) {
         } else if (b.op === 'avatar') {
           if (s.phase !== 'waiting') throw Error('O avatar só pode ser trocado na sala de espera');
           member!.avatar = cleanAvatar(b.avatar, member!.name);
+        } else if (b.op === 'show_cards') {
+          showCards(s, id, b.indices);
+        } else if (b.op === 'rematch') {
+          rematch(s, id, b.mode);
+        } else if (b.op === 'sit_out') {
+          setSitOut(s, id, !!b.active);
         } else if (b.op === 'action') act(s, id, b.type, b.amount);
         else throw Error('Comando inválido');
       }

@@ -19,6 +19,9 @@ export type SendExtra = {
   seat?: number;
   targetUid?: string;
   vote?: 'yes' | 'no';
+  indices?: number[];
+  mode?: 'start' | 'lobby';
+  active?: boolean;
   avatar?: { style: AvatarStyle; seed: string };
 };
 export type Connection = 'ok' | 'offline';
@@ -176,7 +179,7 @@ export function useRoom() {
         s.banVote?.expiresAt,
         s.phase === 'settled' &&
         s.pausedFor == null &&
-        s.players.filter((q) => !q.kicked && q.stack > 0).length >= 2
+        s.players.filter((q) => !q.kicked && !q.left && !q.sittingOut && q.stack > 0).length >= 2
           ? s.nextHandAt
           : null,
       ].filter((v): v is number => typeof v === 'number');
@@ -217,9 +220,25 @@ export function useRoom() {
     }
   }
 
-  // Espectador sai avisando o servidor; jogador só deixa a tela (o anfitrião remove quem não voltar).
+  // Jogador ou espectador avisa o servidor ao sair (transfere anfitrião e libera o assento com segurança).
   async function leave() {
-    if (latest.current?.state.role === 'spectator') await send('leave');
+    const cur = latest.current;
+    if (cur && token.current) {
+      try {
+        await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            op: 'leave',
+            token: token.current,
+            code: cur.code,
+            version: cur.version,
+          }),
+        });
+      } catch {
+        // Sai localmente mesmo sem rede
+      }
+    }
     exit();
   }
 

@@ -246,6 +246,24 @@ export default function HandHistory({ s }: { s: PublicState }) {
                           ))}
                         </div>
 
+                        {!rec.reveal && rec.shown && rec.shown.cards.some((c) => c >= 0) && (
+                          <div className="hh-sd-list">
+                            <div className="hh-sd-row is-win">
+                              <span className="hh-sd-who">
+                                <b>{rec.shown.name}</b>
+                                <small>Mostrou na mesa</small>
+                              </span>
+                              <span className="hh-mini-row">
+                                {rec.shown.cards
+                                  .filter((c) => c >= 0)
+                                  .map((c) => (
+                                    <MiniCard key={c} c={c} tone="core" />
+                                  ))}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
                         {rec.reveal && rec.showdown && rec.showdown.length > 0 && (
                           <div className="hh-sd-list">
                             {rec.showdown.map((row) => (

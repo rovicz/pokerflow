@@ -19,6 +19,9 @@ export type Player = {
   bot?: BotProfile;
   fold?: boolean;
   kicked?: boolean;
+  left?: boolean;
+  sittingOut?: boolean;
+  shown?: number[];
   acted?: boolean;
   actedAt?: number | null;
 };
@@ -69,6 +72,11 @@ export type HandShowdownEntry = {
   handName: string;
   won: boolean;
 };
+export type RoomNotice = {
+  seq: number;
+  text: string;
+  at: number;
+};
 export type HandRecord = {
   hand: number;
   at: number;
@@ -77,6 +85,7 @@ export type HandRecord = {
   reveal: boolean;
   winners: HandWinnerSummary[];
   showdown?: HandShowdownEntry[];
+  shown?: { name: string; cards: number[] };
 };
 export type Spectator = { id: string; name: string; avatar?: AvatarInfo };
 export type GameState = {
@@ -110,6 +119,7 @@ export type GameState = {
   banVote?: BanVote | null;
   voteCooldowns?: Record<string, number>;
   voteNotice?: VoteNotice | null;
+  roomNotice?: RoomNotice | null;
   handLog?: HandLogEntry[];
   history?: HandRecord[];
   touched?: number;
@@ -153,5 +163,8 @@ export type GameOperation =
   | 'emote'
   | 'add_bot'
   | 'vote_kick'
+  | 'show_cards'
+  | 'rematch'
+  | 'sit_out'
   | 'leave'
   | 'sit';

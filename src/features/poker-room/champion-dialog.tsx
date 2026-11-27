@@ -21,10 +21,18 @@ export default function ChampionDialog({
   celebration,
   champion,
   hand,
+  isHost = false,
+  pending = false,
+  canStartImmediately = false,
+  onRematch,
 }: {
   celebration: RefObject<HTMLDialogElement | null>;
   champion: PublicPlayer | null | undefined;
   hand?: number;
+  isHost?: boolean;
+  pending?: boolean;
+  canStartImmediately?: boolean;
+  onRematch?: (mode: 'start' | 'lobby') => void;
 }) {
   const reducedMotion = useReducedMotion();
   return (
@@ -127,16 +135,52 @@ export default function ChampionDialog({
             <span className="champ-stack">{fmt(champion.stack)} fichas</span>
           </motion.div>
 
-          <motion.button
-            type="button"
-            className="primary cel-btn"
-            autoFocus
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => celebration.current?.close()}
-          >
-            Ver resultado da mesa
-          </motion.button>
+          {isHost && onRematch ? (
+            <div className="cel-actions">
+              {canStartImmediately && (
+                <motion.button
+                  type="button"
+                  className="primary cel-btn"
+                  autoFocus
+                  disabled={pending}
+                  whileHover={pending ? undefined : { scale: 1.03 }}
+                  whileTap={pending ? undefined : { scale: 0.97 }}
+                  onClick={() => onRematch('start')}
+                >
+                  Revanche agora ↻
+                </motion.button>
+              )}
+              <button
+                type="button"
+                className="outline cel-sub-btn"
+                disabled={pending}
+                onClick={() => onRematch('lobby')}
+              >
+                Voltar ao Lobby
+              </button>
+              <button
+                type="button"
+                className="text-button cel-dismiss"
+                onClick={() => celebration.current?.close()}
+              >
+                Ver resultado da mesa
+              </button>
+            </div>
+          ) : (
+            <div className="cel-actions">
+              <small className="cel-wait">Aguardando o anfitrião iniciar a revanche…</small>
+              <motion.button
+                type="button"
+                className="primary cel-btn"
+                autoFocus
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => celebration.current?.close()}
+              >
+                Ver resultado da mesa
+              </motion.button>
+            </div>
+          )}
         </div>
       )}
     </dialog>

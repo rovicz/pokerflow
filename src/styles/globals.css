@@ -2615,3 +2615,137 @@ header.game-topbar {
     padding: 8px 16px 10px;
   }
 }
+
+/* ==========================================================================
+   Show / Muck, Revanche 1 Clique e Modo Ausente (Sit Out)
+   ========================================================================== */
+.dock-head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.sitout-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.36);
+  color: #fde68a;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.sitout-btn {
+  opacity: 0.82;
+}
+
+.sitout-btn:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.show-muck-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: rgba(10, 100, 255, 0.12);
+  border: 1px solid rgba(102, 161, 255, 0.3);
+}
+
+.sm-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sm-copy strong {
+  font-size: 12.5px;
+  color: #f6f6f3;
+}
+
+.sm-copy small {
+  font-size: 11px;
+  color: rgba(246, 246, 243, 0.68);
+}
+
+.show-cards-btn {
+  border-color: rgba(102, 161, 255, 0.55);
+  color: #dbeafe;
+  white-space: nowrap;
+}
+
+.sm-done-tag {
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+  white-space: nowrap;
+}
+
+.rematch-actions,
+.end-footer-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cel-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.cel-sub-btn {
+  width: 100%;
+  max-width: 240px;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.cel-dismiss {
+  font-size: 12px;
+  color: rgba(246, 246, 243, 0.62);
+  margin-top: 2px;
+}
+
+.cel-wait {
+  font-size: 12px;
+  color: rgba(246, 246, 243, 0.7);
+  margin-bottom: 4px;
+}
+
+@media (max-width: 680px) {
+  .dock-head-right {
+    gap: 6px;
+  }
+  .dock-head-right .sitout-btn {
+    padding: 4px 7px;
+    font-size: 11px;
+  }
+  .sitout-bar,
+  .show-muck-bar {
+    padding: 7px 9px;
+    gap: 8px;
+    font-size: 11.5px;
+  }
+  .sm-copy small {
+    display: none;
+  }
+}

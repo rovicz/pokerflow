@@ -30,7 +30,7 @@ export function resolveDue(s: GameState, now = Date.now()): boolean {
         s.pausedFor == null &&
         s.nextHandAt != null &&
         now >= s.nextHandAt &&
-        s.players.filter((p) => !p.kicked && p.stack > 0).length >= 2
+        s.players.filter((p) => !p.kicked && !p.left && !p.sittingOut && p.stack > 0).length >= 2
       ) {
         betweenHands(s, s.host, 'tick');
       } else break;

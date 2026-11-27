@@ -772,7 +772,6 @@ export default function Table({
     const rel = (j - me + N) % N;
     if (compact && rel > 0) {
       // Mobile: adversários distribuídos com vão no topo (dealer) e na base (você), nos dois lados.
-      if (N === 2) return { x: 50, y: 28 }; // mano a mano: adversário centralizado abaixo do dealer
       const M = N - 1,
         lo = 0.62,
         hi = Math.PI - 0.75,

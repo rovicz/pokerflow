@@ -1267,7 +1267,6 @@ export default function Page() {
                       <div className="showdown-grid">
                         {showdownRows.map((q, i) => {
                           const isWinner = winners.some(([wname]) => wname === q.name);
-                          const rInfo = HAND_RANKINGS[q.hand.rank - 1];
                           const coreCount = q.hand.coreCount ?? 5;
                           const hasTiebreak = showdown.decisiveIndex != null;
                           return (
@@ -1289,9 +1288,7 @@ export default function Page() {
                                       </span>
                                     )}
                                   </b>
-                                  <small>
-                                    {describeHand(q.hand)} · <span>Força {rInfo.ordinal}/10</span>
-                                  </small>
+                                  <small>{describeHand(q.hand)}</small>
                                 </div>
                               </div>
                               <div

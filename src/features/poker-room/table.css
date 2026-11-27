@@ -51,7 +51,6 @@
   transform: translateX(-50%);
   z-index: 4;
   @apply text-poker-paper;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55));
 }
 
 .zake,

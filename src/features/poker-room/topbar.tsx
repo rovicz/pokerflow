@@ -9,6 +9,7 @@ import BrandLogo from './brand-logo';
 import Avatar from './avatar';
 import { useAuth } from '../auth/use-auth';
 import {
+  CloseButton,
   Tip,
   IconSoundOn,
   IconSoundOff,
@@ -278,13 +279,7 @@ export default function Topbar({
             <div className="eyebrow">Guia rápido</div>
             <h2>Como jogar?</h2>
           </div>
-          <button
-            className="outline"
-            onClick={() => guide.current?.close()}
-            aria-label="Fechar guia"
-          >
-            Fechar
-          </button>
+          <CloseButton onClick={() => guide.current?.close()} label="Fechar guia" />
         </div>
         {GUIDE.map(([h, t]) => (
           <div className="gitem" key={h}>

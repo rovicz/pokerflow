@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/features/auth/use-auth';
 import { AVATAR_LABELS, AVATAR_STYLES, type AvatarStyle } from '../../src/poker/avatars.ts';
 import { DELETE_CONFIRM_WORD } from '../../src/auth/validation.ts';
+import AuthModal from '../../src/features/auth/auth-modal';
 import Avatar from '../../src/features/poker-room/avatar';
 import BrandLogo from '../../src/features/poker-room/brand-logo';
 import { fmt } from '../../src/features/poker-room/table';
@@ -17,7 +18,9 @@ function isAvatarStyle(v: string | undefined): v is AvatarStyle {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { loading, user, profile, stats, refresh, signOut } = useAuth();
+  const { loading, enabled, user, profile, stats, refresh, signOut } = useAuth();
+  const authDialog = useRef<HTMLDialogElement>(null);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
 
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -163,16 +166,16 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="profile-topbar-right">
-          <Link href="/ranking" className="outline profile-back-btn">
+          <Link href="/ranking" className="icon-btn topbar-link-btn" title="Ver ranking do clube">
             Ranking
           </Link>
-          <Link href="/" className="outline profile-back-btn">
-            ← Voltar para a mesa
+          <Link href="/" className="icon-btn topbar-link-btn" title="Voltar para a mesa">
+            <span aria-hidden="true">←</span> Voltar
           </Link>
           {user && (
             <button
               type="button"
-              className="outline danger-ghost profile-signout"
+              className="icon-btn danger-ghost"
               onClick={async () => {
                 await signOut();
                 router.push('/');
@@ -197,9 +200,34 @@ export default function ProfilePage() {
               A personalização permanente de avatar, estatísticas e configurações de segurança está
               disponível para contas autenticadas.
             </p>
-            <Link href="/" className="primary reset-home-link">
-              Ir para a página inicial →
-            </Link>
+            {enabled ? (
+              <div className="profile-empty-actions">
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    setAuthView('login');
+                    authDialog.current?.showModal();
+                  }}
+                >
+                  Entrar
+                </button>
+                <button
+                  type="button"
+                  className="outline"
+                  onClick={() => {
+                    setAuthView('register');
+                    authDialog.current?.showModal();
+                  }}
+                >
+                  Criar conta
+                </button>
+              </div>
+            ) : (
+              <Link href="/" className="outline reset-home-link">
+                Ir para a página inicial
+              </Link>
+            )}
           </section>
         ) : (
           <div className="profile-layout">
@@ -501,6 +529,7 @@ export default function ProfilePage() {
           </div>
         </form>
       </dialog>
+      <AuthModal dialogRef={authDialog} initialView={authView} />
     </div>
   );
 }

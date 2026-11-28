@@ -195,7 +195,7 @@ export default function Page() {
         <div className="lm-actions">
           <button
             type="button"
-            className="outline"
+            className="primary"
             autoFocus
             onClick={() => leaveDialog.current?.close()}
           >

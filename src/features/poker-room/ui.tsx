@@ -207,3 +207,30 @@ export const IconTrophy = () => (
     <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
   </svg>
 );
+
+// Botão de fechar padrão de modais e painéis (mesmo desenho em todas as telas).
+export function CloseButton({
+  onClick,
+  label = 'Fechar',
+}: {
+  onClick: () => void;
+  label?: string;
+}) {
+  return (
+    <button type="button" className="hh-close" aria-label={label} onClick={onClick}>
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        aria-hidden="true"
+      >
+        <line x1="6" y1="6" x2="18" y2="18" />
+        <line x1="18" y1="6" x2="6" y2="18" />
+      </svg>
+    </button>
+  );
+}

@@ -287,7 +287,7 @@ export default function GameScreen({
                     title="Ficar ausente (pula as próximas mãos sem sair da sala)"
                     onClick={() => send('sit_out', { active: true })}
                   >
-                    Ausente
+                    Ficar ausente
                   </button>
                 )}
                 <div className={'timer' + (left <= 5 ? ' urgent' : left <= 10 ? ' warn' : '')}>

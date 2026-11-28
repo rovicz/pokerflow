@@ -1,5 +1,3 @@
-import type { GameState } from './game-types.ts';
-
 export type LeaderboardCategory = 'matches_won' | 'total_chips_won' | 'hands_won' | 'biggest_pot';
 
 export const LEADERBOARD_CATEGORIES: {
@@ -66,59 +64,6 @@ export type LeaderboardRow = {
   totalChipsWon: number;
   isMe?: boolean;
 };
-
-// Computa deltas de estatísticas de forma idempotente quando uma mão encerra (`settled`).
-// Anti-farm padrão: exige `minHumans = 2` jogadores humanos na mesa para pontuar no ranking oficial.
-export function computeHandStatDeltas(
-  s: GameState,
-  opts: { minHumans?: number } = {},
-): StatDelta[] {
-  const minHumans = opts.minHumans ?? 2;
-  if (s.phase !== 'settled' || s.hand <= 0) return [];
-  if ((s.statsRecordedHand ?? 0) >= s.hand) return [];
-
-  const humanCount = s.players.filter((p) => !p.bot).length;
-  if (humanCount < minHumans) {
-    s.statsRecordedHand = s.hand;
-    return [];
-  }
-
-  const wonByName = new Map<string, number>();
-  let potTotal = 0;
-  for (const r of s.result) {
-    wonByName.set(r.name, (wonByName.get(r.name) ?? 0) + r.amount);
-    potTotal += r.amount;
-  }
-
-  const remainingWithChips = s.players.filter((p) => !p.kicked && !p.left && p.stack > 0);
-  const matchEnded = remainingWithChips.length === 1 && !s.statsRecordedMatch;
-  const championId = matchEnded ? remainingWithChips[0].id : null;
-
-  const deltas: StatDelta[] = [];
-  for (const p of s.players) {
-    if (p.bot || !p.userId) continue;
-    const playedThisHand = p.cards.length > 0 || (wonByName.get(p.name) ?? 0) > 0;
-    const chipsWon = wonByName.get(p.name) ?? 0;
-    const handsWon = chipsWon > 0 ? 1 : 0;
-    const matchesPlayed = matchEnded ? 1 : 0;
-    const matchesWon = matchEnded && p.id === championId ? 1 : 0;
-
-    if (!playedThisHand && !matchEnded) continue;
-    deltas.push({
-      userId: p.userId,
-      handsPlayed: playedThisHand ? 1 : 0,
-      handsWon,
-      matchesPlayed,
-      matchesWon,
-      biggestPot: handsWon > 0 ? potTotal : 0,
-      chipsWon,
-    });
-  }
-
-  s.statsRecordedHand = s.hand;
-  if (matchEnded) s.statsRecordedMatch = true;
-  return deltas;
-}
 
 export function categoryValue(row: LeaderboardRow, category: LeaderboardCategory): number {
   switch (category) {

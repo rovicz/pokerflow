@@ -87,7 +87,11 @@ export default function LobbyScreen({
   const [seeds, setSeeds] = useState(mkSeeds);
   const p = s.players.find((q) => q.self);
   const watching = s.role === 'spectator';
-  const humanCount = s.players.filter((q) => !q.bot && !q.kicked).length;
+  const wantsToPlay = !!s.spectators.find((q) => q.self)?.wantsToPlay;
+  const humans = s.players.filter((q) => !q.bot && !q.kicked);
+  const humanCount = humans.length;
+  const readyCount = humans.filter((q) => q.ready && q.connected !== false).length;
+  const waitingSpectators = s.spectators.filter((q) => q.wantsToPlay);
   return (
     <div className="lobby-arena">
       <section className="panel lobby-card lobby-seats-card">
@@ -244,7 +248,7 @@ export default function LobbyScreen({
                   {q
                     ? q.bot
                       ? `${fmt(q.stack)} fichas · ${BOT_DIFFICULTY_LABELS[q.bot.difficulty]}`
-                      : fmt(q.stack) + ' fichas'
+                      : `${fmt(q.stack)} fichas · ${q.connected === false ? 'Sem conexão' : q.ready ? 'Pronto' : 'Se preparando'}`
                     : 'Aguardando convite'}
                 </small>
                 {q && !q.self && (
@@ -319,20 +323,53 @@ export default function LobbyScreen({
         </div>
 
         {watching && (
-          <p className="notice" role="status">
-            Você está assistindo porque a sala está cheia.{' '}
-            {s.players.length < 8 && (
+          <div className="notice lobby-ready">
+            <span>Você está assistindo como espectador.</span>
+            {s.players.length < 8 ? (
               <button
+                type="button"
                 className="text-button"
                 disabled={pending}
                 onClick={() => send('sit', { version })}
               >
                 Sentar na mesa
               </button>
+            ) : (
+              <button
+                type="button"
+                className="text-button"
+                aria-pressed={wantsToPlay}
+                disabled={pending}
+                onClick={() => send('want_to_play', { active: !wantsToPlay })}
+              >
+                {wantsToPlay ? 'Interesse registrado' : 'Quero jogar a próxima'}
+              </button>
             )}
+          </div>
+        )}
+        {!!waitingSpectators.length && (
+          <p className="lobby-interest" role="status">
+            Querem jogar a próxima partida: {waitingSpectators.map((q) => q.name).join(', ')}.
           </p>
         )}
         <div className="lobby-footer">
+          {!watching && (
+            <div className="lobby-ready">
+              <span role="status">
+                {readyCount} de {humanCount}{' '}
+                {humanCount === 1 ? 'pessoa pronta' : 'pessoas prontas'}
+              </span>
+              <button
+                type="button"
+                className="outline sm-btn"
+                aria-pressed={!!p?.ready}
+                disabled={pending}
+                onClick={() => send('ready', { active: !p?.ready })}
+              >
+                {p?.ready ? 'Ainda estou me preparando' : 'Estou pronto'}
+              </button>
+            </div>
+          )}
           <div className="between">
             <button className={'outline' + (copied ? ' is-copied' : '')} onClick={invite}>
               {copied ? '✓ Convite copiado!' : 'Copiar link de convite'}

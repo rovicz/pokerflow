@@ -1,16 +1,17 @@
 'use client';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import type { GameOperation, Hand, PublicPlayer, Room } from '../../poker/game-types.ts';
+import type { GameOperation, Hand, Payment, PublicPlayer, Room } from '../../poker/game-types.ts';
 import type { EmoteId } from '../../poker/emotes.ts';
 import { HAND_RANKINGS, analyzeShowdown, describeHand } from '../../poker/hands.ts';
-import type { SendExtra } from './use-room.ts';
+import type { ActionStatus, SendExtra } from './use-room.ts';
 import Table, { fmt } from './table';
 import EmotePicker from './emote-picker';
 import BanVoteBanner from './ban-vote-banner';
 import HandHistory from './hand-history';
 import Avatar from './avatar';
-import { ActionButton, MiniCard } from './ui';
+import { PotDetailsButton } from './hand-result';
+import { ActionButton, matchesSeat, MiniCard } from './ui';
 import { sfx } from './sound';
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
   now: number;
   pending: boolean;
   error: string;
+  actionStatus: ActionStatus | null;
+  retryAction: () => void;
   send: (op: GameOperation, extra?: SendExtra) => void;
   sendEmote: (e: EmoteId) => void;
   emotesMuted: boolean;
@@ -33,6 +36,8 @@ export default function GameScreen({
   now,
   pending,
   error,
+  actionStatus,
+  retryAction,
   send,
   sendEmote,
   emotesMuted,
@@ -46,6 +51,7 @@ export default function GameScreen({
   const [toast, setToast] = useState('');
   const s = game.state;
   const watching = s.role === 'spectator';
+  const wantsToPlay = !!s.spectators.find((q) => q.self)?.wantsToPlay;
   const p = s.players.find((q) => q.self);
   const mine = !!s.players[s.turn]?.self;
   const live = !['waiting', 'settled'].includes(s.phase);
@@ -54,7 +60,8 @@ export default function GameScreen({
   const due = p ? Math.max(0, (s.current || 0) - p.bet) : 0;
   const max = p ? p.bet + p.stack : 0;
   const min = Math.min(max, (s.current || 0) + (s.minRaise || s.bb || 20));
-  const canAct = live && mine && left > 0 && !pending;
+  const actionUnconfirmed = actionStatus === 'checking' || actionStatus === 'retry';
+  const canAct = live && mine && (left > 0 || s.guided) && !pending && !actionUnconfirmed;
   const raiseAllowed =
     !!p &&
     s.current != null &&
@@ -82,12 +89,15 @@ export default function GameScreen({
   const canShowMuck =
     !watching && s.phase === 'settled' && !s.reveal && !!p && !p.fold && p.cards.length === 2;
   const shownCount = p?.shown?.length ?? 0;
-  const winners = Object.entries(
-    s.result.reduce<Record<string, number>>((a, r) => {
-      a[r.name] = (a[r.name] || 0) + r.amount;
-      return a;
-    }, Object.create(null)),
-  );
+  const awards = new Map<string, Payment>();
+  for (const payment of s.result) {
+    const id = payment.uid ?? payment.name;
+    awards.set(id, { ...payment, amount: (awards.get(id)?.amount ?? 0) + payment.amount });
+  }
+  const winners = [...awards.values()];
+  const hand = s.phase === 'settled' ? s.history?.at(-1) : undefined;
+  const multiplePots = (hand?.pots?.length ?? 0) > 1;
+  const waitingSpectators = s.spectators.filter((q) => q.wantsToPlay);
   const choose = (v: number) =>
     Choose({ key, amount: Math.round(Math.min(max, Math.max(min, v))) });
   const timePct = s.seconds ? Math.min(100, (left / s.seconds) * 100) : 0;
@@ -97,17 +107,28 @@ export default function GameScreen({
         .filter((q): q is PublicPlayer & { hand: Hand } => q.hand != null)
         .sort((a, b) => b.hand.score - a.hand.score)
     : [];
-  const winnerRows = showdownRows.filter((q) => winners.some(([wname]) => wname === q.name));
-  const runnerUpRow = showdownRows.find((q) => !winners.some(([wname]) => wname === q.name));
-  const showdown = s.reveal
-    ? analyzeShowdown(winnerRows, runnerUpRow)
-    : { headline: '', decisiveIndex: null };
+  const winnerRows = showdownRows.filter((q) => winners.some((w) => matchesSeat(w, q)));
+  const mainPot = hand?.pots?.[0];
+  const runnerUpRow = showdownRows.find(
+    (q) =>
+      !winners.some((w) => matchesSeat(w, q)) &&
+      (!mainPot || mainPot.eligible.some((seat) => matchesSeat(seat, q))),
+  );
+  const showdown =
+    s.reveal && !multiplePots
+      ? analyzeShowdown(winnerRows, runnerUpRow)
+      : { headline: '', decisiveIndex: null };
   const winRankSet = new Set(winnerRows.map((q) => q.hand.rank));
   const otherRankSet = new Set(
     showdownRows.filter((q) => !winRankSet.has(q.hand.rank)).map((q) => q.hand.rank),
   );
-  const wonPotTotal = winners.reduce((a, w) => a + w[1], 0);
-  const winnerNames = winners.map(([wname]) => wname).join(' e ');
+  const wonPotTotal = winners.reduce((a, w) => a + w.amount, 0);
+  const winnerNames = winners.map((w) => w.name).join(' e ');
+  const guidedHint = mine
+    ? due > 0
+      ? `Pague ${fmt(Math.min(due, p?.stack ?? 0))} fichas para continuar. Você também pode aumentar a aposta ou desistir.`
+      : 'Passe a vez para continuar sem apostar, ou aposte para colocar mais fichas no pote.'
+    : 'O bot está jogando. As cartas comunitárias ficam no centro e todos podem usá-las.';
 
   useEffect(() => {
     if (mine && live && left > 0 && left <= 5) sfx.tick();
@@ -144,7 +165,7 @@ export default function GameScreen({
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = document.activeElement?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (document.querySelector('dialog[open]')) return;
+      if (document.querySelector('dialog[open], .history-panel')) return;
       const k = e.key.toLowerCase();
       if (k === 'f') {
         e.preventDefault();
@@ -193,7 +214,7 @@ export default function GameScreen({
           </p>
         )}
         <HandHistory s={s} />
-        {!watching && (
+        {!watching && !s.guided && (
           <EmotePicker onSend={sendEmote} muted={emotesMuted} onToggleMute={onToggleEmotesMute} />
         )}
       </div>
@@ -214,10 +235,27 @@ export default function GameScreen({
                 </span>
               </div>
             </div>
-            <button type="button" className="outline sm-btn" onClick={onLeave}>
-              Sair da sala
-            </button>
+            <div className="dock-head-right">
+              <PotDetailsButton hand={hand} />
+              <button
+                type="button"
+                className="outline sm-btn"
+                aria-pressed={wantsToPlay}
+                disabled={pending}
+                onClick={() => send('want_to_play', { active: !wantsToPlay })}
+              >
+                {wantsToPlay ? 'Interesse registrado' : 'Quero jogar a próxima'}
+              </button>
+              <button type="button" className="outline sm-btn" onClick={onLeave}>
+                Sair da sala
+              </button>
+            </div>
           </div>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
         </section>
       ) : (
         <section
@@ -267,7 +305,7 @@ export default function GameScreen({
               </div>
 
               <div className="dock-head-right">
-                {!p?.sittingOut && (
+                {!p?.sittingOut && !s.guided && (
                   <button
                     type="button"
                     className="outline sm-btn sitout-btn"
@@ -277,15 +315,19 @@ export default function GameScreen({
                     Ficar ausente
                   </button>
                 )}
-                <div className={'timer' + (left <= 5 ? ' urgent' : left <= 10 ? ' warn' : '')}>
-                  <div className="timer-row">
-                    <small>Tempo</small>
-                    <b>{left}s</b>
+                {s.guided ? (
+                  <span className="metric">Treino sem cronômetro</span>
+                ) : (
+                  <div className={'timer' + (left <= 5 ? ' urgent' : left <= 10 ? ' warn' : '')}>
+                    <div className="timer-row">
+                      <small>Tempo</small>
+                      <b>{left}s</b>
+                    </div>
+                    <div className="track">
+                      <div style={{ width: timePct + '%' }} />
+                    </div>
                   </div>
-                  <div className="track">
-                    <div style={{ width: timePct + '%' }} />
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           ) : (
@@ -304,22 +346,66 @@ export default function GameScreen({
                   <strong>{winnerNames || 'Fim da mão'}</strong>
                   {winners.length > 0 && (
                     <span>
-                      {winners.length > 1 ? 'dividiram' : 'venceu'} <b>+{fmt(wonPotTotal)}</b>
+                      {multiplePots
+                        ? 'receberam ao todo'
+                        : winners.length > 1
+                          ? 'dividiram'
+                          : 'venceu'}{' '}
+                      <b>+{fmt(wonPotTotal)}</b>
                     </span>
                   )}
                 </span>
-                {showdown.headline ? (
-                  <span className="sh-reason">{showdown.headline}</span>
-                ) : (
-                  <span className="sh-reason">Vitória por desistência</span>
-                )}
+                <span className="sh-reason">
+                  {multiplePots
+                    ? 'Resultado por pote'
+                    : showdown.headline || 'Vitória por desistência'}
+                </span>
               </div>
-              <span className="metric sh-stack">
-                Suas fichas <b>{fmt(p?.stack)}</b>
-              </span>
+              <div className="dock-head-right">
+                <span className="metric sh-stack">
+                  Suas fichas <b>{fmt(p?.stack)}</b>
+                </span>
+              </div>
             </div>
           )}
 
+          <div className="game-context game-result-tools">
+            <PotDetailsButton hand={hand} />
+            {!live && s.host && waitingSpectators.length > 0 && (
+              <span>
+                {waitingSpectators.map((q) => q.name).join(', ')}{' '}
+                {waitingSpectators.length === 1 ? 'quer' : 'querem'} jogar a próxima partida.
+              </span>
+            )}
+          </div>
+          {s.guided && live && (
+            <p className="game-coach" role="status">
+              {guidedHint}
+            </p>
+          )}
+          {actionStatus && (
+            <div className="game-context" role="status">
+              {actionStatus === 'checking' ? (
+                'Confirmando a jogada com o servidor…'
+              ) : actionStatus === 'confirmed' ? (
+                'O servidor confirmou sua jogada.'
+              ) : actionStatus === 'expired' ? (
+                'O turno terminou sem que a sua jogada fosse registrada.'
+              ) : (
+                <>
+                  A jogada ainda não aparece na mesa.
+                  <button
+                    type="button"
+                    className="outline sm-btn"
+                    disabled={pending}
+                    onClick={retryAction}
+                  >
+                    Reenviar a jogada
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           {/* Barra de estado Ausente (Sit Out) */}
           {p?.sittingOut && (
             <div className="sitout-bar" role="status">
@@ -461,12 +547,18 @@ export default function GameScreen({
                   <>
                     <div className="showdown-grid">
                       {showdownRows.map((q, i) => {
-                        const isWinner = winners.some(([wname]) => wname === q.name);
+                        const isWinner = winners.some((w) => matchesSeat(w, q));
+                        const tied = hand?.pots
+                          ? hand.pots.some(
+                              (pot) =>
+                                pot.awards.length > 1 && pot.awards.some((w) => matchesSeat(w, q)),
+                            )
+                          : winners.length > 1;
                         const coreCount = q.hand.coreCount ?? 5;
                         const hasTiebreak = showdown.decisiveIndex != null;
                         return (
                           <motion.div
-                            key={q.name + '-' + i}
+                            key={q.uid}
                             className={'sd-card' + (isWinner ? ' is-winner' : '')}
                             initial={reducedMotion ? false : { opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -478,9 +570,7 @@ export default function GameScreen({
                                 <b>
                                   {q.name}
                                   {isWinner && (
-                                    <span className="sd-badge">
-                                      {winners.length > 1 ? 'Empate' : 'Vencedor'}
-                                    </span>
+                                    <span className="sd-badge">{tied ? 'Empate' : 'Vencedor'}</span>
                                   )}
                                 </b>
                                 <small>{describeHand(q.hand)}</small>
@@ -571,7 +661,36 @@ export default function GameScreen({
                 )}
 
                 <div className="end-footer">
-                  {waitingForAway ? (
+                  {s.guided ? (
+                    <>
+                      <span className="end-note">
+                        Treino concluído.{' '}
+                        {s.reveal
+                          ? 'As cinco cartas destacadas formam cada mão.'
+                          : 'Ao desistir, você deixa de disputar o pote.'}
+                      </span>
+                      <div className="end-footer-btns">
+                        <button
+                          type="button"
+                          className="outline sm-btn"
+                          disabled={pending}
+                          onClick={() => send('rematch', { mode: 'start' })}
+                        >
+                          Treinar outra mão
+                        </button>
+                        <button
+                          type="button"
+                          className="primary sm-btn"
+                          disabled={pending}
+                          onClick={() =>
+                            send('create', { name: p?.name, bots: 1, botDifficulty: 'easy' })
+                          }
+                        >
+                          Jogar contra bots
+                        </button>
+                      </div>
+                    </>
+                  ) : waitingForAway ? (
                     <span className="end-note">
                       Aguardando jogadores ausentes voltarem para iniciar a próxima mão…
                     </span>

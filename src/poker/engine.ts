@@ -7,19 +7,20 @@ import type {
   HandShowdownEntry,
   HandWinnerSummary,
   Player,
+  PotAward,
+  SeatRef,
 } from './game-types.ts';
 import { describeHand } from './hands.ts';
 import { advanceBlindsIfDue, blindsForLevel } from './blinds.ts';
 import { randomInt } from 'node:crypto';
+import { PRESENCE_TIMEOUT_MS, publicPlayerUid } from './seat.ts';
 
 const MAX_HAND_HISTORY = 12;
-const MAX_HAND_LOG = 40;
 
 function pushLog(s: GameState, entry: Omit<HandLogEntry, 'seq'>) {
   const list = (s.handLog ??= []);
   const seq = (list[list.length - 1]?.seq ?? 0) + 1;
   list.push({ seq, ...entry });
-  if (list.length > MAX_HAND_LOG) s.handLog = list.slice(-MAX_HAND_LOG);
 }
 export function deck() {
   const d = Array.from({ length: 52 }, (_, i) => i);
@@ -118,8 +119,9 @@ function pay(p: Player, n: number) {
 function turn(s: GameState, i: number) {
   s.turn = i;
   const now = Date.now();
-  s.deadline = now + s.seconds * 1000;
+  s.turnSeq = (s.turnSeq ?? 0) + 1;
   const bot = s.players[i]?.bot;
+  s.deadline = s.guided && !bot ? null : now + s.seconds * 1000;
   if (bot) {
     const minMs = bot.difficulty === 'easy' ? 850 : bot.difficulty === 'hard' ? 1050 : 900;
     const maxMs = bot.difficulty === 'easy' ? 1750 : bot.difficulty === 'hard' ? 2250 : 2000;
@@ -170,6 +172,11 @@ export function kickFromTable(s: GameState, targetId: string) {
   if (idx < 0) return false;
   if (!s.removed?.includes(targetId)) (s.removed ??= []).push(targetId);
   if (!s.banned?.includes(targetId)) (s.banned ??= []).push(targetId);
+  const sessionToken = s.players[idx].sessionToken;
+  if (sessionToken && sessionToken !== targetId) {
+    (s.removed ??= []).push(sessionToken);
+    (s.banned ??= []).push(sessionToken);
+  }
 
   if (s.phase === 'waiting' || s.phase === 'settled') {
     s.players.splice(idx, 1);
@@ -242,6 +249,7 @@ export function leaveTable(s: GameState, id: string) {
 }
 
 export function setSitOut(s: GameState, id: string, active: boolean) {
+  if (s.guided) throw Error('O treino pode ser retomado a qualquer momento');
   const idx = s.players.findIndex((p) => p.id === id && !p.bot && !p.kicked && !p.left);
   if (idx < 0) throw Error('Jogador inválido');
   const p = s.players[idx];
@@ -289,10 +297,10 @@ export function showCards(s: GameState, id: string, indices?: unknown) {
 export function rematch(s: GameState, id: string, mode: unknown) {
   if (s.host !== id) throw Error('Somente o anfitrião pode iniciar a revanche');
   if (s.phase !== 'settled') throw Error('A partida ainda está em andamento');
-  if (s.players.filter(remainingWithChips).length >= 2) {
+  if (!s.guided && s.players.filter(remainingWithChips).length >= 2) {
     throw Error('A partida ainda tem jogadores com fichas');
   }
-  const targetMode = mode === 'lobby' ? 'lobby' : 'start';
+  const targetMode = !s.guided && mode === 'lobby' ? 'lobby' : 'start';
   purgeDeparted(s);
   for (const p of s.players) {
     p.stack = s.initial;
@@ -301,6 +309,7 @@ export function rematch(s: GameState, id: string, mode: unknown) {
     p.total = 0;
     p.fold = false;
     p.sittingOut = false;
+    delete p.ready;
     delete p.shown;
     p.acted = false;
     p.actedAt = null;
@@ -310,6 +319,8 @@ export function rematch(s: GameState, id: string, mode: unknown) {
   s.hand = 0;
   s.board = [];
   s.result = [];
+  delete s.pots;
+  delete s.refunds;
   s.handLog = [];
   s.history = [];
   s.reveal = false;
@@ -351,6 +362,9 @@ export function start(s: GameState, now = Date.now()) {
   s.deck = deck();
   s.board = [];
   s.result = [];
+  delete s.pots;
+  delete s.refunds;
+  s.reveal = false;
   s.hand++;
   const blindUpdate = advanceBlindsIfDue(s, now);
   if (blindUpdate.leveledUp) {
@@ -407,65 +421,89 @@ export function start(s: GameState, now = Date.now()) {
 function settle(s: GameState) {
   const survivors = live(s);
   const levels = [...new Set(s.players.map((p) => p.total).filter(Boolean))].sort((a, b) => a - b);
+  const seatRef = (p: Player): SeatRef => ({
+    uid: publicPlayerUid(p.id),
+    seat: s.players.indexOf(p),
+    name: p.name,
+  });
+  const pots: { amount: number; eligible: Player[] }[] = [];
+  s.refunds = [];
   let prev = 0;
-  s.result = [];
   for (const level of levels) {
-    const contributors = s.players.filter((p) => p.total >= level),
-      pot = (level - prev) * contributors.length;
+    const contributors = s.players.filter((p) => p.total >= level);
+    const amount = (level - prev) * contributors.length;
     prev = level;
-    let eligible = contributors.filter((p) => !p.fold);
-    if (contributors.length === 1 || !eligible.length) eligible = contributors;
-    let winners = eligible;
-    if (eligible.length > 1 && survivors.length > 1) {
-      let best = Math.max(...eligible.map((p) => score([...p.cards, ...s.board])));
-      winners = eligible.filter((p) => score([...p.cards, ...s.board]) === best);
+    if (contributors.length === 1) {
+      const [p] = contributors;
+      p.stack += amount;
+      s.refunds.push({ ...seatRef(p), amount });
+      continue;
     }
+
+    // Saídas e expulsões podem deixar um pote lateral sem ninguém elegível.
+    // Nesse caso, incorpore as fichas ao último pote que ainda pode ser disputado.
+    const last = pots.at(-1);
+    const eligible = contributors.filter((p) => !p.fold);
+    const sameEligibility =
+      last &&
+      eligible.length === last.eligible.length &&
+      eligible.every((p, i) => last.eligible[i] === p);
+    if (last && (!eligible.length || sameEligibility)) {
+      last.amount += amount;
+    } else {
+      pots.push({ amount, eligible: eligible.length ? eligible : survivors });
+    }
+  }
+  const revealed = survivors.length > 1;
+  const hands = new Map(
+    revealed ? survivors.map((p) => [p, bestHand([...p.cards, ...s.board])]) : [],
+  );
+  s.pots = pots.map(({ amount, eligible }): PotAward => {
+    const best = Math.max(...eligible.map((p) => hands.get(p)?.score ?? 0));
+    const winners = eligible.filter((p) => (hands.get(p)?.score ?? 0) === best);
     winners.sort(
       (a, b) =>
         ((s.players.indexOf(a) - s.dealer - 1 + s.players.length) % s.players.length) -
         ((s.players.indexOf(b) - s.dealer - 1 + s.players.length) % s.players.length),
     );
-    winners.forEach((p, i) => {
-      let amount = Math.floor(pot / winners.length) + (i < pot % winners.length ? 1 : 0);
-      p.stack += amount;
-      s.result.push({ name: p.name, amount });
+    const awards = winners.map((p, i) => {
+      const won = Math.floor(amount / winners.length) + (i < amount % winners.length ? 1 : 0);
+      p.stack += won;
+      return { ...seatRef(p), amount: won };
+    });
+    return { amount, eligible: eligible.map(seatRef), awards };
+  });
+  s.result = s.pots.flatMap((pot) => pot.awards);
+  s.reveal = revealed;
+
+  const winners = new Map<string, HandWinnerSummary>();
+  for (const award of s.result) {
+    const previous = winners.get(award.uid!);
+    const hand = award.seat == null ? null : hands.get(s.players[award.seat]);
+    winners.set(award.uid!, {
+      ...award,
+      amount: (previous?.amount ?? 0) + award.amount,
+      ...(hand ? { handName: describeHand(hand) } : {}),
     });
   }
-  s.reveal = survivors.length > 1;
-
-  // Grava resumo seguro no histórico da mesa (nunca inclui cartas de quem desistiu ou não foi ao showdown).
-  const potTotal = s.result.reduce((sum, r) => sum + r.amount, 0);
-  const wonByName = new Map<string, number>();
-  for (const r of s.result) wonByName.set(r.name, (wonByName.get(r.name) ?? 0) + r.amount);
-  const handNameByPlayer = new Map<string, string>();
-  let showdown: HandShowdownEntry[] | undefined;
-  if (s.reveal) {
-    showdown = survivors
-      .filter((p) => p.cards.length === 2)
-      .map((p) => {
-        const h = bestHand([...p.cards, ...s.board]);
-        const handName = h ? describeHand(h) : '';
-        handNameByPlayer.set(p.name, handName);
-        return {
-          name: p.name,
-          cards: [...p.cards],
-          handName,
-          won: wonByName.has(p.name),
-        };
-      });
-  }
-  const winnersSummary: HandWinnerSummary[] = [...wonByName.entries()].map(([name, amount]) => ({
-    name,
-    amount,
-    ...(s.reveal && handNameByPlayer.get(name) ? { handName: handNameByPlayer.get(name) } : {}),
-  }));
+  const showdown: HandShowdownEntry[] | undefined = revealed
+    ? survivors.map((p) => ({
+        ...seatRef(p),
+        cards: [...p.cards],
+        handName: describeHand(hands.get(p) ?? null),
+        won: winners.has(publicPlayerUid(p.id)),
+      }))
+    : undefined;
   const record: HandRecord = {
     hand: s.hand,
     at: Date.now(),
-    pot: potTotal,
+    pot: s.pots.reduce((sum, pot) => sum + pot.amount, 0),
     board: [...s.board],
     reveal: s.reveal,
-    winners: winnersSummary,
+    winners: [...winners.values()],
+    pots: s.pots,
+    refunds: s.refunds,
+    log: [...(s.handLog ?? [])],
     ...(showdown ? { showdown } : {}),
   };
   s.history = [...(s.history ?? []), record].slice(-MAX_HAND_HISTORY);
@@ -478,7 +516,7 @@ function settle(s: GameState) {
     p.total = 0;
     p.bet = 0;
   }
-  if (s.players.filter(eligibleToPlay).length >= 2) {
+  if (!s.guided && s.players.filter(eligibleToPlay).length >= 2) {
     s.nextHandAt = Date.now() + 15000;
   } else {
     delete s.nextHandAt;
@@ -522,7 +560,7 @@ function progress(s: GameState, from: number) {
   progress(s, s.dealer);
 }
 export function betweenHands(s: GameState, id: string, type: unknown) {
-  if (s.phase !== 'settled' || s.players.filter(eligibleToPlay).length < 2)
+  if (s.guided || s.phase !== 'settled' || s.players.filter(eligibleToPlay).length < 2)
     throw Error('Sem próxima mão disponível');
   const now = Date.now();
   if (type === 'tick') {
@@ -551,16 +589,23 @@ export function betweenHands(s: GameState, id: string, type: unknown) {
 export function act(s: GameState, id: string, type: unknown, amount?: unknown) {
   const p = s.players[s.turn],
     { current, minRaise, deadline } = s;
-  if (!p || !able(p) || current == null || minRaise == null || deadline == null)
+  if (
+    !p ||
+    !able(p) ||
+    current == null ||
+    minRaise == null ||
+    (deadline == null && (!s.guided || p.bot))
+  )
     throw Error('Sem turno');
   let auto = false;
   if (type === 'tick') {
-    if (Date.now() < deadline) throw Error('Prazo ativo');
+    if (deadline == null || Date.now() < deadline) throw Error('Prazo ativo');
     type = p.bet >= current ? 'check' : 'fold';
     auto = true;
   } else if (p.id !== id) throw Error('Não é sua vez');
-  else if (Date.now() >= deadline) throw Error('Turno expirado');
+  else if (deadline != null && Date.now() >= deadline) throw Error('Turno expirado');
   const due = Math.max(0, current - p.bet);
+  const previousBet = p.bet;
   if (type === 'fold') p.fold = true;
   else if (type === 'check') {
     if (due) throw Error('Existe aposta pendente');
@@ -591,7 +636,7 @@ export function act(s: GameState, id: string, type: unknown, amount?: unknown) {
       street: s.phase,
       kind: isAllIn ? 'allin' : type,
       actor: p.name,
-      ...(type === 'call' || type === 'raise' ? { amount: p.bet } : {}),
+      ...(type === 'call' || type === 'raise' ? { amount: p.bet, paid: p.bet - previousBet } : {}),
       ...(auto ? { auto: true } : {}),
     });
   }
@@ -613,9 +658,12 @@ export function view(s: GameState, id: string) {
   } = s;
   return {
     ...safe,
-    players: s.players.map(({ cards, userId, ...p }) => ({
+    players: s.players.map(({ cards, userId, sessionToken, lastSeenAt, actionReceipts, ...p }) => ({
       ...p,
       ...(userId ? { verified: true } : {}),
+      ...(lastSeenAt != null && !p.bot
+        ? { connected: Date.now() - lastSeenAt < PRESENCE_TIMEOUT_MS }
+        : {}),
       cards:
         p.id === id || (s.phase === 'settled' && s.reveal && !p.fold)
           ? cards

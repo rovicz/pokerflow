@@ -2,6 +2,11 @@
 import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { RANKS, SUITS } from '../../poker/hands.ts';
+import type { PublicPlayer, SeatRef } from '../../poker/game-types.ts';
+
+export function matchesSeat(seat: SeatRef, player: PublicPlayer) {
+  return seat.uid ? seat.uid === player.uid : seat.name === player.name;
+}
 
 export function Tip({ text, children }: { text: string; children?: ReactNode }) {
   return (

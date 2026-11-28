@@ -1,9 +1,16 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import type { ActiveStreet, HandLogEntry, Phase, PublicState } from '../../poker/game-types.ts';
+import type {
+  ActiveStreet,
+  HandLogEntry,
+  HandRecord,
+  Phase,
+  PublicState,
+} from '../../poker/game-types.ts';
 import { IconHistory, MiniCard } from './ui';
 import { fmt } from './table';
+import { PotBreakdown, seatLabel } from './hand-result';
 
 const STREET_LABEL: Record<ActiveStreet, string> = {
   preflop: 'Pré-flop',
@@ -32,7 +39,7 @@ function describeAction(e: HandLogEntry): { verb: string; value?: string; tone: 
     case 'check':
       return { verb: e.auto ? 'passou (tempo esgotado)' : 'passou a vez', tone: 'check' };
     case 'call':
-      return { verb: 'pagou', value: fmt(e.amount), tone: 'call' };
+      return { verb: 'pagou', value: fmt(e.paid ?? e.amount), tone: 'call' };
     case 'raise':
       return { verb: 'aumentou para', value: fmt(e.amount), tone: 'raise' };
     case 'allin':
@@ -40,6 +47,109 @@ function describeAction(e: HandLogEntry): { verb: string; value?: string; tone: 
     case 'street':
       return { verb: STREET_LABEL[e.street], tone: 'street' };
   }
+}
+
+function HandReplay({ hand, onBack }: { hand: HandRecord; onBack: () => void }) {
+  const [step, setStep] = useState(0);
+  const timeline = hand.log ?? [];
+  const lastStep = timeline.length;
+  const finished = step === lastStep;
+  const current = timeline[step];
+  const info = current ? describeAction(current) : null;
+  const board = finished
+    ? hand.board
+    : timeline.slice(0, step + 1).flatMap((entry) => entry.cards ?? []);
+  return (
+    <section className="hand-replay" aria-label={`Replay da mão ${hand.hand}`}>
+      <header className="between">
+        <h4>Replay da mão {hand.hand}</h4>
+        <button type="button" className="text-button" onClick={onBack}>
+          Voltar ao histórico
+        </button>
+      </header>
+      <div className="replay-controls">
+        <button
+          type="button"
+          className="outline sm-btn"
+          disabled={step === 0}
+          onClick={() => setStep(step - 1)}
+        >
+          Anterior
+        </button>
+        <span>
+          {step + 1} de {lastStep + 1}
+        </span>
+        <button
+          type="button"
+          className="outline sm-btn"
+          disabled={finished}
+          onClick={() => setStep(step + 1)}
+        >
+          Próximo
+        </button>
+      </div>
+      <div aria-live="polite">
+        {info && (
+          <p className="replay-action">
+            <strong>{current.actor ? `${current.actor} ` : ''}</strong>
+            {info.verb}
+            {info.value ? ` ${info.value}` : ''}
+          </p>
+        )}
+        {!!board.length && (
+          <p className="hh-mini-row">
+            {board.map((card) => (
+              <MiniCard key={card} c={card} />
+            ))}
+          </p>
+        )}
+        {finished && (
+          <>
+            <p className="replay-action">
+              <strong>Resultado da mão</strong>
+            </p>
+            {hand.pots ? (
+              <PotBreakdown hand={hand} />
+            ) : (
+              <p>
+                {hand.winners
+                  .map((winner) => `${seatLabel(winner)} ganhou ${fmt(winner.amount)}`)
+                  .join(' · ')}
+              </p>
+            )}
+            {hand.showdown?.map((row) => (
+              <div key={row.uid ?? row.name} className="hh-sd-row">
+                <span className="hh-sd-who">
+                  <b>{seatLabel(row)}</b>
+                  <small>{row.handName}</small>
+                </span>
+                <span className="hh-mini-row">
+                  {row.cards.map((card) => (
+                    <MiniCard key={card} c={card} />
+                  ))}
+                </span>
+              </div>
+            ))}
+            {!!hand.shown && hand.shown.cards.some((card) => card >= 0) && (
+              <div className="hh-sd-row">
+                <span className="hh-sd-who">
+                  <b>{hand.shown.name}</b>
+                  <small>Mostrou na mesa</small>
+                </span>
+                <span className="hh-mini-row">
+                  {hand.shown.cards
+                    .filter((card) => card >= 0)
+                    .map((card) => (
+                      <MiniCard key={card} c={card} />
+                    ))}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  );
 }
 
 // Histórico da mesa orientado a leitura instantânea ("Não me faça pensar"):
@@ -50,10 +160,16 @@ export default function HandHistory({ s }: { s: PublicState }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'current' | 'past'>('current');
   const [isSheet, setIsSheet] = useState(false);
+  const [replay, setReplay] = useState<HandRecord | null>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const replayTrigger = useRef<HTMLButtonElement | null>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLElement>(null);
 
   const history = [...(s.history ?? [])].reverse();
-  const handLog = s.handLog ?? [];
-  const pot = s.players.reduce((sum, p) => sum + p.total, 0);
+  const handLog = (s.handLog ?? []).slice(-40);
+  const pot =
+    s.phase === 'settled' ? (history[0]?.pot ?? 0) : s.players.reduce((sum, p) => sum + p.total, 0);
   const turnPlayer = s.turn >= 0 ? s.players[s.turn] : null;
   const hasPast = history.length > 0;
   const activeView = hasPast ? view : 'current';
@@ -67,6 +183,15 @@ export default function HandHistory({ s }: { s: PublicState }) {
   }, []);
 
   useEffect(() => {
+    if (open) panel.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [open]);
+
+  function closePanel() {
+    setOpen(false);
+    trigger.current?.focus();
+  }
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = document.activeElement?.tagName;
@@ -74,18 +199,32 @@ export default function HandHistory({ s }: { s: PublicState }) {
       if (document.querySelector('dialog[open]')) return;
       if (e.key === 'Escape' && open) {
         e.preventDefault();
-        setOpen(false);
+        closePanel();
       } else if (e.key.toLowerCase() === 'h') {
         e.preventDefault();
-        setOpen((v) => !v);
+        if (open) closePanel();
+        else openPanel();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+  }, [open, s.phase, hasPast]);
+
+  function closeReplay() {
+    setReplay(null);
+    requestAnimationFrame(() => {
+      if (replayTrigger.current)
+        body.current
+          ?.querySelector<HTMLButtonElement>(
+            `[data-replay="${replayTrigger.current.dataset.replay}"]`,
+          )
+          ?.focus();
+    });
+  }
 
   function openPanel() {
-    setView(s.phase === 'settled' && history.length > 0 ? 'past' : 'current');
+    setReplay(null);
+    setView(s.phase === 'settled' && hasPast ? 'past' : 'current');
     setOpen(true);
   }
 
@@ -93,11 +232,12 @@ export default function HandHistory({ s }: { s: PublicState }) {
     <>
       <button
         type="button"
+        ref={trigger}
         className={'history-fab' + (open ? ' is-open' : '')}
         aria-label="Abrir histórico de mãos"
         aria-expanded={open}
         title="Histórico de mãos (atalho H)"
-        onClick={() => (open ? setOpen(false) : openPanel())}
+        onClick={() => (open ? closePanel() : openPanel())}
       >
         <IconHistory />
         <span className="history-fab-label">Histórico</span>
@@ -116,11 +256,29 @@ export default function HandHistory({ s }: { s: PublicState }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.16 }}
-              onClick={() => setOpen(false)}
+              onClick={closePanel}
             />
 
             <motion.aside
               className={'history-panel' + (isSheet ? ' is-sheet' : ' is-popover')}
+              ref={panel}
+              onKeyDown={(event) => {
+                if (!isSheet || event.key !== 'Tab') return;
+                const buttons = [
+                  ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                    'button:not([disabled])',
+                  ),
+                ];
+                const first = buttons[0];
+                const last = buttons.at(-1);
+                if (event.shiftKey && document.activeElement === first) {
+                  event.preventDefault();
+                  last?.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                  event.preventDefault();
+                  first?.focus();
+                }
+              }}
               role="dialog"
               aria-modal={isSheet ? true : undefined}
               aria-label="Histórico da mesa"
@@ -152,7 +310,7 @@ export default function HandHistory({ s }: { s: PublicState }) {
                   type="button"
                   className="hh-close"
                   aria-label="Fechar histórico"
-                  onClick={() => setOpen(false)}
+                  onClick={closePanel}
                 >
                   <svg
                     width="15"
@@ -178,7 +336,10 @@ export default function HandHistory({ s }: { s: PublicState }) {
                     role="tab"
                     aria-selected={activeView === 'current'}
                     className={activeView === 'current' ? 'active' : ''}
-                    onClick={() => setView('current')}
+                    onClick={() => {
+                      setReplay(null);
+                      setView('current');
+                    }}
                   >
                     Mão #{s.hand}
                   </button>
@@ -187,15 +348,20 @@ export default function HandHistory({ s }: { s: PublicState }) {
                     role="tab"
                     aria-selected={activeView === 'past'}
                     className={activeView === 'past' ? 'active' : ''}
-                    onClick={() => setView('past')}
+                    onClick={() => {
+                      setReplay(null);
+                      setView('past');
+                    }}
                   >
                     Anteriores ({history.length})
                   </button>
                 </div>
               )}
 
-              <div className="hh-body">
-                {activeView === 'current' ? (
+              <div className="hh-body" ref={body}>
+                {replay ? (
+                  <HandReplay key={replay.at} hand={replay} onBack={closeReplay} />
+                ) : activeView === 'current' ? (
                   <>
                     {/* Resumo instantâneo da mão atual: bateu o olho, entendeu */}
                     <div className="hh-summary">
@@ -273,9 +439,9 @@ export default function HandHistory({ s }: { s: PublicState }) {
                             </span>
                             <span className="hh-win-who">
                               {rec.winners.map((w, idx) => (
-                                <span key={w.name}>
+                                <span key={w.uid ?? w.name}>
                                   {idx > 0 ? ' e ' : ''}
-                                  <b>{w.name}</b>{' '}
+                                  <b>{seatLabel(w)}</b>{' '}
                                   <span className="hh-win-amt">+{fmt(w.amount)}</span>
                                 </span>
                               ))}
@@ -324,11 +490,11 @@ export default function HandHistory({ s }: { s: PublicState }) {
                           <div className="hh-sd-list">
                             {rec.showdown.map((row) => (
                               <div
-                                key={row.name}
+                                key={row.uid ?? row.name}
                                 className={'hh-sd-row' + (row.won ? ' is-win' : '')}
                               >
                                 <span className="hh-sd-who">
-                                  <b>{row.name}</b>
+                                  <b>{seatLabel(row)}</b>
                                   <small>{row.handName}</small>
                                 </span>
                                 <span className="hh-mini-row">
@@ -339,6 +505,23 @@ export default function HandHistory({ s }: { s: PublicState }) {
                               </div>
                             ))}
                           </div>
+                        )}
+                        {!!rec.log?.length && (
+                          <button
+                            type="button"
+                            className="outline sm-btn history-replay-button"
+                            data-replay={rec.at}
+                            onClick={(event) => {
+                              replayTrigger.current = event.currentTarget;
+                              setReplay(rec);
+                              requestAnimationFrame(() => {
+                                body.current?.scrollTo(0, 0);
+                                body.current?.querySelector<HTMLButtonElement>('button')?.focus();
+                              });
+                            }}
+                          >
+                            Rever mão {rec.hand}
+                          </button>
                         )}
                       </article>
                     ))}

@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { motion, useReducedMotion } from 'motion/react';
 import {
   LEADERBOARD_CATEGORIES,
   categoryValue,
@@ -18,7 +17,6 @@ export default function HomeLeaderboard({
 }: {
   initialRows?: LeaderboardRow[] | null;
 }) {
-  const reducedMotion = useReducedMotion();
   const [category, setCategory] = useState<LeaderboardCategory>('matches_won');
   const [rows, setRows] = useState<LeaderboardRow[]>(initialRows ?? []);
   const [loading, setLoading] = useState(initialRows == null);
@@ -49,13 +47,7 @@ export default function HomeLeaderboard({
   const cat = LEADERBOARD_CATEGORIES.find((c) => c.id === category) ?? LEADERBOARD_CATEGORIES[0];
 
   return (
-    <motion.aside
-      className="panel home-lb-widget"
-      aria-label="Ranking do clube"
-      initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <aside className="panel home-lb-widget" aria-label="Ranking do clube">
       <div className="hlb-head">
         <div className="eyebrow">RANKING DO CLUBE</div>
         <Link href="/ranking" className="hlb-more">
@@ -110,6 +102,6 @@ export default function HomeLeaderboard({
           </ol>
         )}
       </div>
-    </motion.aside>
+    </aside>
   );
 }

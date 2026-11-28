@@ -1,10 +1,10 @@
 import type { GameState } from '../src/poker/game-types.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { start, act, view } from '../src/poker/engine.ts';
+import { start, act, view, rematch } from '../src/poker/engine.ts';
 import { resolveDue } from '../src/poker/timeouts.ts';
 
-function room(n: number, seconds = 30): GameState {
+function room(n: number, seconds = 30, guided = false): GameState {
   const s: GameState = {
     host: '0',
     initial: 2000,
@@ -26,6 +26,10 @@ function room(n: number, seconds = 30): GameState {
       total: 0,
     })),
   };
+  if (guided) {
+    s.guided = true;
+    s.players[1].bot = { style: 'balanced', difficulty: 'easy' };
+  }
   start(s);
   return s;
 }
@@ -135,4 +139,25 @@ test('bot com o prazo já vencido (aba parada) joga em vez de travar a mesa', ()
   const before = s.last?.seq ?? 0;
   assert.equal(resolveDue(s), true);
   assert.ok((s.last?.seq ?? 0) > before || s.phase !== 'preflop', 'o bot precisa ter agido');
+});
+
+test('treino guiado deixa o humano agir sem prazo e encerra após uma mão', () => {
+  const s = room(2, 30, true);
+  const human = s.players[0];
+  assert.equal(s.players[s.turn], human);
+  assert.equal(s.deadline, null);
+  assert.equal(resolveDue(s, Date.now() + 120_000), false);
+  act(s, human.id, 'call');
+  assert.equal(s.players[s.turn].bot?.difficulty, 'easy');
+  assert.ok(s.botActAt);
+  assert.equal(resolveDue(s, s.botActAt), true);
+  assert.equal(s.phase, 'flop');
+  assert.equal(resolveDue(s, s.botActAt!), true);
+  act(s, human.id, 'fold');
+  assert.equal(s.phase, 'settled');
+  assert.equal(s.nextHandAt, undefined);
+  rematch(s, human.id, 'start');
+  assert.equal(s.phase, 'preflop');
+  assert.equal(s.hand, 1);
+  assert.equal(s.deadline, null);
 });

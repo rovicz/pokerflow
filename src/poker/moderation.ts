@@ -1,15 +1,11 @@
-import { createHash } from 'node:crypto';
 import type { GameState, Player, PublicBanVote } from './game-types.ts';
 import { kickFromTable } from './engine.ts';
+import { publicPlayerUid } from './seat.ts';
+export { publicPlayerUid } from './seat.ts';
 
 export const VOTE_DURATION_MS = 30_000;
 export const VOTE_COOLDOWN_MS = 60_000;
 export const MIN_HUMANS_FOR_VOTE = 3;
-
-// Identificador público estável e não-reversível por jogador (nunca expõe o session token).
-export function publicPlayerUid(id: string): string {
-  return createHash('sha256').update(`pokerflow:uid:${id}`).digest('hex').slice(0, 10);
-}
 
 export function activeHumans(s: GameState): Player[] {
   return s.players.filter((p) => !p.bot && !p.kicked && !p.left);

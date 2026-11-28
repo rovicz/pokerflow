@@ -4613,7 +4613,7 @@ main.ranking-page {
 .history-fab {
   border-radius: var(--r);
   height: var(--h-md);
-  left: max(12px, calc(50% - 480px));
+  left: 16px;
   border-color: var(--bd-soft);
 }
 .emote-fab {
@@ -4623,7 +4623,17 @@ main.ranking-page {
   border-color: var(--bd-soft);
 }
 .history-panel.is-popover {
-  left: max(12px, calc(50% - 480px));
+  /* abre na lateral esquerda, acima do botão e do dock, sem cobrir as jogadas */
+  left: 16px;
+  bottom: 260px;
+  width: min(340px, calc(100vw - 32px));
+  max-height: min(520px, calc(100dvh - 260px - 70px));
+}
+@media (max-height: 760px) {
+  .history-panel.is-popover {
+    bottom: 236px;
+    max-height: min(520px, calc(100dvh - 236px - 64px));
+  }
 }
 /* Histórico sem desfoque: a mesa continua visível durante a mão */
 .history-backdrop {
@@ -4961,4 +4971,10 @@ main.profile-page {
     grid-template-columns: minmax(0, 1fr);
     grid-auto-rows: 56px;
   }
+}
+
+/* A classe .outline do projeto colide com o utilitário .outline do Tailwind (outline: 1px solid), que desenhava um
+   contorno branco extra em todo botão secundário. Só o anel de foco do teclado deve aparecer. */
+.outline:not(:focus-visible) {
+  outline: none;
 }

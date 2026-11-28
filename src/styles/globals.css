@@ -66,6 +66,11 @@
   --muted: rgba(246, 246, 243, 0.62);
   --line: rgba(246, 246, 243, 0.12);
   --line-strong: rgba(246, 246, 243, 0.22);
+  --r: 7px; /* raio único de controles e contêineres; pílulas/selos usam 99px */
+  --h-xs: 28px;
+  --h-md: 36px;
+  --h-lg: 46px;
+  --bd-soft: rgba(246, 246, 243, 0.14); /* contorno padrão de botões secundários */
   --serif: 'Behind The Nineties', 'Iowan Old Style', Georgia, serif;
   --sans: var(--font-inter), Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
@@ -117,7 +122,7 @@ button,
 input,
 select {
   font: inherit;
-  @apply rounded-[8px];
+  @apply rounded-[7px];
 }
 button {
   @apply cursor-pointer;
@@ -285,7 +290,7 @@ header {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--line);
   color: rgba(246, 246, 243, 0.88);
-  @apply rounded-[8px];
+  @apply rounded-[7px];
 }
 .icon-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.09);
@@ -337,7 +342,7 @@ header {
 .panel {
   background: linear-gradient(180deg, rgba(28, 30, 39, 0.92) 0%, rgba(22, 24, 31, 0.95) 100%);
   border: 1px solid var(--line);
-  @apply rounded-[12px] p-[22px];
+  @apply rounded-[7px] p-[22px];
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -481,7 +486,7 @@ main.in-landing > header {
   @apply flex gap-[4px] p-[4px];
   background: var(--bg-dark);
   border: 1px solid var(--line);
-  @apply rounded-[9px] m-[14px_0] flex-wrap;
+  @apply rounded-[7px] m-[14px_0] flex-wrap;
 }
 .seg button {
   flex: 1;
@@ -500,7 +505,7 @@ main.in-landing > header {
 .resume {
   @apply flex items-center justify-between gap-[12px] p-[12px_14px] mb-[18px];
   border: 1px solid rgba(10, 100, 255, 0.6);
-  @apply rounded-[10px];
+  @apply rounded-[7px];
   background: rgba(10, 100, 255, 0.12);
 }
 .resume small,
@@ -558,7 +563,7 @@ main.in-lobby {
 
 .room-code-box {
   flex: none;
-  @apply text-right p-[8px_14px] rounded-[10px];
+  @apply text-right p-[8px_14px] rounded-[7px];
   background: rgba(10, 100, 255, 0.1);
   border: 1px solid rgba(102, 161, 255, 0.28);
 }
@@ -586,7 +591,7 @@ main.in-lobby {
 .lobby-seat {
   @apply flex flex-col items-center justify-center gap-[7px] text-center;
   border: 1px solid var(--line);
-  @apply rounded-[12px];
+  @apply rounded-[7px];
   padding: clamp(10px, 1.4vh, 18px) 10px;
   background: rgba(14, 16, 22, 0.72);
   transition:
@@ -615,7 +620,7 @@ main.in-lobby {
 .lobby-seat .avatar {
   width: clamp(40px, 4.2vw, 56px);
   height: clamp(40px, 4.2vw, 56px);
-  @apply rounded-[10px];
+  @apply rounded-[7px];
 }
 
 .lobby-seat .remove-player {
@@ -637,7 +642,7 @@ main.in-lobby {
   border: 1px dashed rgba(143, 184, 255, 0.34);
   background: rgba(10, 100, 255, 0.1);
   color: var(--brand-300);
-  @apply rounded-[10px];
+  @apply rounded-[7px];
 }
 
 .lobby-footer {
@@ -666,14 +671,14 @@ main.in-lobby {
 /* Coluna de Avatar */
 .my-preview {
   flex: none;
-  @apply flex items-center gap-[14px] p-[12px_14px] rounded-[11px];
+  @apply flex items-center gap-[14px] p-[12px_14px] rounded-[7px];
   background: rgba(10, 100, 255, 0.09);
   border: 1px solid rgba(102, 161, 255, 0.28);
 }
 .my-preview .avatar {
   @apply w-[52px];
   @apply h-[52px];
-  @apply rounded-[10px];
+  @apply rounded-[7px];
 }
 .my-preview b {
   @apply block;
@@ -704,7 +709,7 @@ main.in-lobby {
   background: rgba(14, 16, 22, 0.75);
   @apply grid;
   place-items: center;
-  @apply rounded-[12px] h-[100%] min-h-[0];
+  @apply rounded-[7px] h-[100%] min-h-[0];
 }
 .choice.on {
   @apply border-poker-brand;
@@ -715,14 +720,14 @@ main.in-lobby {
 .choice .avatar {
   @apply w-[100%] h-[100%] max-w-[96px] max-h-[96px];
   aspect-ratio: 1;
-  @apply object-cover rounded-[9px];
+  @apply object-cover rounded-[7px];
 }
 
 .error {
   color: #fecdd3;
   background: rgba(225, 29, 72, 0.14);
   border: 1px solid rgba(225, 29, 72, 0.55);
-  @apply rounded-[8px] p-[9px_12px] mt-[10px] text-[13.5px];
+  @apply rounded-[7px] p-[9px_12px] mt-[10px] text-[13.5px];
 }
 
 footer.foot {
@@ -859,7 +864,7 @@ header.game-topbar {
   flex: none;
   @apply w-[100%] max-w-[960px];
   margin: 0 auto;
-  @apply p-[12px_16px] rounded-[14px];
+  @apply p-[12px_16px] rounded-[7px];
   background: linear-gradient(180deg, rgba(24, 27, 36, 0.92) 0%, rgba(16, 18, 24, 0.96) 100%);
   border: 1px solid rgba(246, 246, 243, 0.12);
   box-shadow:
@@ -1014,7 +1019,7 @@ header.game-topbar {
 }
 
 .action {
-  @apply w-[100%] min-h-[50px] p-[8px_14px] rounded-[10px] flex items-center justify-between gap-[10px] text-left text-[14.5px] font-semibold;
+  @apply w-[100%] min-h-[50px] p-[8px_14px] rounded-[7px] flex items-center justify-between gap-[10px] text-left text-[14.5px] font-semibold;
 }
 
 .action-main strong {
@@ -1079,7 +1084,7 @@ header.game-topbar {
 .bet-panel {
   @apply grid;
   grid-template-columns: auto minmax(140px, 1fr) auto;
-  @apply items-center gap-[14px] p-[9px_12px] rounded-[10px];
+  @apply items-center gap-[14px] p-[9px_12px] rounded-[7px];
   background: rgba(10, 11, 16, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: opacity 0.2s ease;
@@ -1226,7 +1231,7 @@ header.game-topbar {
 }
 
 .sd-card {
-  @apply flex items-center justify-between gap-[10px] p-[8px_12px] rounded-[10px];
+  @apply flex items-center justify-between gap-[10px] p-[8px_12px] rounded-[7px];
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.09);
 }
@@ -1274,7 +1279,7 @@ header.game-topbar {
 .mini-card {
   @apply inline-flex items-center justify-center gap-[1px] min-w-[30px] h-[26px];
   padding: 0 5px;
-  @apply rounded-[6px];
+  @apply rounded-[7px];
   background: #f6f6f3;
   color: #18181b;
   @apply text-[12px] font-bold;
@@ -1320,7 +1325,7 @@ header.game-topbar {
 
 /* Régua compacta de força: Mais forte (1º) -> Mais fraca (10º) */
 .rank-ruler {
-  @apply flex items-center gap-[8px] p-[5px_10px] rounded-[8px];
+  @apply flex items-center gap-[8px] p-[5px_10px] rounded-[7px];
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.07);
 }
@@ -1413,7 +1418,7 @@ header.game-topbar {
   background: var(--bg-light);
   @apply text-poker-ink-dark;
   width: max-content;
-  @apply max-w-[230px] p-[8px_11px] rounded-[8px];
+  @apply max-w-[230px] p-[8px_11px] rounded-[7px];
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.65);
   @apply text-[12px] font-medium;
   line-height: 1.4;
@@ -1459,7 +1464,7 @@ header.game-topbar {
   background: linear-gradient(180deg, #1d2029 0%, #14161d 100%);
   @apply text-poker-ink;
   border: 1px solid var(--line-strong);
-  @apply rounded-[16px];
+  @apply rounded-[7px];
   box-shadow: 0 28px 64px rgba(0, 0, 0, 0.75);
 }
 .modal::backdrop {
@@ -1491,7 +1496,7 @@ header.game-topbar {
 .guide-ranks li {
   @apply grid;
   grid-template-columns: 34px 124px 1fr;
-  @apply items-center gap-[8px] p-[6px_8px] rounded-[8px];
+  @apply items-center gap-[8px] p-[6px_8px] rounded-[7px];
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(255, 255, 255, 0.06);
   @apply text-[13px];
@@ -1597,13 +1602,13 @@ header.game-topbar {
 }
 
 .champ-avatar-frame {
-  @apply p-[4px] rounded-[16px];
+  @apply p-[4px] rounded-[7px];
   background: linear-gradient(135deg, #fef08a 0%, #f59e0b 55%, #b45309 100%);
   box-shadow: 0 12px 30px rgba(245, 158, 11, 0.35);
 }
 
 .champion .avatar {
-  @apply w-[92px] h-[92px] rounded-[12px] block;
+  @apply w-[92px] h-[92px] rounded-[7px] block;
 }
 
 .champion strong {
@@ -1751,7 +1756,7 @@ header.game-topbar {
   }
   .dock {
     @apply p-[8px_10px];
-    @apply rounded-[12px];
+    @apply rounded-[7px];
   }
   .dock-head {
     @apply mb-[6px];
@@ -1988,7 +1993,7 @@ header.game-topbar {
   justify-content: space-between;
   gap: 12px;
   padding: 9px 14px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: linear-gradient(180deg, rgba(28, 22, 28, 0.96) 0%, rgba(18, 16, 22, 0.98) 100%);
   border: 1px solid rgba(239, 68, 68, 0.36);
   box-shadow:
@@ -2082,7 +2087,7 @@ header.game-topbar {
 
 .bvb-btn {
   padding: 6px 11px;
-  border-radius: 8px;
+  border-radius: var(--r);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -2256,7 +2261,7 @@ header.game-topbar {
   bottom: 64px;
   width: min(370px, calc(100vw - 32px));
   max-height: min(520px, calc(100dvh - 130px));
-  border-radius: 16px;
+  border-radius: var(--r);
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.65),
     0 0 0 1px rgba(10, 100, 255, 0.12);
@@ -2272,7 +2277,7 @@ header.game-topbar {
   border-left: none;
   border-right: none;
   border-bottom: none;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--r) 20px 0 0;
   box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.7);
 }
 
@@ -2327,7 +2332,7 @@ header.game-topbar {
   width: 32px;
   height: 32px;
   padding: 0;
-  border-radius: 9px;
+  border-radius: var(--r);
   border: 1px solid rgba(246, 246, 243, 0.14);
   background: rgba(255, 255, 255, 0.06);
   color: rgba(246, 246, 243, 0.85);
@@ -2353,7 +2358,7 @@ header.game-topbar {
 
 .hh-tabs button {
   padding: 7px 10px;
-  border-radius: 9px;
+  border-radius: var(--r);
   border: 1px solid rgba(246, 246, 243, 0.1);
   background: rgba(255, 255, 255, 0.03);
   color: rgba(246, 246, 243, 0.65);
@@ -2378,7 +2383,7 @@ header.game-topbar {
 .hh-summary {
   padding: 11px 13px;
   margin-bottom: 14px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(246, 246, 243, 0.1);
   display: flex;
@@ -2518,7 +2523,7 @@ header.game-topbar {
   gap: 8px;
   margin: 4px 0;
   padding: 6px 10px;
-  border-radius: 9px;
+  border-radius: var(--r);
   background: rgba(10, 100, 255, 0.13);
   border: 1px solid rgba(102, 161, 255, 0.25);
 }
@@ -2540,7 +2545,7 @@ header.game-topbar {
 
 .hh-card {
   padding: 11px 12px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(246, 246, 243, 0.09);
   display: flex;
@@ -2612,7 +2617,7 @@ header.game-topbar {
   justify-content: space-between;
   gap: 8px;
   padding: 5px 7px;
-  border-radius: 8px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.025);
 }
 
@@ -2683,7 +2688,7 @@ header.game-topbar {
   gap: 10px;
   margin-bottom: 8px;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: rgba(245, 158, 11, 0.14);
   border: 1px solid rgba(245, 158, 11, 0.36);
   color: #fde68a;
@@ -2706,7 +2711,7 @@ header.game-topbar {
   gap: 12px;
   padding: 8px 12px;
   margin-bottom: 8px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: rgba(10, 100, 255, 0.12);
   border: 1px solid rgba(102, 161, 255, 0.3);
 }
@@ -2806,7 +2811,7 @@ header.game-topbar {
 .tourney-box {
   margin-bottom: 12px;
   padding: 10px 11px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(246, 246, 243, 0.11);
   display: flex;
@@ -2818,7 +2823,7 @@ header.game-topbar {
 .tourney-mini-seg {
   display: inline-flex;
   padding: 2px;
-  border-radius: 8px;
+  border-radius: var(--r);
   background: rgba(0, 0, 0, 0.34);
   border: 1px solid rgba(246, 246, 243, 0.1);
   gap: 2px;
@@ -2912,7 +2917,7 @@ header.game-topbar {
   gap: 10px;
   padding: 9px 12px;
   margin-bottom: 12px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(246, 246, 243, 0.1);
 }
@@ -3005,7 +3010,7 @@ header.game-topbar {
 .lm-ico {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: rgba(239, 68, 68, 0.14);
   border: 1px solid rgba(239, 68, 68, 0.34);
   color: #fca5a5;
@@ -3134,7 +3139,7 @@ header.game-topbar {
 .auth-mail-ico {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: var(--r);
   background: rgba(10, 100, 255, 0.18);
   border: 1px solid rgba(102, 161, 255, 0.42);
   color: #93c5fd;
@@ -3208,7 +3213,7 @@ header.game-topbar {
   justify-content: center;
   text-decoration: none;
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: var(--r);
   font-weight: 600;
 }
 
@@ -3275,7 +3280,7 @@ header.game-topbar {
   display: inline-flex;
   align-items: center;
   padding: 7px 12px;
-  border-radius: 8px;
+  border-radius: var(--r);
   font-size: 12.5px;
   font-weight: 600;
   text-decoration: none;
@@ -3352,7 +3357,7 @@ main.profile-page {
 
 .pb-avatar-ring {
   padding: 3px;
-  border-radius: 18px;
+  border-radius: var(--r);
   background: linear-gradient(135deg, rgba(10, 100, 255, 0.7), rgba(102, 161, 255, 0.2));
   flex: 0 0 auto;
 }
@@ -3412,7 +3417,7 @@ main.profile-page {
 .pb-kpi {
   min-width: 108px;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(246, 246, 243, 0.09);
   display: flex;
@@ -3438,7 +3443,7 @@ main.profile-page {
   align-items: center;
   gap: 6px;
   padding: 11px 16px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: rgba(10, 100, 255, 0.18);
   border: 1px solid rgba(102, 161, 255, 0.42);
   color: #dbeafe;
@@ -3505,7 +3510,7 @@ main.profile-page {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(246, 246, 243, 0.08);
 }
@@ -3642,7 +3647,7 @@ main.ranking-page {
   flex-wrap: wrap;
   gap: 4px;
   padding: 4px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(246, 246, 243, 0.1);
 }
@@ -3650,7 +3655,7 @@ main.ranking-page {
 .rk-tabs button {
   padding: 7px 13px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r);
   background: transparent;
   color: rgba(246, 246, 243, 0.72);
   font-size: 12.5px;
@@ -3740,7 +3745,7 @@ main.ranking-page {
 .rk-pod-slot {
   position: relative;
   padding: 16px 12px 14px;
-  border-radius: 14px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(246, 246, 243, 0.1);
   display: flex;
@@ -3883,7 +3888,7 @@ main.ranking-page {
   width: min(260px, 100%);
   padding: 8px 12px;
   font-size: 13px;
-  border-radius: 9px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(246, 246, 243, 0.12);
   color: #f6f6f3;
@@ -4064,7 +4069,7 @@ main.ranking-page {
   align-items: center;
   gap: 12px;
   padding: 9px 11px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(246, 246, 243, 0.09);
 }
@@ -4096,7 +4101,7 @@ main.ranking-page {
 
 .rk-stat-box {
   padding: 9px 11px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.032);
   border: 1px solid rgba(246, 246, 243, 0.08);
   display: flex;
@@ -4398,7 +4403,7 @@ main.ranking-page {
   align-items: center;
   gap: 12px;
   padding: 9px 12px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(246, 246, 243, 0.08);
 }

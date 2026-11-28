@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../src/features/auth/use-auth';
 import {
@@ -9,6 +9,7 @@ import {
   type LeaderboardRow,
 } from '../../src/poker/leaderboard.ts';
 import type { AvatarStyle } from '../../src/poker/avatars.ts';
+import AuthModal from '../../src/features/auth/auth-modal';
 import Avatar from '../../src/features/poker-room/avatar';
 import BrandLogo from '../../src/features/poker-room/brand-logo';
 import { fmt } from '../../src/features/poker-room/table';
@@ -26,7 +27,8 @@ function winRateNum(won: number, played: number): number {
 }
 
 export default function RankingPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, enabled } = useAuth();
+  const authDialog = useRef<HTMLDialogElement>(null);
   const [category, setCategory] = useState<LeaderboardCategory>('matches_won');
   const [data, setData] = useState<LeaderboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,8 +98,8 @@ export default function RankingPage() {
               <span>{profile?.display_name || 'Meu perfil'}</span>
             </Link>
           )}
-          <Link href="/" className="outline profile-back-btn">
-            ← Voltar para a mesa
+          <Link href="/" className="icon-btn topbar-link-btn" title="Voltar para a mesa">
+            <span aria-hidden="true">←</span> Voltar
           </Link>
         </div>
       </header>
@@ -366,9 +368,19 @@ export default function RankingPage() {
                     Crie sua conta gratuita com e-mail confirmado para registrar automaticamente
                     suas vitórias, maior pote e banco acumulado em mesas contra amigos.
                   </p>
-                  <Link href="/" className="primary wide reset-home-link">
-                    {user ? 'Jogar uma mesa agora →' : 'Voltar e criar conta →'}
-                  </Link>
+                  {user || !enabled ? (
+                    <Link href="/" className="outline wide reset-home-link">
+                      Jogar uma mesa agora
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className="outline wide"
+                      onClick={() => authDialog.current?.showModal()}
+                    >
+                      Entrar ou criar conta
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -383,13 +395,14 @@ export default function RankingPage() {
                 <li>Mesas solo contra bots não alteram o ranking do clube (anti-farm).</li>
                 <li>Gravação 100% autoritativa no servidor ao fim de cada mão e partida.</li>
               </ul>
-              <Link href="/" className="primary wide reset-home-link">
-                Abrir mesa ranqueada →
+              <Link href="/" className="outline wide reset-home-link">
+                Abrir uma mesa
               </Link>
             </div>
           </aside>
         </div>
       </main>
+      <AuthModal dialogRef={authDialog} initialView="login" />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'motion/react';
 import {
@@ -13,13 +13,24 @@ import Avatar from './avatar';
 import { fmt } from './table';
 
 // Widget de ranking integrado sob o hero na tela inicial: mesmo visual .panel, abas .seg e pódio compacto (Top 3).
-export default function HomeLeaderboard() {
+export default function HomeLeaderboard({
+  initialRows = null,
+}: {
+  initialRows?: LeaderboardRow[] | null;
+}) {
   const reducedMotion = useReducedMotion();
   const [category, setCategory] = useState<LeaderboardCategory>('matches_won');
-  const [rows, setRows] = useState<LeaderboardRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<LeaderboardRow[]>(initialRows ?? []);
+  const [loading, setLoading] = useState(initialRows == null);
+  const seeded = useRef(initialRows != null); // o servidor já entregou a aba inicial
 
   useEffect(() => {
+    if (seeded.current && category === 'matches_won') {
+      seeded.current = false;
+      return;
+    }
+    seeded.current = false;
+    setLoading(true);
     let alive = true;
     fetch(`/api/leaderboard?category=${category}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
@@ -67,32 +78,38 @@ export default function HomeLeaderboard() {
         ))}
       </div>
 
-      {loading && rows.length === 0 ? (
-        <p className="hlb-empty">Carregando classificação…</p>
-      ) : rows.length === 0 ? (
-        <p className="hlb-empty">Jogue com 2+ amigos logados para inaugurar o pódio do clube.</p>
-      ) : (
-        <ol className="hlb-list">
-          {rows.map((r, i) => (
-            <li key={r.username} className={`hlb-row is-p${i + 1}` + (r.isMe ? ' is-me' : '')}>
-              <span className="hlb-pos">{i + 1}º</span>
-              <Avatar
-                a={{ style: r.avatarStyle as AvatarStyle, seed: r.avatarSeed }}
-                name={r.displayName}
-                size={34}
-              />
-              <div className="hlb-who">
-                <b>{r.displayName}</b>
-                <small>@{r.username}</small>
-              </div>
-              <div className="hlb-score">
-                <strong>{fmt(categoryValue(r, category))}</strong>
-                <small>{cat.unit}</small>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
+      <div className={'hlb-body' + (loading ? ' is-loading' : '')} aria-busy={loading}>
+        {loading && rows.length === 0 ? (
+          <ol className="hlb-list" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="hlb-row is-skeleton" />
+            ))}
+          </ol>
+        ) : rows.length === 0 ? (
+          <p className="hlb-empty">Jogue com 2+ amigos logados para inaugurar o pódio do clube.</p>
+        ) : (
+          <ol className="hlb-list">
+            {rows.map((r, i) => (
+              <li key={r.username} className={`hlb-row is-p${i + 1}` + (r.isMe ? ' is-me' : '')}>
+                <span className="hlb-pos">{i + 1}º</span>
+                <Avatar
+                  a={{ style: r.avatarStyle as AvatarStyle, seed: r.avatarSeed }}
+                  name={r.displayName}
+                  size={34}
+                />
+                <div className="hlb-who">
+                  <b>{r.displayName}</b>
+                  <small>@{r.username}</small>
+                </div>
+                <div className="hlb-score">
+                  <strong>{fmt(categoryValue(r, category))}</strong>
+                  <small>{cat.unit}</small>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
     </motion.aside>
   );
 }

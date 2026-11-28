@@ -12,7 +12,14 @@ import type {
   Winners,
 } from '../../poker/game-types.ts';
 
-type Bubble = { seat: number; seq: number; allin: boolean; type: Action; txt: string };
+type Bubble = {
+  seat: number;
+  seq: number;
+  allin: boolean;
+  auto?: boolean;
+  type: Action;
+  txt: string;
+};
 type Mood = 'idle' | 'deal' | 'nod' | 'cheer' | 'wow' | 'shrug';
 
 import Avatar from './avatar';
@@ -542,12 +549,15 @@ function Seat({
         )}
       </AnimatePresence>
 
-      <div className="bubble-w">
+      <div className={'bubble-w' + (pos.x < 18 ? ' edge-l' : pos.x > 82 ? ' edge-r' : '')}>
         <AnimatePresence>
           {bubble && (
             <motion.div
               key={bubble.seq}
-              className={'bubble b-' + (bubble.allin ? 'allin' : bubble.type || 'neutral')}
+              className={
+                'bubble b-' +
+                (bubble.allin ? 'allin' : bubble.auto ? 'auto' : bubble.type || 'neutral')
+              }
               initial={{ y: -10, opacity: 0, scale: 0.82 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.9 }}
@@ -734,17 +744,22 @@ export default function Table({
       seat: L.seat,
       seq: L.seq,
       allin,
+      auto: !!L.auto,
       type: L.type,
       txt: allin
         ? 'ALL-IN'
-        : {
-            fold: 'Desistiu',
-            check: 'Passou',
-            call: 'Pagou',
-            raise: 'Aumentou para ' + fmt(q?.bet),
-          }[L.type],
+        : L.auto
+          ? L.type === 'fold'
+            ? 'Sem tempo · desistiu'
+            : 'Sem tempo · passou'
+          : {
+              fold: 'Desistiu',
+              check: 'Passou',
+              call: 'Pagou',
+              raise: 'Aumentou para ' + fmt(q?.bet),
+            }[L.type],
     });
-    const t = setTimeout(() => setBub(null), 2000);
+    const t = setTimeout(() => setBub(null), L.auto ? 3200 : 2000);
     return () => clearTimeout(t);
   }, [s.last?.seq]);
 

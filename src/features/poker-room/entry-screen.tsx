@@ -12,6 +12,7 @@ import type { SendExtra } from './use-room.ts';
 import { PlayingCard, fmt } from './table';
 import { Tip } from './ui';
 import HomeLeaderboard from './home-leaderboard';
+import type { LeaderboardRow } from '../../poker/leaderboard.ts';
 import { useAuth } from '../auth/use-auth';
 
 type Props = {
@@ -21,10 +22,19 @@ type Props = {
   notice: string;
   setError: (e: string) => void;
   onOpenAuth?: (view?: 'login' | 'register') => void;
+  initialLeaderboard?: LeaderboardRow[] | null;
 };
 
 // Tela de entrada: convite recebido (só entrar) ou começar (criar mesa / entrar com código).
-export default function EntryScreen({ send, pending, error, notice, setError, onOpenAuth }: Props) {
+export default function EntryScreen({
+  send,
+  pending,
+  error,
+  notice,
+  setError,
+  onOpenAuth,
+  initialLeaderboard = null,
+}: Props) {
   const reducedMotion = useReducedMotion();
   const { enabled: authEnabled, user, profile } = useAuth();
   const [name, setName] = useState('');
@@ -509,7 +519,7 @@ export default function EntryScreen({ send, pending, error, notice, setError, on
             </>
           )}
         </motion.div>
-        {!invited && <HomeLeaderboard />}
+        {!invited && <HomeLeaderboard initialRows={initialLeaderboard} />}
       </section>
       <footer className="landing-foot">
         <span>PokerFlow · Texas Hold’em privado entre amigos</span>

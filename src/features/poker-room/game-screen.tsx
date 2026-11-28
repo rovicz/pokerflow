@@ -1,7 +1,14 @@
 'use client';
-import { useEffect, useId, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import type { GameOperation, Hand, Payment, PublicPlayer, Room } from '../../poker/game-types.ts';
+import type {
+  GameOperation,
+  Hand,
+  HandRecord,
+  Payment,
+  PublicPlayer,
+  Room,
+} from '../../poker/game-types.ts';
 import type { EmoteId } from '../../poker/emotes.ts';
 import { HAND_RANKINGS, analyzeShowdown, describeHand } from '../../poker/hands.ts';
 import type { ActionStatus, SendExtra } from './use-room.ts';
@@ -11,7 +18,7 @@ import BanVoteBanner from './ban-vote-banner';
 import HandHistory from './hand-history';
 import Avatar from './avatar';
 import { hasPotDetails, PotBreakdown } from './hand-result';
-import { ActionButton, matchesSeat, MiniCard } from './ui';
+import { ActionButton, CloseButton, matchesSeat, MiniCard } from './ui';
 import { sfx } from './sound';
 
 type Props = {
@@ -49,8 +56,9 @@ export default function GameScreen({
   const reducedMotion = useReducedMotion();
   const [choice, Choose] = useState({ key: '', amount: 0 });
   const [toast, setToast] = useState('');
-  const [openedPots, setOpenedPots] = useState<string | null>(null);
-  const potPanelId = useId();
+  const [selectedPotHand, setSelectedPotHand] = useState<HandRecord | null>(null);
+  const potDialog = useRef<HTMLDialogElement>(null);
+  const potTitleId = useId();
   const s = game.state;
   const watching = s.role === 'spectator';
   const wantsToPlay = !!s.spectators.find((q) => q.self)?.wantsToPlay;
@@ -99,17 +107,17 @@ export default function GameScreen({
   }
   const winners = [...awards.values()];
   const hand = s.phase === 'settled' ? s.history?.at(-1) : undefined;
-  const handKey = hand && `${game.code}/${hand.hand}/${hand.at}`;
-  const potsVisible = !!handKey && openedPots === handKey;
-  const potToggle = handKey && hand && hasPotDetails(hand) && (
+  const potToggle = hand && hasPotDetails(hand) && (
     <button
       type="button"
       className="outline sm-btn pot-details-toggle"
-      aria-expanded={potsVisible}
-      aria-controls={potsVisible ? potPanelId : undefined}
-      onClick={() => setOpenedPots(potsVisible ? null : handKey)}
+      aria-haspopup="dialog"
+      onClick={() => {
+        setSelectedPotHand(hand);
+        potDialog.current?.showModal();
+      }}
     >
-      {potsVisible ? 'Ocultar potes' : 'Ver potes'}
+      Ver potes
     </button>
   );
   const multiplePots = (hand?.pots?.length ?? 0) > 1;
@@ -188,7 +196,7 @@ export default function GameScreen({
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = document.activeElement?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (document.querySelector('dialog[open], .history-panel')) return;
+      if (document.querySelector('dialog[open]')) return;
       const k = e.key.toLowerCase();
       if (k === 'f') {
         e.preventDefault();
@@ -231,10 +239,19 @@ export default function GameScreen({
           onShowCard={canShowMuck ? (idx) => send('show_cards', { indices: [idx] }) : undefined}
           pending={pending}
         />
-        {toast && (
-          <p className="toast" role="status">
-            {toast}
-          </p>
+        {actionStatus === 'retry' && canTakeTurn && !pending ? (
+          <div className="toast action-retry">
+            <span role="status">Jogada sem confirmação.</span>
+            <button type="button" className="outline sm-btn" onClick={retryAction}>
+              Reenviar jogada
+            </button>
+          </div>
+        ) : (
+          (error || toast) && (
+            <p className={error ? 'toast game-error' : 'toast'} role={error ? 'alert' : 'status'}>
+              {error || toast}
+            </p>
+          )
         )}
         <HandHistory s={s} />
         {!watching && !s.guided && (
@@ -274,12 +291,6 @@ export default function GameScreen({
               </button>
             </div>
           </div>
-          {potsVisible && hand && <PotBreakdown id={potPanelId} hand={hand} />}
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
         </section>
       ) : (
         <section
@@ -394,7 +405,6 @@ export default function GameScreen({
             </div>
           )}
 
-          {potsVisible && hand && <PotBreakdown id={potPanelId} hand={hand} />}
           {!live && s.host && waitingSpectators.length > 0 && (
             <div className="game-context">
               <span>
@@ -407,19 +417,6 @@ export default function GameScreen({
             <p className="game-coach" role="status">
               {guidedHint}
             </p>
-          )}
-          {actionStatus === 'retry' && (
-            <div className="game-context" role="status">
-              A jogada ainda não aparece na mesa.
-              <button
-                type="button"
-                className="outline sm-btn"
-                disabled={pending}
-                onClick={retryAction}
-              >
-                Reenviar a jogada
-              </button>
-            </div>
           )}
           {/* Barra de estado Ausente (Sit Out) */}
           {p?.sittingOut && (
@@ -522,7 +519,6 @@ export default function GameScreen({
                       ['Mín', min],
                       ['½ pote', (p?.bet ?? 0) + due + Math.ceil((pot + due) / 2)],
                       ['Pote', (p?.bet ?? 0) + due + pot + due],
-                      ['Máx', max],
                     ].map(([n, v]) => (
                       <button
                         key={n}
@@ -794,14 +790,23 @@ export default function GameScreen({
               </motion.div>
             )}
           </AnimatePresence>
-
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
         </section>
       )}
+      <dialog
+        ref={potDialog}
+        className="modal table-dialog pot-dialog"
+        aria-labelledby={potTitleId}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close();
+        }}
+        onClose={() => setSelectedPotHand(null)}
+      >
+        <div className="between table-dialog-heading">
+          <h2 id={potTitleId}>Potes da mão {selectedPotHand?.hand}</h2>
+          <CloseButton onClick={() => potDialog.current?.close()} label="Fechar potes" />
+        </div>
+        {selectedPotHand && <PotBreakdown hand={selectedPotHand} />}
+      </dialog>
     </div>
   );
 }

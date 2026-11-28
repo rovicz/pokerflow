@@ -11,7 +11,7 @@ const inter = Inter({
   display: 'swap',
 });
 
-export const metadata: Metadata = { title: 'PokerFlow — Mesa privada de poker' };
+export const metadata: Metadata = { title: 'PokerFlow' };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
 
 export default function Layout({ children }: { children: ReactNode }) {

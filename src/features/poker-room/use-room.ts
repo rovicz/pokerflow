@@ -119,17 +119,22 @@ export function useRoom() {
     else sessionStorage.removeItem(pendingActionKey);
   }
 
-  function reconcileAction(room: Room) {
+  function reconcileAction(room: Room, checkedAttempt: ActionAttempt | null) {
     const attempt = actionAttempt.current;
     if (!attempt) return;
     if (attempt.code !== room.code || room.myActionReceipts?.includes(attempt.actionId)) {
       saveAttempt(null);
       setActionStatus(null);
-    } else if (room.turnKey !== attempt.turnKey) {
+      return;
+    }
+
+    // Uma consulta iniciada antes deste envio pode chegar com um estado antigo.
+    if (attempt !== checkedAttempt) return;
+    if (room.turnKey === attempt.turnKey) {
+      setActionStatus('retry');
+    } else {
       saveAttempt(null);
       setActionStatus('expired');
-    } else {
-      setActionStatus('retry');
     }
   }
 
@@ -165,16 +170,19 @@ export function useRoom() {
       prevGame = latest.current,
       t0 = Date.now();
     const requestCode = extra.code ?? prevGame?.code;
+    const checkedAttempt = op === 'state' ? actionAttempt.current : null;
     let attempt: ActionAttempt | null = null;
     if (op === 'action') {
       if (!prevGame?.turnKey || (actionAttempt.current && !retry)) return;
-      attempt = retry ?? {
-        code: prevGame.code,
-        turnKey: prevGame.turnKey,
-        actionId: crypto.randomUUID(),
-        type: extra.type,
-        amount: extra.amount,
-      };
+      attempt = retry
+        ? { ...retry }
+        : {
+            code: prevGame.code,
+            turnKey: prevGame.turnKey,
+            actionId: crypto.randomUUID(),
+            type: extra.type,
+            amount: extra.amount,
+          };
       saveAttempt(attempt);
       setActionStatus('checking');
     }
@@ -239,7 +247,8 @@ export function useRoom() {
       resumeCode.current = '';
       latest.current = x;
       G(x);
-      reconcileAction(x);
+      reconcileAction(x, checkedAttempt);
+      if (attempt && actionAttempt.current === attempt) again.current = true;
       localStorage.setItem('pf-room', x.code);
       if (extra.name) localStorage.setItem('pf-name', extra.name);
       if (op === 'create' && location.search) history.replaceState(null, '', location.pathname);
@@ -257,7 +266,7 @@ export function useRoom() {
         mutating.current = false;
         P(false);
       }
-      if (again.current) {
+      if (again.current && !mutating.current && !polling.current) {
         again.current = false;
         const code = latest.current?.code ?? resumeCode.current;
         if (code) void send('state', { code }, true);

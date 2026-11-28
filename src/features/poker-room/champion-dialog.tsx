@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { PublicPlayer } from '../../poker/game-types.ts';
 import Avatar from './avatar';
+import Zake from './zake';
 import { fmt } from './table';
 
 const CONFETTI = [
@@ -114,8 +115,11 @@ export default function ChampionDialog({
             </motion.div>
           </div>
 
+          <div className="champion-dealer" aria-hidden="true">
+            <Zake look={{ x: -0.35, y: 0.15 }} mood="cheer" />
+          </div>
           <p className="eyebrow">FIM DE PARTIDA · MÃO {hand}</p>
-          <h2 id="champion-title">Temos um campeão!</h2>
+          <h2 id="champion-title">Temos campeão!</h2>
 
           <motion.div
             className="champion"

@@ -13,7 +13,7 @@ export function hasPotDetails(hand: HandRecord) {
   );
 }
 
-export function PotBreakdown({ hand, id }: { hand: HandRecord; id?: string }) {
+export function PotBreakdown({ hand }: { hand: HandRecord }) {
   const seats = [...(hand.pots ?? []).flatMap((pot) => pot.eligible), ...(hand.refunds ?? [])];
   const label = (seat: SeatRef) =>
     seats.some((other) => other.name === seat.name && other.seat !== seat.seat)
@@ -21,7 +21,7 @@ export function PotBreakdown({ hand, id }: { hand: HandRecord; id?: string }) {
       : seat.name;
 
   return (
-    <div className="pot-breakdown" id={id}>
+    <div className="pot-breakdown">
       {hand.pots?.map((pot, i) => (
         <section key={i}>
           <div className="pot-line">

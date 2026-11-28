@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="PokerFlow">
+  <defs>
+    <linearGradient id="felt" x1="8" y1="0" x2="56" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#202637" />
+      <stop offset="1" stop-color="#0D0E13" />
+    </linearGradient>
+    <linearGradient id="flow" x1="29" y1="50" x2="56" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A64FF" />
+      <stop offset="1" stop-color="#66A1FF" />
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="12" fill="url(#felt)" stroke="#334466" stroke-width="2" />
+  <path fill="#F6F6F3" fill-rule="evenodd" d="M9 14h13c7.2 0 11.4 3.6 11.4 9.2 0 5.8-4.2 9.4-11.4 9.4h-5v8.4l3 1v2H9v-2l3-1V17l-3-1v-2Zm8 2.2v14.2h4.8c4.1 0 6.4-2.5 6.4-7.2 0-4.6-2.3-7-6.4-7H17Z" />
+  <path fill="#8FB8FF" d="M36 14h21l-1.5 7.4H54l-.3-5.2H43l-2.6 11.6h6.9l1.8-3.2h1.4l-2 8.7h-1.4l-.4-3.3H40l-2.6 11 3.1 1-.5 2H28.6l.5-2 3.4-1L38 17l-2.4-1 .4-2Z" />
+  <path d="M29 51c9-2.6 18-2.7 26-1" fill="none" stroke="url(#flow)" stroke-width="3.5" stroke-linecap="round" />
+</svg>

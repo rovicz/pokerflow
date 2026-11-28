@@ -5009,3 +5009,27 @@ main.profile-page {
     animation: none;
   }
 }
+
+/* Faixa de blinds: informação à esquerda (cresce e quebra), controles à direita sem espremer os botões */
+.lobby-blinds-bar .lbb-info {
+  flex: 1 1 260px;
+}
+.lobby-blinds-bar .lbb-controls {
+  flex: none;
+  align-items: center;
+}
+.lbb-controls .seat-mini-btn {
+  white-space: nowrap;
+}
+/* "A cada N mãos/min": campo no mesmo molde dos botões do segmentado (altura 36, mesmo raio e contorno) */
+.lbb-controls .lbb-select {
+  min-height: var(--h-md);
+  padding: 0 32px 0 12px;
+  margin-left: 6px;
+  border: 1px solid var(--bd-soft);
+  border-radius: var(--r);
+  background-color: var(--surface-2);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}

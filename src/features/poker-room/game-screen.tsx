@@ -10,7 +10,7 @@ import EmotePicker from './emote-picker';
 import BanVoteBanner from './ban-vote-banner';
 import HandHistory from './hand-history';
 import Avatar from './avatar';
-import { ActionButton, MiniCard, Tip } from './ui';
+import { ActionButton, MiniCard } from './ui';
 import { sfx } from './sound';
 
 type Props = {
@@ -272,7 +272,6 @@ export default function GameScreen({
                     type="button"
                     className="outline sm-btn sitout-btn"
                     disabled={pending}
-                    title="Ficar ausente (pula as próximas mãos sem sair da sala)"
                     onClick={() => send('sit_out', { active: true })}
                   >
                     Ficar ausente
@@ -387,12 +386,7 @@ export default function GameScreen({
 
                 <div className={'bet-panel' + (!canRaise ? ' is-disabled' : '')}>
                   <div className="bet-left">
-                    <span className="bet-title">
-                      Aposta total{' '}
-                      <Tip text="Inclui as fichas já colocadas nesta rodada; não é o valor adicional.">
-                        ⓘ
-                      </Tip>
-                    </span>
+                    <span className="bet-title">Aposta total </span>
                     <input
                       type="number"
                       aria-label="Valor total da aposta"
@@ -438,21 +432,19 @@ export default function GameScreen({
                         {n}
                       </button>
                     ))}
-                    <Tip text="Aposte todas as fichas restantes. Só concorre aos potes para os quais contribuiu.">
-                      <button
-                        type="button"
-                        className="allin"
-                        disabled={!canAllIn}
-                        onClick={() =>
-                          send('action', {
-                            type: max <= (s.current ?? 0) ? 'call' : 'raise',
-                            amount: max,
-                          })
-                        }
-                      >
-                        All-in
-                      </button>
-                    </Tip>
+                    <button
+                      type="button"
+                      className="allin"
+                      disabled={!canAllIn}
+                      onClick={() =>
+                        send('action', {
+                          type: max <= (s.current ?? 0) ? 'call' : 'raise',
+                          amount: max,
+                        })
+                      }
+                    >
+                      All-in
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -529,21 +521,17 @@ export default function GameScreen({
                           const isOtherR = otherRankSet.has(item.rank);
                           const showName = isWinR || isOtherR;
                           return (
-                            <Tip
+                            <span
                               key={item.rank}
-                              text={`${item.ordinal} ${item.name}: ${item.hint}`}
+                              role="listitem"
+                              className={
+                                'ruler-step' +
+                                (isWinR ? ' is-win-rank' : isOtherR ? ' is-other-rank' : '')
+                              }
                             >
-                              <span
-                                role="listitem"
-                                className={
-                                  'ruler-step' +
-                                  (isWinR ? ' is-win-rank' : isOtherR ? ' is-other-rank' : '')
-                                }
-                              >
-                                <i>{item.ordinal}</i>
-                                {showName && <span>{item.name}</span>}
-                              </span>
-                            </Tip>
+                              <i>{item.ordinal}</i>
+                              {showName && <span>{item.name}</span>}
+                            </span>
                           );
                         })}
                       </div>
@@ -638,7 +626,6 @@ export default function GameScreen({
                             type="button"
                             className="outline sm-btn sitout-btn"
                             disabled={pending}
-                            title="Pular as próximas mãos sem sair da sala"
                             onClick={() => send('sit_out', { active: true })}
                           >
                             Ficar ausente
@@ -649,7 +636,6 @@ export default function GameScreen({
                             type="button"
                             className="primary sm-btn"
                             disabled={pending}
-                            title="Começar a próxima mão agora, sem esperar a contagem"
                             onClick={() => send('interval', { type: 'skip' })}
                           >
                             Próxima mão agora

@@ -4663,3 +4663,165 @@ main.ranking-page {
   min-height: var(--h-lg);
   padding-inline: 20px;
 }
+
+/* Entrada: altura mínima do painel igual à da aba mais alta, para trocar de aba não mover o herói */
+@media (min-width: 1025px) {
+  .landing.has-leaderboard .panel.entry {
+    min-height: 714px;
+    justify-content: flex-start;
+  }
+}
+
+/* Telas de notebook (altura até ~820px, como MacBook): entrada compacta que cabe sem rolar */
+@media (min-width: 1025px) and (max-height: 820px) {
+  .landing {
+    padding-block: 14px;
+  }
+  .landing .hero h1 {
+    font-size: clamp(36px, 7vh, 50px);
+    margin: 8px 0 10px;
+  }
+  .landing .hero p {
+    font-size: 16px;
+  }
+  .landing.has-leaderboard .panel.entry {
+    min-height: 0;
+    padding: 18px 24px;
+  }
+  .landing.has-leaderboard .panel.entry h2 {
+    font-size: 28px;
+    margin: 4px 0 10px;
+  }
+  .landing.has-leaderboard .panel.entry label {
+    margin: 8px 0;
+    font-size: 13px;
+  }
+  .landing .entry .seg {
+    margin: 8px 0;
+  }
+  .landing .entry input,
+  .landing .entry select {
+    padding-block: 8px;
+  }
+  .landing.has-leaderboard .panel.entry .primary.wide {
+    padding: 11px 18px;
+    min-height: var(--h-lg);
+  }
+  .landing .home-lb-widget {
+    padding: 14px 16px;
+    gap: 8px;
+  }
+  .landing-foot {
+    padding-block: 8px;
+  }
+}
+@media (min-width: 1025px) and (max-height: 760px) {
+  .landing.has-leaderboard .panel.entry {
+    padding-block: 14px;
+  }
+  .landing.has-leaderboard .panel.entry h2 {
+    font-size: 24px;
+    margin: 2px 0 6px;
+  }
+  .landing.has-leaderboard .panel.entry label {
+    margin: 5px 0;
+  }
+  .landing .entry .step {
+    display: none;
+  }
+  .landing .entry .seg {
+    margin: 6px 0;
+  }
+}
+@media (min-width: 1025px) and (max-height: 760px) {
+  main.in-landing > header {
+    padding-block: 6px;
+  }
+  .landing .hero h1 {
+    font-size: clamp(34px, 6vh, 44px);
+  }
+  .landing .hero-cards .pc {
+    --w: 44px;
+    --h: 61px;
+  }
+}
+@media (min-width: 1025px) and (max-height: 760px) {
+  .landing.has-leaderboard {
+    row-gap: 10px;
+  }
+  .landing .hero-meta {
+    margin-top: 12px;
+  }
+  .landing .home-lb-widget {
+    padding: 10px 14px;
+  }
+  .landing-foot {
+    padding-block: 5px;
+  }
+}
+
+/* Lobby em telas de notebook: assento em duas colunas (avatar | dados) para caber sem estourar o cartão */
+@media (min-width: 1025px) and (max-height: 820px) {
+  .lobby-seat {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'av name'
+      'av sub'
+      'av act';
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 3px;
+    text-align: left;
+    padding: 8px 10px;
+  }
+  .lobby-seat > .avatar,
+  .lobby-seat > .vacant-av {
+    grid-area: av;
+    width: 44px;
+    height: 44px;
+  }
+  .lobby-seat > b {
+    grid-area: name;
+    justify-content: flex-start;
+  }
+  .lobby-seat > small {
+    grid-area: sub;
+  }
+  .lobby-seat > .add-bot-btn {
+    padding-inline: 8px;
+    font-size: 11.5px;
+  }
+  .lobby-seat > .lobby-seat-actions,
+  .lobby-seat > .add-bot-btn {
+    grid-area: act;
+    justify-content: flex-start;
+    margin-top: 2px;
+  }
+}
+.lobby-seat .add-bot-btn {
+  white-space: nowrap;
+}
+.lobby-avatar-card .seg button {
+  padding-inline: 8px;
+  font-size: 12.5px;
+}
+
+/* Dock compacto em telas baixas: mais altura para a mesa */
+@media (min-width: 1025px) and (max-height: 760px) {
+  .dock {
+    padding: 8px 14px;
+  }
+  .dock-head {
+    margin-bottom: 6px;
+  }
+  .action {
+    min-height: 42px;
+  }
+  .bet-panel {
+    padding-block: 5px;
+  }
+  .arena {
+    padding-bottom: 8px;
+  }
+}

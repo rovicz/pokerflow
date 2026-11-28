@@ -1,4 +1,5 @@
 'use client';
+import './room-extras.css';
 import { useEffect, useRef, useState } from 'react';
 import type { LeaderboardRow } from '../../poker/leaderboard.ts';
 import type { PublicState } from '../../poker/game-types.ts';
@@ -18,8 +19,21 @@ export default function Page({
 }: {
   initialLeaderboard?: LeaderboardRow[] | null;
 }) {
-  const { game, error, setError, notice, setNotice, conn, pending, now, send, sendEmote, leave } =
-    useRoom();
+  const {
+    game,
+    error,
+    setError,
+    notice,
+    setNotice,
+    conn,
+    pending,
+    actionStatus,
+    retryAction,
+    now,
+    send,
+    sendEmote,
+    leave,
+  } = useRoom();
   const { mutedUids, toggleMute: togglePlayerMute } = useMutedPlayers(game?.code);
   const [muted, setMutedState] = useState(false);
   const [emotesMuted, setEmotesMuted] = useState(false);
@@ -65,6 +79,7 @@ export default function Page({
   const inLobby = !!s && s.phase === 'waiting';
   const champion =
     s?.phase === 'settled' &&
+    !s.guided &&
     s.players.filter((q) => !q.kicked && !q.left && q.stack > 0).length === 1
       ? s.players.find((q) => !q.kicked && !q.left && q.stack > 0)
       : null;
@@ -206,7 +221,7 @@ export default function Page({
           >
             Continuar jogando
           </button>
-          {!s?.players.find((q) => q.self)?.sittingOut && (
+          {!s?.guided && !s?.players.find((q) => q.self)?.sittingOut && (
             <button type="button" className="outline lm-away" onClick={sitOutInstead}>
               Ficar ausente
             </button>
@@ -248,6 +263,8 @@ export default function Page({
           error={error}
           send={send}
           sendEmote={sendEmote}
+          actionStatus={actionStatus}
+          retryAction={retryAction}
           emotesMuted={emotesMuted}
           onToggleEmotesMute={toggleEmotesMute}
           mutedUids={mutedUids}

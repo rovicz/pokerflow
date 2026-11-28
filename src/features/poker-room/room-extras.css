@@ -1,0 +1,104 @@
+.entry-presets,
+.lobby-ready,
+.game-context,
+.replay-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.entry-presets {
+  margin-bottom: 8px;
+}
+
+.entry-presets button[aria-pressed='true'],
+.lobby-ready button[aria-pressed='true'] {
+  border-color: var(--gold, #dca85d);
+}
+
+.entry .learn-entry {
+  margin-block: 0 8px;
+}
+
+.lobby-ready {
+  margin-block: 0 8px;
+}
+
+.lobby-interest,
+.presence-label {
+  color: #efbd76;
+}
+
+.presence-label {
+  margin-inline-start: 4px;
+  font-size: 0.75em;
+}
+
+.game-context,
+.game-coach {
+  color: var(--muted, #b8b8bd);
+  font-size: 0.85rem;
+}
+
+.game-result-tools:not(:has(> button, > span, dialog[open])) {
+  display: none;
+}
+
+.pot-details-modal {
+  max-height: 85dvh;
+  overflow: auto;
+}
+
+.pot-breakdown {
+  display: grid;
+  gap: 12px;
+  margin-block: 12px;
+}
+
+.pot-breakdown section {
+  border-block-start: 1px solid rgba(255, 255, 255, 0.15);
+  padding-block-start: 8px;
+  overflow-wrap: anywhere;
+}
+
+.pot-breakdown h3,
+.pot-breakdown p {
+  margin: 0 0 4px;
+}
+
+.replay-controls {
+  justify-content: space-between;
+  margin-block: 8px;
+}
+
+.replay-action,
+.history-replay-button {
+  margin-block: 8px;
+}
+
+.spectator-dock .dock-head-right,
+.showdown-head .dock-head-right {
+  flex-wrap: wrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing > :is(.hero, .entry, .home-lb-widget) {
+    animation: landing-appear 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .landing > .entry {
+    animation-delay: 80ms;
+  }
+
+  .landing > .home-lb-widget {
+    animation-delay: 140ms;
+  }
+}
+
+@keyframes landing-appear {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}

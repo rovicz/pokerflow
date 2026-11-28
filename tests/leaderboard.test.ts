@@ -1,13 +1,10 @@
+import { computeHandStatDeltas } from '../src/poker/hand-stats.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { GameState, Player } from '../src/poker/game-types.ts';
 import { start, act, view, rematch } from '../src/poker/engine.ts';
 import { createBotPlayer } from '../src/poker/bot-ai.ts';
-import {
-  computeHandStatDeltas,
-  rankEntries,
-  type LeaderboardRow,
-} from '../src/poker/leaderboard.ts';
+import { rankEntries, type LeaderboardRow } from '../src/poker/leaderboard.ts';
 
 function makeRoom(humans: { name: string; userId?: string }[], bots = 0, stack = 2000): GameState {
   const players: Player[] = humans.map((h, i) => ({
@@ -157,5 +154,64 @@ test('rankEntries ordena corretamente nas 4 categorias com desempates determiní
   assert.deepEqual(
     rankEntries(rows, 'biggest_pot').map((r) => r.username),
     ['bob', 'alice', 'carol'],
+  );
+});
+
+test('potes diferentes e apelidos iguais distribuem e pontuam por assento', () => {
+  const s = makeRoom([
+    { name: 'Ana', userId: 'a' },
+    { name: 'Bia', userId: 'b' },
+    { name: 'Ana', userId: 'c' },
+  ]);
+  Object.assign(s, {
+    board: [0, 16, 33, 47, 11],
+    hand: 1,
+    phase: 'river',
+    turn: 2,
+    dealer: 0,
+    current: 0,
+    minRaise: 20,
+    deadline: Date.now() + 30_000,
+  });
+  const cards = [
+    [12, 25],
+    [10, 23],
+    [9, 22],
+  ];
+  s.players.forEach((p, i) =>
+    Object.assign(p, {
+      cards: cards[i],
+      total: [50, 100, 130][i],
+      stack: 2000 - [50, 100, 130][i],
+      acted: i !== 2,
+    }),
+  );
+  act(s, s.players[2].id, 'check');
+  assert.deepEqual(
+    s.pots?.map((p) => [p.amount, p.eligible.length, p.awards[0].seat]),
+    [
+      [150, 3, 0],
+      [100, 2, 1],
+    ],
+  );
+  assert.deepEqual(
+    s.refunds?.map((refund) => [refund.seat, refund.amount]),
+    [[2, 30]],
+  );
+  assert.equal(
+    s.players.reduce((sum, p) => sum + p.stack, 0),
+    6000,
+  );
+  assert.deepEqual(
+    s.history?.[0].showdown?.map((row) => row.won),
+    [true, true, false],
+  );
+  assert.deepEqual(
+    computeHandStatDeltas(s).map((d) => [d.userId, d.handsWon, d.chipsWon, d.biggestPot]),
+    [
+      ['a', 1, 150, 150],
+      ['b', 1, 100, 100],
+      ['c', 0, 0, 0],
+    ],
   );
 });

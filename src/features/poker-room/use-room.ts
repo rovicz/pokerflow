@@ -12,6 +12,7 @@ export type SendExtra = {
   bb?: number;
   seconds?: number;
   bots?: number;
+  guided?: boolean;
   botDifficulty?: BotDifficulty;
   blindsMode?: BlindMode;
   blindsEvery?: number;
@@ -27,6 +28,23 @@ export type SendExtra = {
   avatar?: { style: AvatarStyle; seed: string };
 };
 export type Connection = 'ok' | 'offline';
+type ActionAttempt = {
+  code: string;
+  actionId: string;
+  turnKey: string;
+  type?: string;
+  amount?: number;
+};
+export type ActionStatus = 'checking' | 'retry' | 'confirmed' | 'expired';
+const pendingActionKey = 'pf-pending-action';
+
+function savedAction(): ActionAttempt | null {
+  try {
+    return JSON.parse(sessionStorage.getItem(pendingActionKey) ?? 'null') as ActionAttempt | null;
+  } catch {
+    return null;
+  }
+}
 
 const newToken = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(32)), (x) =>
@@ -43,6 +61,9 @@ export function useRoom() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [pending, P] = useState(false);
+  const [actionStatus, setActionStatus] = useState<ActionStatus | null>(null);
+  const actionAttempt = useRef<ActionAttempt | null>(null);
+  const resumeCode = useRef('');
   const [conn, setConn] = useState<Connection>('ok');
   const [now, T] = useState(Date.now());
   const token = useRef('');
@@ -63,14 +84,63 @@ export function useRoom() {
       localStorage.setItem('pf-token', t);
     }
     token.current = t;
+    const saved = localStorage.getItem('pf-room') ?? '';
+    const invited = new URLSearchParams(location.search).get('room')?.trim().toUpperCase();
+    resumeCode.current = saved && (!invited || invited === saved) ? saved : '';
+    if (resumeCode.current) {
+      const unresolved = savedAction();
+      if (unresolved?.code === saved) {
+        actionAttempt.current = unresolved;
+        setActionStatus('checking');
+      }
+      void send('state', { code: saved }, true);
+    }
+    const resumeTimer = setInterval(() => {
+      if (resumeCode.current) void send('state', { code: resumeCode.current }, true);
+    }, 2200);
     const timer = setInterval(() => T(Date.now() + offset.current), 200);
-    return () => clearInterval(timer);
+    const onOnline = () => {
+      if (latest.current || resumeCode.current)
+        void send('state', { code: latest.current?.code ?? resumeCode.current }, true);
+    };
+    window.addEventListener('online', onOnline);
+    return () => {
+      clearInterval(timer);
+      clearInterval(resumeTimer);
+      window.removeEventListener('online', onOnline);
+    };
   }, []);
 
-  function exit(message = '') {
-    history.replaceState(null, '', location.pathname);
+  function saveAttempt(attempt: ActionAttempt | null) {
+    actionAttempt.current = attempt;
+    if (attempt) sessionStorage.setItem(pendingActionKey, JSON.stringify(attempt));
+    else sessionStorage.removeItem(pendingActionKey);
+  }
+
+  function reconcileAction(room: Room, fromAction: boolean) {
+    const attempt = actionAttempt.current;
+    if (!attempt) return;
+    if (attempt.code !== room.code) {
+      saveAttempt(null);
+      setActionStatus(null);
+    } else if (room.myActionReceipts?.includes(attempt.actionId)) {
+      saveAttempt(null);
+      setActionStatus(fromAction ? null : 'confirmed');
+    } else if (room.turnKey !== attempt.turnKey) {
+      saveAttempt(null);
+      setActionStatus('expired');
+    } else {
+      setActionStatus('retry');
+    }
+  }
+
+  function exit(message = '', inviteCode?: string) {
+    history.replaceState(null, '', location.pathname + (inviteCode ? '?room=' + inviteCode : ''));
     epoch.current++;
     latest.current = null;
+    resumeCode.current = '';
+    saveAttempt(null);
+    setActionStatus(null);
     G(null);
     setError('');
     setNotice(message);
@@ -79,7 +149,12 @@ export function useRoom() {
     localStorage.removeItem('pf-room');
   }
 
-  async function send(op: GameOperation, extra: SendExtra = {}, quiet = false) {
+  async function send(
+    op: GameOperation,
+    extra: SendExtra = {},
+    quiet = false,
+    retry?: ActionAttempt,
+  ) {
     if (
       !token.current ||
       mutating.current ||
@@ -89,6 +164,20 @@ export function useRoom() {
     const ep = epoch.current,
       prevGame = latest.current,
       t0 = Date.now();
+    const requestCode = extra.code ?? prevGame?.code;
+    let attempt: ActionAttempt | null = null;
+    if (op === 'action') {
+      if (!prevGame?.turnKey || (actionAttempt.current && !retry)) return;
+      attempt = retry ?? {
+        code: prevGame.code,
+        turnKey: prevGame.turnKey,
+        actionId: crypto.randomUUID(),
+        type: extra.type,
+        amount: extra.amount,
+      };
+      saveAttempt(attempt);
+      setActionStatus('checking');
+    }
     if (quiet) polling.current = true;
     else {
       mutating.current = true;
@@ -105,45 +194,63 @@ export function useRoom() {
           code: prevGame?.code,
           version: prevGame?.version,
           ...extra,
+          ...attempt,
         }),
+        signal: AbortSignal.timeout(6500),
       });
       const body: unknown = await r.json().catch(() => null);
+      if (ep !== epoch.current || (quiet && latest.current && latest.current.code !== requestCode))
+        return;
+      if (r.status >= 500) throw new TypeError('Resposta indisponível');
       failures.current = 0;
       setConn('ok');
-      if (ep !== epoch.current) return;
       if (r.status === 429) {
         coolUntil.current = Date.now() + 3000; // respeita o limite do servidor
-        if (!quiet) setError(errorOf(body, 'Muitas requisições. Aguarde alguns segundos.'));
+        if (!attempt && !quiet)
+          setError(errorOf(body, 'Muitas requisições. Aguarde alguns segundos.'));
         return;
       }
-      if (prevGame && op === 'state') {
+      if ((prevGame || resumeCode.current) && op === 'state') {
         if (r.status === 404)
           return exit('Esta sala não existe mais. Ela pode ter expirado por inatividade.');
         if (r.status === 403)
           return exit(
-            body && typeof body === 'object' && 'banned' in body && body.banned
-              ? 'Você foi expulso desta sala por votação.'
-              : body && typeof body === 'object' && 'removed' in body
-                ? 'Você foi removido da sala pelo anfitrião.'
-                : 'Você não está mais nesta sala.',
+            errorOf(body, 'Você não está mais nesta sala.'),
+            body && typeof body === 'object' && 'removed' in body ? undefined : requestCode,
           );
       }
-      if (!r.ok) throw Error(errorOf(body, 'Não foi possível concluir.'));
+      if (!r.ok) {
+        if (r.status === 409 && (prevGame || resumeCode.current)) {
+          again.current = true;
+          if (attempt) return;
+        }
+        if (attempt) {
+          saveAttempt(null);
+          setActionStatus(null);
+        }
+        throw Error(errorOf(body, 'Não foi possível concluir.'));
+      }
+      if (!body || typeof body !== 'object' || !('state' in body)) {
+        throw new TypeError('Resposta indisponível');
+      }
       const x = body as Room;
       if (latest.current?.code === x.code && latest.current.version > x.version) return;
       if (typeof x.now === 'number') offset.current = x.now - (t0 + (Date.now() - t0) / 2);
+      resumeCode.current = '';
       latest.current = x;
       G(x);
+      reconcileAction(x, op === 'action');
       localStorage.setItem('pf-room', x.code);
       if (extra.name) localStorage.setItem('pf-name', extra.name);
+      if (op === 'create' && location.search) history.replaceState(null, '', location.pathname);
     } catch (e) {
-      if (e instanceof TypeError) {
-        // falha de rede (fetch rejeitado): sinaliza depois de duas tentativas seguidas
+      if (ep !== epoch.current) return;
+      if (e instanceof TypeError || (e instanceof DOMException && e.name === 'TimeoutError')) {
         if (++failures.current >= 2) setConn('offline');
-        if (!quiet && ep === epoch.current)
+        if (attempt) again.current = true;
+        else if (!quiet)
           setError('Sem conexão com o servidor. Verifique sua internet e tente de novo.');
-      } else if (!quiet && ep === epoch.current)
-        setError(e instanceof Error ? e.message : 'Não foi possível concluir.');
+      } else if (!quiet) setError(e instanceof Error ? e.message : 'Não foi possível concluir.');
     } finally {
       if (quiet) polling.current = false;
       else {
@@ -152,7 +259,8 @@ export function useRoom() {
       }
       if (again.current) {
         again.current = false;
-        void send('state', {}, true);
+        const code = latest.current?.code ?? resumeCode.current;
+        if (code) void send('state', { code }, true);
       }
     }
   }
@@ -186,7 +294,9 @@ export function useRoom() {
           : null,
       ].filter((v): v is number => typeof v === 'number');
       const due = dueCandidates.length ? Math.min(...dueCandidates) : null;
-      if (!socket.current || ++n % 20 === 0) void send('state', {}, true);
+      n++;
+      if (!socket.current || n % (actionAttempt.current ? 4 : 20) === 0)
+        void send('state', {}, true);
       else if (due != null && t >= due + 80 && Date.now() - asked.current > 450) {
         asked.current = Date.now();
         void send('state', {}, true);
@@ -197,6 +307,13 @@ export function useRoom() {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [!!game]);
+
+  function retryAction() {
+    const attempt = actionAttempt.current;
+    if (actionStatus === 'retry' && attempt && latest.current?.turnKey === attempt.turnKey) {
+      void send('action', {}, false, attempt);
+    }
+  }
 
   async function sendEmote(emote: EmoteId) {
     const cur = latest.current;
@@ -212,7 +329,8 @@ export function useRoom() {
       const x = (await r.json()) as Room;
       if (
         ep !== epoch.current ||
-        (latest.current?.code === x.code && latest.current.version > x.version)
+        latest.current?.code !== x.code ||
+        latest.current.version > x.version
       )
         return;
       latest.current = x;
@@ -227,7 +345,7 @@ export function useRoom() {
     const cur = latest.current;
     if (cur && token.current) {
       try {
-        await fetch('/api/game', {
+        const response = await fetch('/api/game', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -236,7 +354,15 @@ export function useRoom() {
             code: cur.code,
             version: cur.version,
           }),
+          signal: AbortSignal.timeout(6500),
         });
+        if (!response.ok && response.status !== 403 && response.status !== 404) {
+          setError(
+            errorOf(await response.json().catch(() => null), 'Não foi possível sair da mesa.'),
+          );
+          void send('state', {}, true);
+          return;
+        }
       } catch {
         // Sai localmente mesmo sem rede
       }
@@ -252,6 +378,8 @@ export function useRoom() {
     setNotice,
     conn,
     pending,
+    actionStatus,
+    retryAction,
     now,
     send,
     sendEmote,

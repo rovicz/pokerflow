@@ -61,7 +61,13 @@ test('vitória por desistência grava resumo no history sem vazar nenhuma carta 
 
   const rec = s.history![0];
   assert.equal(rec.hand, 1);
-  assert.equal(rec.pot, 30);
+  assert.equal(rec.pot, 20);
+  assert.equal(rec.refunds?.[0].amount, 10);
+  assert.equal(rec.refunds?.[0].uid, rec.winners[0].uid);
+  assert.deepEqual(
+    rec.log?.map((entry) => entry.kind),
+    ['sb', 'bb', 'fold', 'fold'],
+  );
   assert.equal(rec.reveal, false);
   assert.equal(rec.board.length, 0);
   assert.equal(rec.winners.length, 1);

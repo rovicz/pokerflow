@@ -232,7 +232,7 @@ export default function Topbar({
               <span className="btn-txt">Guia</span>
             </button>
           )}
-          {s && (
+          {s && !s.guided && (
             <button
               className={'icon-btn' + (copied ? ' is-copied' : '')}
               onClick={onInvite}

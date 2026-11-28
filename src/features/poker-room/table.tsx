@@ -23,6 +23,7 @@ type Bubble = {
 type Mood = 'idle' | 'deal' | 'nod' | 'cheer' | 'wow' | 'shrug';
 
 import Avatar from './avatar';
+import { matchesSeat } from './ui';
 import Zake from './zake';
 import BrandLogo from './brand-logo';
 import NotoEmoji from './noto-emoji';
@@ -488,6 +489,9 @@ function Seat({
           <small className="stack-val">
             <i className="chip-dot" aria-hidden="true" />
             <Num v={p.stack} />
+            {p.connected === false && !self && !p.left && !p.kicked && (
+              <span className="presence-label">Sem conexão</span>
+            )}
           </small>
         </div>
         {blind && (
@@ -505,7 +509,7 @@ function Seat({
             {blind}
           </motion.span>
         )}
-        {active && (
+        {active && !s.guided && (
           <span className="timebar-track">
             <span className={'timebar ' + timerTone} style={{ width: left + '%' }} />
           </span>
@@ -705,7 +709,7 @@ export default function Table({
     if (s.hand !== hand0.current) act('deal', 1700, 'Boa sorte!');
     else if (s.board.length > len0.current) act('nod', 800);
     else if (s.phase === 'settled' && ph0.current !== 'settled')
-      act('cheer', 2800, (winners[0]?.[0] || 'Alguém') + ' leva o pote!');
+      act('cheer', 2800, (winners[0]?.name || 'Alguém') + ' leva o pote!');
     hand0.current = s.hand;
     len0.current = s.board.length;
     ph0.current = s.phase;
@@ -809,9 +813,9 @@ export default function Table({
     y: ((b.y - a.y) / 100) * dim.h,
   });
   const settled = s.phase === 'settled';
-  const wi = winners.length ? s.players.findIndex((q) => q.name === winners[0][0]) : -1;
+  const wi = winners.length ? s.players.findIndex((q) => matchesSeat(winners[0], q)) : -1;
   const bets = s.players.reduce((a, q) => a + q.bet, 0);
-  const won = winners.map((w) => w[0]);
+  const winKey = winners.map((w) => w.uid ?? w.name).join('|');
 
   // Índices de Small Blind (SB) e Big Blind (BB) da mão atual (com fallback para salas já iniciadas)
   const { sbSeat, bbSeat } = useMemo(() => {
@@ -842,9 +846,15 @@ export default function Table({
     const sdRows = s.players
       .filter((q): q is PublicPlayer & { hand: Hand } => q.hand != null)
       .sort((a, b) => b.hand.score - a.hand.score);
-    const wRows = sdRows.filter((q) => won.includes(q.name));
-    const rRow = sdRows.find((q) => !won.includes(q.name));
-    const { decisiveIndex } = analyzeShowdown(wRows, rRow);
+    const mainPot = s.pots?.[0];
+    const wRows = sdRows.filter((q) => winners.some((w) => matchesSeat(w, q)));
+    const rRow = sdRows.find(
+      (q) =>
+        !winners.some((w) => matchesSeat(w, q)) &&
+        (!mainPot || mainPot.eligible.some((seat) => matchesSeat(seat, q))),
+    );
+    const decisiveIndex =
+      (s.pots?.length ?? 0) > 1 ? null : analyzeShowdown(wRows, rRow).decisiveIndex;
     for (const q of wRows) {
       const nCore = q.hand.coreCount ?? q.hand.cards.length;
       q.hand.cards.forEach((c, idx) => {
@@ -853,7 +863,7 @@ export default function Table({
       });
     }
     return { winCore: core, winKickers: kickers };
-  }, [settled, s.reveal, s.players, won.join('|')]);
+  }, [settled, s.reveal, s.players, s.pots, winKey]);
 
   const tgt = settled ? pos[wi] : s.turn >= 0 ? pos[s.turn] : null;
   const G = compact
@@ -876,7 +886,7 @@ export default function Table({
 
   const potPos = compact ? { x: 50, y: 37 } : POT;
   const toPot = (b: Point) => (settled && wi >= 0 ? vec(b, pos[wi]) : vec(b, potPos));
-  const displayPot = settled ? winners.reduce((a, w) => a + w[1], 0) : pot;
+  const displayPot = settled ? winners.reduce((a, w) => a + w.amount, 0) : pot;
   const tblPath = (x0: number, x1: number, y0: number, y1: number, nw = G.nw) =>
     compact ? portraitShape(x0, x1, y0, y1, G.nd, nw, G.sh) : shape(x0, x1, y0, y1, G.nd, nw, G.sh);
 
@@ -1043,11 +1053,11 @@ export default function Table({
                 exit={{ opacity: 0, y: -6, scale: 0.92 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 22 }}
               >
-                {winners.map(([n, v]) => {
-                  const wp = s.players.find((q) => q.name === n);
+                {winners.map((winner) => {
+                  const wp = s.players.find((q) => matchesSeat(winner, q));
                   const h = s.reveal ? wp?.hand : null;
                   return (
-                    <span key={n} className="winner-chip">
+                    <span key={winner.uid ?? winner.name} className="winner-chip">
                       <svg
                         width="13"
                         height="13"
@@ -1057,8 +1067,8 @@ export default function Table({
                       >
                         <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
                       </svg>
-                      <strong>{n}</strong>
-                      <b className="win-amt">+{fmt(v)}</b>
+                      <strong>{winner.name}</strong>
+                      <b className="win-amt">+{fmt(winner.amount)}</b>
                       <em className="win-hand">{h ? describeHand(h) : 'Por desistência'}</em>
                     </span>
                   );
@@ -1124,7 +1134,7 @@ export default function Table({
               active={j === s.turn}
               blind={j === sbSeat ? 'SB' : j === bbSeat ? 'BB' : null}
               left={j === s.turn ? Math.min(100, (left / s.seconds) * 100) : 0}
-              win={settled && won.includes(q.name)}
+              win={settled && winners.some((w) => matchesSeat(w, q))}
               winCore={winCore}
               winKickers={winKickers}
               settled={settled}

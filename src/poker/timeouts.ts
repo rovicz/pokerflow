@@ -17,8 +17,10 @@ export function resolveDue(s: GameState, now = Date.now()): boolean {
         // Se ninguém consultou a sala até depois do prazo do turno (aba parada), `act` recusaria a jogada do bot
         // ('Turno expirado') e a mesa travava para sempre. Dá uma folga curta para o bot jogar normalmente.
         if (s.deadline != null && Date.now() >= s.deadline) s.deadline = Date.now() + 1000;
-        const decision = decideBotAction(s, seat);
-        const emote = maybeBotEmote(s, seat, decision);
+        const decision = s.guided
+          ? { type: activePlayer.bet < (s.current ?? 0) ? ('call' as const) : ('check' as const) }
+          : decideBotAction(s, seat);
+        const emote = !s.guided && maybeBotEmote(s, seat, decision);
         act(s, activePlayer.id, decision.type, decision.amount);
         if (emote) {
           const res = pushEmote(s.emotes, seat, emote, now);

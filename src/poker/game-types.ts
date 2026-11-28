@@ -19,6 +19,10 @@ export type BlindSchedule = {
 export type Player = {
   id: string;
   userId?: string;
+  sessionToken?: string;
+  lastSeenAt?: number;
+  actionReceipts?: string[];
+  ready?: boolean;
   name: string;
   stack: number;
   cards: number[];
@@ -67,16 +71,17 @@ export type HandLogEntry = {
   kind: 'sb' | 'bb' | 'fold' | 'check' | 'call' | 'raise' | 'allin' | 'street';
   actor?: string;
   amount?: number;
+  paid?: number;
   cards?: number[];
   auto?: boolean;
 };
-export type HandWinnerSummary = {
-  name: string;
-  amount: number;
+export type SeatRef = { name: string; uid?: string; seat?: number };
+export type Payment = SeatRef & { amount: number };
+export type PotAward = { amount: number; eligible: SeatRef[]; awards: Payment[] };
+export type HandWinnerSummary = Payment & {
   handName?: string;
 };
-export type HandShowdownEntry = {
-  name: string;
+export type HandShowdownEntry = SeatRef & {
   cards: number[];
   handName: string;
   won: boolean;
@@ -93,10 +98,13 @@ export type HandRecord = {
   board: number[];
   reveal: boolean;
   winners: HandWinnerSummary[];
+  pots?: PotAward[];
+  refunds?: Payment[];
+  log?: HandLogEntry[];
   showdown?: HandShowdownEntry[];
   shown?: { name: string; cards: number[] };
 };
-export type Spectator = { id: string; name: string; avatar?: AvatarInfo };
+export type Spectator = { id: string; name: string; avatar?: AvatarInfo; wantsToPlay?: boolean };
 export type GameState = {
   host: string;
   initial: number;
@@ -104,7 +112,11 @@ export type GameState = {
   players: Player[];
   board: number[];
   deck?: number[];
-  result: { name: string; amount: number }[];
+  result: Payment[];
+  pots?: PotAward[];
+  refunds?: Payment[];
+  guided?: boolean;
+  turnSeq?: number;
   hand: number;
   dealer: number;
   sbSeat?: number;
@@ -137,14 +149,23 @@ export type GameState = {
   touched?: number;
   emotes?: EmoteEvent[];
 };
-export type PublicPlayer = Omit<Player, 'id' | 'userId'> & {
+export type PublicPlayer = Omit<
+  Player,
+  'id' | 'userId' | 'sessionToken' | 'lastSeenAt' | 'actionReceipts'
+> & {
   uid: string;
   self: boolean;
   isHost?: boolean;
   verified?: boolean;
+  connected?: boolean;
   hand: Hand | null;
 };
-export type PublicSpectator = { name: string; avatar?: AvatarInfo; self: boolean };
+export type PublicSpectator = {
+  name: string;
+  avatar?: AvatarInfo;
+  self: boolean;
+  wantsToPlay?: boolean;
+};
 export type PublicState = Omit<
   GameState,
   | 'host'
@@ -170,9 +191,11 @@ export type Room = {
   state: PublicState;
   version: number;
   now?: number;
+  turnKey?: string;
+  myActionReceipts?: string[];
   channel?: string;
 };
-export type Winners = [name: string, amount: number][];
+export type Winners = Payment[];
 export type GameOperation =
   | 'create'
   | 'join'
@@ -190,4 +213,7 @@ export type GameOperation =
   | 'sit_out'
   | 'blinds'
   | 'leave'
-  | 'sit';
+  | 'sit'
+  | 'recover'
+  | 'ready'
+  | 'want_to_play';

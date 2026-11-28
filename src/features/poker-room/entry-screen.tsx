@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import type { BlindMode, BotDifficulty, GameOperation } from '../../poker/game-types.ts';
 import { BOT_DIFFICULTIES, BOT_DIFFICULTY_LABELS } from '../../poker/bot-ai.ts';
 import {
@@ -25,6 +25,12 @@ type Props = {
   initialLeaderboard?: LeaderboardRow[] | null;
 };
 
+const TABLE_PRESETS = [
+  { name: 'Rápida', stack: 1000, bb: 20, seconds: 15, blindsEvery: 180, duration: '15 a 30 min' },
+  { name: 'Padrão', stack: 2000, bb: 20, seconds: 30, blindsEvery: 300, duration: '30 a 60 min' },
+  { name: 'Longa', stack: 5000, bb: 20, seconds: 45, blindsEvery: 480, duration: '60 a 120 min' },
+] as const;
+
 // Tela de entrada: convite recebido (só entrar) ou começar (criar mesa / entrar com código).
 export default function EntryScreen({
   send,
@@ -35,7 +41,6 @@ export default function EntryScreen({
   onOpenAuth,
   initialLeaderboard = null,
 }: Props) {
-  const reducedMotion = useReducedMotion();
   const { enabled: authEnabled, user, profile } = useAuth();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -47,6 +52,25 @@ export default function EntryScreen({
   const [blindsMode, setBlindsMode] = useState<BlindMode>('fixed');
   const [blindsEvery, setBlindsEvery] = useState(8);
   const [mode, setMode] = useState<'create' | 'bots' | 'join'>('create');
+  const preset = TABLE_PRESETS.find(
+    (p) =>
+      blindsMode === 'time' &&
+      p.stack === stack &&
+      p.bb === bb &&
+      p.seconds === seconds &&
+      p.blindsEvery === blindsEvery,
+  );
+  const validCode = /^[A-F0-9]{12}$/.test(code.trim());
+  const recover = authEnabled && validCode && (
+    <button
+      type="button"
+      className="text-button"
+      disabled={pending || (!user && !onOpenAuth)}
+      onClick={() => (user ? send('recover', { code }) : onOpenAuth?.('login'))}
+    >
+      {user ? 'Recuperar meu assento' : 'Entrar na conta para recuperar o assento'}
+    </button>
+  );
   const previewLevels = previewBlindLevels(bb, 4);
 
   function selectBlindsMode(next: BlindMode) {
@@ -150,9 +174,12 @@ export default function EntryScreen({
 
   useEffect(() => {
     const inv = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
-    setCode(inv);
+    if (inv) setCode(inv);
     setInvited(!!inv);
     setSaved((!inv && localStorage.getItem('pf-room')) || '');
+  }, [notice]);
+
+  useEffect(() => {
     setName(localStorage.getItem('pf-name') || '');
   }, []);
 
@@ -170,12 +197,7 @@ export default function EntryScreen({
   return (
     <>
       <section className={'landing' + (!invited ? ' has-leaderboard' : '')}>
-        <motion.div
-          className="hero"
-          initial={reducedMotion ? false : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <div className="hero">
           <div className="eyebrow">● O CLUBE É SEU</div>
           <h1>
             Seus amigos.
@@ -196,14 +218,9 @@ export default function EntryScreen({
               <span>Fichas virtuais</span>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          className="panel entry"
-          initial={reducedMotion ? false : { opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <div className="panel entry">
           {notice && (
             <p className="notice" role="status">
               {notice}
@@ -237,6 +254,7 @@ export default function EntryScreen({
               >
                 Entrar na mesa →
               </button>
+              {recover}
               {error && (
                 <p className="error" role="alert">
                   {error}
@@ -256,8 +274,8 @@ export default function EntryScreen({
                   </div>
                   <button
                     className="primary"
-                    disabled={pending || !name.trim()}
-                    onClick={() => send('join', { code: saved, name })}
+                    disabled={pending}
+                    onClick={() => send('state', { code: saved })}
                   >
                     Voltar à mesa →
                   </button>
@@ -287,6 +305,14 @@ export default function EntryScreen({
                   onChange={(e) => setName(e.target.value)}
                 />
               </label>
+              <button
+                type="button"
+                className="outline wide learn-entry"
+                disabled={pending}
+                onClick={() => send('create', { guided: true, name })}
+              >
+                Aprender jogando
+              </button>
               <div className="seg" role="tablist" aria-label="O que você quer fazer?">
                 <button
                   role="tab"
@@ -331,6 +357,27 @@ export default function EntryScreen({
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.18 }}
                   >
+                    <div className="entry-presets">
+                      {TABLE_PRESETS.map((option) => (
+                        <button
+                          type="button"
+                          key={option.name}
+                          className={
+                            'outline seat-mini-btn' + (preset === option ? ' is-selected' : '')
+                          }
+                          aria-pressed={preset === option}
+                          onClick={() => {
+                            setStack(option.stack);
+                            setBb(option.bb);
+                            setSeconds(option.seconds);
+                            setBlindsMode('time');
+                            setBlindsEvery(option.blindsEvery);
+                          }}
+                        >
+                          {option.name}
+                        </button>
+                      ))}
+                    </div>
                     <div className="fields">
                       <label>
                         Fichas
@@ -381,7 +428,9 @@ export default function EntryScreen({
                       Criar mesa privada →
                     </button>
                     <p className="step">
-                      Depois de criar, você recebe um link para convidar seus amigos.
+                      {preset
+                        ? `Duração estimada de ${preset.duration} para 4 a 6 pessoas.`
+                        : 'Depois de criar, você recebe um link para convidar seus amigos.'}
                     </p>
                   </motion.div>
                 ) : mode === 'bots' ? (
@@ -508,6 +557,7 @@ export default function EntryScreen({
                     >
                       Entrar na mesa →
                     </button>
+                    {recover}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -518,7 +568,7 @@ export default function EntryScreen({
               )}
             </>
           )}
-        </motion.div>
+        </div>
         {!invited && <HomeLeaderboard initialRows={initialLeaderboard} />}
       </section>
       <footer className="landing-foot">

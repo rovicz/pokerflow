@@ -4672,18 +4672,27 @@ main.ranking-page {
     grid-template-areas:
       'av name'
       'av sub'
-      'av act';
+      'act act';
     align-items: center;
     column-gap: 10px;
     row-gap: 3px;
     text-align: left;
     padding: 8px 10px;
   }
+  .lobby-seat {
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    row-gap: 4px;
+  }
   .lobby-seat > .avatar,
   .lobby-seat > .vacant-av {
     grid-area: av;
     width: 44px;
     height: 44px;
+    align-self: center;
+  }
+  .lobby-seat > .add-bot-btn {
+    justify-self: stretch;
   }
   .lobby-seat > b {
     grid-area: name;

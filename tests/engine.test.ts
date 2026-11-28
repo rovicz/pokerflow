@@ -1,5 +1,5 @@
 import type { GameState } from '../src/poker/game-types.ts';
-import test from 'node:test';
+import { afterEach, jest, test } from '@jest/globals';
 import assert from 'node:assert/strict';
 import { deck, score, start, act, view, betweenHands } from '../src/poker/engine.ts';
 test('deck is unique', () => {
@@ -87,8 +87,12 @@ test('avatar: aceita só estilo da lista e seed simples', () => {
   assert.equal(cleanAvatar({ style: 'bottts', seed: '<script>' }, '').seed, 'zake');
 });
 
-test('next hand starts after 15 seconds of unpaused time', (t) => {
-  t.mock.timers.enable({ apis: ['Date'], now: 1000 });
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+test('next hand starts after 15 seconds of unpaused time', () => {
+  jest.useFakeTimers({ now: 1000 });
   const s: GameState = {
     host: 'a',
     initial: 2000,
@@ -111,14 +115,14 @@ test('next hand starts after 15 seconds of unpaused time', (t) => {
   assert.equal(s.nextHandAt, 16000);
   assert.throws(() => betweenHands(s, 'b', 'tick'));
   assert.throws(() => betweenHands(s, 'b', 'pause'));
-  t.mock.timers.setTime(6000);
+  jest.setSystemTime(6000);
   betweenHands(s, 'a', 'pause');
   assert.equal(s.pausedFor, 10000);
-  t.mock.timers.setTime(24000);
+  jest.setSystemTime(24000);
   assert.throws(() => betweenHands(s, 'b', 'tick'));
   betweenHands(s, 'a', 'resume');
   assert.equal(s.nextHandAt, 34000);
-  t.mock.timers.setTime(34000);
+  jest.setSystemTime(34000);
   betweenHands(s, 'b', 'tick');
   assert.equal(s.hand, 2);
   assert.equal(s.nextHandAt, undefined);

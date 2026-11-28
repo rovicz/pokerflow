@@ -66,6 +66,10 @@ npm test
 npm run build
 ```
 
+O `npm test` executa as suítes com Jest e SWC. A checagem de tipos, incluindo os testes,
+continua em `npm run typecheck`. Para rodar só as regras do Texas Hold’em, use
+`npm test -- tests/poker-rules.test.ts`.
+
 Use `npm run format` para aplicar o Prettier. Na Vercel, selecione **Next.js**, mantenha a raiz do projeto em `/` e configure o ambiente com **Node.js 24**. O [`vercel.json`](vercel.json) agenda a limpeza diária de salas inativas há sete dias. Uma sala sem jogadores conectados avança quando volta a receber uma requisição.
 
 A identidade visual segue o [guia de marca Sacflow](https://sacflow.com.br/guia-de-marca-sacflow).

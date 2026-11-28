@@ -40,13 +40,13 @@ export default function EmotePicker({
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = document.activeElement?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (document.querySelector('dialog[open]')) return;
       if (e.key === 'Escape' && open) {
         e.preventDefault();
         setOpen(false);
         return;
       }
       if (e.key.toLowerCase() === 'e') {
-        if (document.querySelector('dialog[open]')) return;
         e.preventDefault();
         setOpen((v) => !v);
       }

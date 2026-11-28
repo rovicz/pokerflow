@@ -57,12 +57,25 @@
   overflow: visible;
 }
 
-.zbubble {
-  @apply absolute;
-  left: calc(100% + 12px);
-  @apply top-[10px] whitespace-nowrap m-[0];
+.dealer .zbubble {
+  @apply absolute top-[10px] m-[0];
+  left: calc(100% + 8px);
+  inline-size: max-content;
+  max-inline-size: min(185px, calc(50vw - 62px));
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  pointer-events: none;
   background: rgba(246, 246, 243, 0.96);
   @apply text-poker-ink-dark;
+}
+
+.champion-dealer {
+  position: absolute;
+  inset-block-start: 40px;
+  inset-inline-end: clamp(12px, 9%, 42px);
+  inline-size: clamp(38px, 13vw, 60px);
+  pointer-events: none;
 }
 
 /* Baralho ancorado à esquerda das cartas comunitárias e Pote centralizado */

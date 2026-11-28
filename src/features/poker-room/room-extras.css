@@ -57,12 +57,6 @@
   margin-block: 6px;
 }
 
-.dock .pot-breakdown {
-  max-block-size: min(24dvh, 13rem);
-  overflow: auto;
-  text-align: start;
-}
-
 .pot-breakdown section {
   display: grid;
   gap: 5px;
@@ -192,4 +186,48 @@
     flex: 1;
     justify-content: space-between;
   }
+}
+
+.table-dialog {
+  inset: 0;
+  margin: auto;
+}
+
+.table-dialog-heading {
+  margin-bottom: 14px;
+}
+
+.modal.history-dialog {
+  width: min(620px, calc(100vw - 32px));
+  padding: 0;
+}
+
+.history-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.table-dialog .hh-head h2 {
+  margin: 0;
+}
+
+.table-dialog h2 {
+  font-size: clamp(1.375rem, 3vw, 2rem);
+}
+
+.toast.action-retry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: #1d2029;
+}
+
+.toast.game-error {
+  color: #fecaca;
+  background: #301923;
 }

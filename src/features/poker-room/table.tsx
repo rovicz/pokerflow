@@ -2,7 +2,13 @@
 import './table.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { animate } from 'motion';
-import { AnimatePresence, motion, type Variants, type MotionStyle } from 'motion/react';
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  type Variants,
+  type MotionStyle,
+} from 'motion/react';
 import type {
   Action,
   Hand,
@@ -20,11 +26,11 @@ type Bubble = {
   type: Action;
   txt: string;
 };
-type Mood = 'idle' | 'deal' | 'nod' | 'cheer' | 'wow' | 'shrug';
 
 import Avatar from './avatar';
 import { matchesSeat } from './ui';
 import Zake from './zake';
+import { dealerReactions, type DealerReaction } from './dealer-reactions.ts';
 import BrandLogo from './brand-logo';
 import NotoEmoji from './noto-emoji';
 import PlayerMenu from './player-menu';
@@ -623,11 +629,19 @@ export default function Table({
   const [activeEmotes, setActiveEmotes] = useState<Record<number, EmoteEvent>>({});
   const seenEmoteSeq = useRef((s.emotes || []).reduce((m, e) => Math.max(m, e.seq), 0));
   const emoteTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-  const [mood, setMood] = useState<{ n: Mood; say?: string }>({ n: 'idle' });
-  const hand0 = useRef(s.hand),
-    len0 = useRef(s.board.length),
-    ph0 = useRef(s.phase),
-    mt = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [reaction, setReaction] = useState<DealerReaction | null>(null);
+  const previousDealerState = useRef<PublicState | null>(null);
+  const dealerTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const dealerSpeaking = useRef(false);
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(dealerTimer.current);
+      previousDealerState.current = null;
+      dealerSpeaking.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const timers = emoteTimers.current;
@@ -682,12 +696,6 @@ export default function Table({
     });
   }, [mutedUids, s.players]);
 
-  const act = (n: Mood, ms: number, say?: string) => {
-    clearTimeout(mt.current);
-    setMood({ n, say });
-    mt.current = setTimeout(() => setMood({ n: 'idle' }), ms);
-  };
-
   useEffect(() => {
     const el = wrap.current?.parentElement;
     if (!el) return;
@@ -703,14 +711,20 @@ export default function Table({
   });
 
   useEffect(() => {
-    if (s.hand !== hand0.current) act('deal', 1700, 'Boa sorte!');
-    else if (s.board.length > len0.current) act('nod', 800);
-    else if (s.phase === 'settled' && ph0.current !== 'settled')
-      act('cheer', 2800, (winners[0]?.name || 'Alguém') + ' leva o pote!');
-    hand0.current = s.hand;
-    len0.current = s.board.length;
-    ph0.current = s.phase;
-  }, [s.hand, s.board.length, s.phase]);
+    const reactions = dealerReactions(previousDealerState.current, s);
+    previousDealerState.current = s;
+    if (!reactions.length || (!reactions[0].text && dealerSpeaking.current)) return;
+
+    clearTimeout(dealerTimer.current);
+    let index = 0;
+    const showNext = () => {
+      const next = reactions[index++];
+      setReaction(next ?? null);
+      dealerSpeaking.current = !!next?.text;
+      if (next) dealerTimer.current = setTimeout(showNext, next.duration);
+    };
+    showNext();
+  }, [s]);
 
   const shownKey = s.players.map((q) => (q.shown ?? []).join(',')).join('|');
   const prevShownKey = useRef(shownKey);
@@ -718,7 +732,6 @@ export default function Table({
     if (shownKey !== prevShownKey.current) {
       prevShownKey.current = shownKey;
       if (s.phase === 'settled' && !s.reveal && s.players.some((q) => (q.shown?.length ?? 0) > 0)) {
-        act('wow', 2200, 'Olha o blefe!');
         sfx.flip();
       }
     }
@@ -728,7 +741,6 @@ export default function Table({
   const prevBlindLevel = useRef(blindLevel);
   useEffect(() => {
     if (blindLevel > prevBlindLevel.current) {
-      act('wow', 2400, `Blinds ${s.sb}/${s.bb}!`);
       sfx.chip();
     }
     prevBlindLevel.current = blindLevel;
@@ -740,8 +752,6 @@ export default function Table({
     lastSeq.current = L.seq;
     const q = s.players[L.seat],
       allin = q?.stack === 0 && L.type !== 'fold' && L.type !== 'check';
-    if (allin) act('wow', 2400, 'Uau, all-in!');
-    else if (L.type === 'fold') act('shrug', 800);
     setBub({
       seat: L.seat,
       seq: L.seq,
@@ -875,7 +885,7 @@ export default function Table({
   const zx = dim.w / 2,
     zy = Y0 + G.nd - G.zh / 2;
   const look =
-    mood.n === 'deal' || mood.n === 'nod' || !tgt
+    reaction?.lookAtBoard || !tgt
       ? { x: 0, y: 1 }
       : {
           x: Math.max(-1, Math.min(1, ((tgt.x / 100) * dim.w - zx) / 260)),
@@ -1173,19 +1183,19 @@ export default function Table({
           top: `calc(50% + ${(dealerTop - dim.h / 2) * scale}px)`,
         }}
       >
-        <Zake look={look} mood={mood.n} />
+        <Zake look={look} mood={reaction?.mood ?? 'idle'} />
         {compact && <span id="deck" className="mobile-deck-origin" aria-hidden="true" />}
         <AnimatePresence>
-          {mood.say && mood.n !== 'idle' && (
+          {reaction?.text && (
             <motion.div
-              key={mood.say}
+              key={reaction.text}
               className="bubble zbubble"
-              initial={{ opacity: 0, x: -8, scale: 0.9 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 6 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+              initial={reducedMotion ? false : { opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reducedMotion ? undefined : { opacity: 0 }}
+              transition={{ duration: reducedMotion ? 0 : 0.16 }}
             >
-              {mood.say}
+              {reaction.text}
             </motion.div>
           )}
         </AnimatePresence>

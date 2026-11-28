@@ -110,21 +110,6 @@ export default function GameScreen({
     if (mine && live && left > 0 && left <= 5) sfx.tick();
   }, [left, mine, live]);
 
-  // Aviso quando alguém perde a vez por tempo esgotado.
-  useEffect(() => {
-    const L = s.last;
-    if (!L?.auto) return;
-    const who = s.players[L.seat];
-    if (!who || who.kicked) return;
-    setToast(
-      (who.self ? 'Você perdeu' : who.name + ' perdeu') +
-        ' a vez (tempo esgotado) e ' +
-        (L.type === 'fold' ? 'desistiu da mão.' : 'passou.'),
-    );
-    const t = setTimeout(() => setToast(''), 4000);
-    return () => clearTimeout(t);
-  }, [s.last?.seq]);
-
   // Aviso de resultado da votação de expulsão.
   useEffect(() => {
     const vn = s.voteNotice;

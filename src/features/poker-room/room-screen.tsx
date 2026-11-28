@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import type { LeaderboardRow } from '../../poker/leaderboard.ts';
 import type { PublicState } from '../../poker/game-types.ts';
 import { setMuted, unlock, playTransition, sfx } from './sound';
 import { useRoom } from './use-room';
@@ -12,7 +13,11 @@ import LobbyScreen from './lobby-screen';
 import GameScreen from './game-screen';
 
 // Coordena a sala: sessão e rede (useRoom), preferências de som, convite, celebração e a tela certa para cada fase.
-export default function Page() {
+export default function Page({
+  initialLeaderboard = null,
+}: {
+  initialLeaderboard?: LeaderboardRow[] | null;
+}) {
   const { game, error, setError, notice, setNotice, conn, pending, now, send, sendEmote, leave } =
     useRoom();
   const { mutedUids, toggleMute: togglePlayerMute } = useMutedPlayers(game?.code);
@@ -219,6 +224,7 @@ export default function Page() {
           notice={notice}
           setError={setError}
           onOpenAuth={openAuth}
+          initialLeaderboard={initialLeaderboard}
         />
       ) : inLobby && game ? (
         <LobbyScreen

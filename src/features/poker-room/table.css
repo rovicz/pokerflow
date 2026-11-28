@@ -682,6 +682,17 @@
   color: #dbe9ff;
   border-color: rgba(102, 161, 255, 0.7);
 }
+.bubble.b-auto {
+  background: var(--amber);
+  color: #141414;
+  border-color: #fde68a;
+}
+.bubble-w.edge-l {
+  justify-content: flex-start;
+}
+.bubble-w.edge-r {
+  justify-content: flex-end;
+}
 .bubble.b-allin {
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   color: #141414;

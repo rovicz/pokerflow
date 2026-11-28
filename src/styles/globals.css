@@ -4825,3 +4825,36 @@ main.ranking-page {
     padding-bottom: 8px;
   }
 }
+
+/* Links estilizados como botão herdam a cor do botão (sem o roxo de link visitado) */
+a.outline,
+a.primary,
+a.icon-btn {
+  text-decoration: none;
+}
+a.outline,
+a.icon-btn,
+a.icon-btn:visited {
+  color: var(--ink);
+}
+a.primary,
+a.primary:visited {
+  color: #fff;
+}
+main.ranking-page,
+main.profile-page {
+  padding-top: 72px;
+}
+.profile-empty-card .lm-desc,
+.reset-card label,
+.reset-card .auth-confirm-box p {
+  font-size: 14px;
+}
+.reset-card {
+  width: min(460px, 100%);
+}
+.reset-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: 72px;
+}

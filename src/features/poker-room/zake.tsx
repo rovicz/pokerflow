@@ -10,7 +10,7 @@ const MOODS = {
   nod: { y: [0, 3, 0], rotate: [0, -4, 0], transition: { duration: 0.48 } },
   cheer: { y: [0, -4, 0, -3, 0], rotate: [0, -8, 8, -6, 6, 0], transition: { duration: 1.7 } },
   wow: { scale: [1, 1.09, 1.04, 1.09, 1], y: [0, -3, 0], transition: { duration: 1.3 } },
-  shrug: { rotate: [0, 8, -8, 0], transition: { duration: 0.68 } },
+  shrug: { rotate: 0, transition: { duration: 0.68 } },
   focus: { y: [0, 2, 0], transition: { duration: 0.52 } },
   raise: { rotate: [0, -4, 0], y: [0, -2, 0], transition: { duration: 0.72 } },
   timeout: { y: [0, 2, 0], transition: { duration: 0.8 } },

@@ -172,3 +172,46 @@ test('expõe sbSeat e bbSeat corretamente em 2 e 3 jogadores e rotaciona entre m
   assert.equal(s3.sbSeat, 2);
   assert.equal(s3.bbSeat, 0);
 });
+
+test('pular o intervalo: só o anfitrião, e só sem outros humanos na mesa', () => {
+  const base = (): GameState => ({
+    host: 'a',
+    initial: 500,
+    board: [],
+    result: [],
+    turn: -1,
+    phase: 'waiting',
+    dealer: -1,
+    hand: 0,
+    sb: 10,
+    bb: 20,
+    seconds: 30,
+    players: [
+      { id: 'a', name: 'A', stack: 500, cards: [], bet: 0, total: 0 },
+      {
+        id: 'bot1',
+        name: 'Bot',
+        stack: 500,
+        cards: [],
+        bet: 0,
+        total: 0,
+        bot: { style: 'balanced', difficulty: 'medium' },
+      },
+    ],
+  });
+  const s = base();
+  start(s);
+  act(s, s.players[s.turn].id, 'fold');
+  assert.equal(s.phase, 'settled');
+  assert.throws(() => betweenHands(s, 'bot1', 'skip'), /anfitrião/);
+  const hand = s.hand;
+  betweenHands(s, 'a', 'skip');
+  assert.equal(s.hand, hand + 1);
+  assert.notEqual(s.phase, 'settled');
+
+  const h = base();
+  h.players.push({ id: 'c', name: 'C', stack: 500, cards: [], bet: 0, total: 0 });
+  start(h);
+  while (h.phase !== 'settled') act(h, h.players[h.turn].id, 'fold');
+  assert.throws(() => betweenHands(h, 'a', 'skip'), /bots/);
+});

@@ -531,6 +531,14 @@ export function betweenHands(s: GameState, id: string, type: unknown) {
     else start(s);
     return;
   }
+  if (type === 'skip') {
+    // Pular a espera só faz sentido sem outros humanos na mesa (jogo solo contra bots).
+    if (s.host !== id) throw Error('Somente o anfitrião pode pular o intervalo');
+    if (s.players.some((p) => p.id !== id && !p.bot && !p.kicked && !p.left))
+      throw Error('Só é possível pular o intervalo jogando contra bots');
+    start(s);
+    return;
+  }
   if (s.host !== id) throw Error('Somente o anfitrião pode pausar ou retomar');
   if (type === 'pause' && s.pausedFor == null && s.nextHandAt != null && s.nextHandAt > now) {
     s.pausedFor = s.nextHandAt - now;

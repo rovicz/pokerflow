@@ -166,7 +166,7 @@ export default function Topbar({
                     <motion.span
                       layoutId="stage-pill"
                       className="stage-pill-bg"
-                      transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+                      transition={{ type: 'tween', duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                     />
                   )}
                   <i className="stage-num">{i + 1}</i>

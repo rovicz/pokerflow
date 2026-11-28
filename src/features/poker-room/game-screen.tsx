@@ -73,6 +73,9 @@ export default function GameScreen({
     (q) => !q.kicked && !q.left && !q.sittingOut && q.stack > 0,
   ).length;
   const remainingChipsCount = s.players.filter((q) => !q.kicked && !q.left && q.stack > 0).length;
+  // jogo solo contra bots: o anfitrião pode pular a espera entre as mãos
+  const soloVsBots =
+    s.players.every((q) => q.self || q.bot || q.kicked || q.left) && s.players.some((q) => q.bot);
   const hasNext = readyPlayersCount >= 2;
   const waitingForAway = !hasNext && remainingChipsCount >= 2;
   const rematchSeats = s.players.filter((q) => !q.kicked && !q.left).length;
@@ -639,6 +642,17 @@ export default function GameScreen({
                             onClick={() => send('sit_out', { active: true })}
                           >
                             Ficar ausente
+                          </button>
+                        )}
+                        {s.host && soloVsBots && (
+                          <button
+                            type="button"
+                            className="primary sm-btn"
+                            disabled={pending}
+                            title="Começar a próxima mão agora, sem esperar a contagem"
+                            onClick={() => send('interval', { type: 'skip' })}
+                          >
+                            Próxima mão agora
                           </button>
                         )}
                         {s.host && (

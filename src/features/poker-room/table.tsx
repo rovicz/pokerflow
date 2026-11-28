@@ -499,7 +499,8 @@ function Seat({
                 ? `Small Blind (${fmt(s.sb)} fichas)`
                 : `Big Blind (${fmt(s.bb)} fichas)`
             }
-            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+            // tween: a animação de layout em mola do Motion quebra ('edgeVelocity is not a function') se for interrompida
+            transition={{ type: 'tween', duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
             {blind}
           </motion.span>

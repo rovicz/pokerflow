@@ -298,9 +298,6 @@ function portraitShape(
   return `M${x0 + r},${y0} L${a - sh},${y0} C${a - sh / 2},${y0} ${a - sh / 2},${y0 + nd} ${a},${y0 + nd} L${b},${y0 + nd} C${b + sh / 2},${y0 + nd} ${b + sh / 2},${y0} ${b + sh},${y0} L${x1 - r},${y0} A${r},${r} 0 0 1 ${x1},${y0 + r} L${x1},${y1 - r} A${r},${r} 0 0 1 ${x1 - r},${y1} L${x0 + r},${y1} A${r},${r} 0 0 1 ${x0},${y1 - r} L${x0},${y0 + r} A${r},${r} 0 0 1 ${x0 + r},${y0} Z`;
 }
 
-// Posições dedicadas para mesa vertical mobile (índice 0 = jogador local na base).
-// Cada assento define (x, y) do plate e (bx, by) da ficha de aposta na zona limpa do feltro.
-
 function Seat({
   p,
   j,
@@ -785,28 +782,29 @@ export default function Table({
       };
   const scale = Math.min(area.w / dim.w, area.h / dim.h);
   const rx = compact ? 0.365 : Math.min(0.42, 0.48 - 84 / dim.w);
-  const ry = compact ? 0.4 : 0.39;
-  const cy = compact ? 54 : 51.5;
+  const local = { x: 50, y: compact ? 94 : 90.5 };
+  const seatAt = (width: number, y: number): Point => ({ x: 50 - width * rx * 100, y });
+  const upper = compact ? seatAt(0.91, 27) : seatAt(0.43, 16);
+  const middle = compact ? seatAt(0.99, 70.5) : seatAt(1, 57);
+  const lower = compact ? seatAt(0.87, 86) : seatAt(0.64, 81);
 
-  const pos = s.players.map((_, j) => {
-    const rel = (j - me + N) % N;
-    if (compact && rel > 0) {
-      // Mobile: adversários distribuídos com vão no topo (dealer) e na base (você), nos dois lados.
-      const M = N - 1,
-        lo = 0.62,
-        hi = Math.PI - 0.75,
-        L = hi - lo,
-        u = ((rel - 0.5) / M) * 2 * L,
-        th = u <= L ? lo + u : Math.PI + 0.75 + (u - L),
-        a = Math.PI / 2 + th;
-      return { x: 50 + Math.cos(a) * rx * 100, y: cy + Math.sin(a) * ry * 100 };
-    }
-    const f = rel / N,
-      H = Math.PI - 0.42; // vão no topo para o dealer
-    const a = Math.PI / 2 + (f <= 0.5 ? f * 2 * H : -(1 - f) * 2 * H);
-    const y = cy + Math.sin(a) * ry * 100;
-    return { x: 50 + Math.cos(a) * rx * 100, y };
-  });
+  // Reserve os dois lugares ao lado do dealer como um par. Quando houver um
+  // adversário a mais, use um lugar intermediário sem deslocar o par de cima.
+  const pairs = N >= 7 ? [lower, middle, upper] : N >= 5 ? [lower, upper] : [upper];
+  const leftSeats =
+    N === 8
+      ? [lower, middle, compact ? seatAt(0.99, 43) : seatAt(0.93, 34), upper]
+      : N === 6
+        ? [lower, middle, upper]
+        : N === 4
+          ? [lower, upper]
+          : pairs;
+  const rightSeats = [...pairs].reverse().map(({ x, y }) => ({ x: 100 - x, y }));
+  const seats =
+    N < 3
+      ? [local, compact ? { x: 25, y: 23 } : { x: 50 - rx * 42, y: 16 }]
+      : [local, ...leftSeats, ...rightSeats];
+  const pos = s.players.map((_, j) => seats[(j - me + N) % N]);
 
   const vec = (a: Point, b: Point) => ({
     x: ((b.x - a.x) / 100) * dim.w,

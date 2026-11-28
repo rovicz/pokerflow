@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useState, type CSSProperties } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import type { GameOperation, Hand, Payment, PublicPlayer, Room } from '../../poker/game-types.ts';
 import type { EmoteId } from '../../poker/emotes.ts';
@@ -10,7 +10,7 @@ import EmotePicker from './emote-picker';
 import BanVoteBanner from './ban-vote-banner';
 import HandHistory from './hand-history';
 import Avatar from './avatar';
-import { PotDetailsButton } from './hand-result';
+import { hasPotDetails, PotBreakdown } from './hand-result';
 import { ActionButton, matchesSeat, MiniCard } from './ui';
 import { sfx } from './sound';
 
@@ -49,6 +49,8 @@ export default function GameScreen({
   const reducedMotion = useReducedMotion();
   const [choice, Choose] = useState({ key: '', amount: 0 });
   const [toast, setToast] = useState('');
+  const [openedPots, setOpenedPots] = useState<string | null>(null);
+  const potPanelId = useId();
   const s = game.state;
   const watching = s.role === 'spectator';
   const wantsToPlay = !!s.spectators.find((q) => q.self)?.wantsToPlay;
@@ -61,7 +63,8 @@ export default function GameScreen({
   const max = p ? p.bet + p.stack : 0;
   const min = Math.min(max, (s.current || 0) + (s.minRaise || s.bb || 20));
   const actionUnconfirmed = actionStatus === 'checking' || actionStatus === 'retry';
-  const canAct = live && mine && (left > 0 || s.guided) && !pending && !actionUnconfirmed;
+  const canTakeTurn = live && mine && (left > 0 || s.guided);
+  const canAct = canTakeTurn && !pending && !actionUnconfirmed;
   const raiseAllowed =
     !!p &&
     s.current != null &&
@@ -96,6 +99,19 @@ export default function GameScreen({
   }
   const winners = [...awards.values()];
   const hand = s.phase === 'settled' ? s.history?.at(-1) : undefined;
+  const handKey = hand && `${game.code}/${hand.hand}/${hand.at}`;
+  const potsVisible = !!handKey && openedPots === handKey;
+  const potToggle = handKey && hand && hasPotDetails(hand) && (
+    <button
+      type="button"
+      className="outline sm-btn pot-details-toggle"
+      aria-expanded={potsVisible}
+      aria-controls={potsVisible ? potPanelId : undefined}
+      onClick={() => setOpenedPots(potsVisible ? null : handKey)}
+    >
+      {potsVisible ? 'Ocultar potes' : 'Ver potes'}
+    </button>
+  );
   const multiplePots = (hand?.pots?.length ?? 0) > 1;
   const waitingSpectators = s.spectators.filter((q) => q.wantsToPlay);
   const choose = (v: number) =>
@@ -157,6 +173,13 @@ export default function GameScreen({
     const t = setTimeout(() => setToast(''), 4500);
     return () => clearTimeout(t);
   }, [s.roomNotice?.seq]);
+
+  useEffect(() => {
+    if (actionStatus !== 'expired') return;
+    setToast('O turno terminou sem que a sua jogada fosse registrada.');
+    const timer = setTimeout(() => setToast(''), 4500);
+    return () => clearTimeout(timer);
+  }, [actionStatus]);
 
   // Atalhos de teclado na vez do jogador (F = Fold, C = Check/Call, R = Raise/Bet, A = All-in)
   useEffect(() => {
@@ -231,12 +254,12 @@ export default function GameScreen({
               </div>
               <div className="dock-metrics">
                 <span className="metric">
-                  Você está assistindo · Pote <b>{fmt(pot)}</b>
+                  Você está assistindo · Pote <b>{fmt(hand?.pot ?? pot)}</b>
                 </span>
               </div>
             </div>
             <div className="dock-head-right">
-              <PotDetailsButton hand={hand} />
+              {potToggle}
               <button
                 type="button"
                 className="outline sm-btn"
@@ -251,6 +274,7 @@ export default function GameScreen({
               </button>
             </div>
           </div>
+          {potsVisible && hand && <PotBreakdown id={potPanelId} hand={hand} />}
           {error && (
             <p className="error" role="alert">
               {error}
@@ -365,45 +389,36 @@ export default function GameScreen({
                 <span className="metric sh-stack">
                   Suas fichas <b>{fmt(p?.stack)}</b>
                 </span>
+                {potToggle}
               </div>
             </div>
           )}
 
-          <div className="game-context game-result-tools">
-            <PotDetailsButton hand={hand} />
-            {!live && s.host && waitingSpectators.length > 0 && (
+          {potsVisible && hand && <PotBreakdown id={potPanelId} hand={hand} />}
+          {!live && s.host && waitingSpectators.length > 0 && (
+            <div className="game-context">
               <span>
                 {waitingSpectators.map((q) => q.name).join(', ')}{' '}
                 {waitingSpectators.length === 1 ? 'quer' : 'querem'} jogar a próxima partida.
               </span>
-            )}
-          </div>
+            </div>
+          )}
           {s.guided && live && (
             <p className="game-coach" role="status">
               {guidedHint}
             </p>
           )}
-          {actionStatus && (
+          {actionStatus === 'retry' && (
             <div className="game-context" role="status">
-              {actionStatus === 'checking' ? (
-                'Confirmando a jogada com o servidor…'
-              ) : actionStatus === 'confirmed' ? (
-                'O servidor confirmou sua jogada.'
-              ) : actionStatus === 'expired' ? (
-                'O turno terminou sem que a sua jogada fosse registrada.'
-              ) : (
-                <>
-                  A jogada ainda não aparece na mesa.
-                  <button
-                    type="button"
-                    className="outline sm-btn"
-                    disabled={pending}
-                    onClick={retryAction}
-                  >
-                    Reenviar a jogada
-                  </button>
-                </>
-              )}
+              A jogada ainda não aparece na mesa.
+              <button
+                type="button"
+                className="outline sm-btn"
+                disabled={pending}
+                onClick={retryAction}
+              >
+                Reenviar a jogada
+              </button>
             </div>
           )}
           {/* Barra de estado Ausente (Sit Out) */}
@@ -427,10 +442,10 @@ export default function GameScreen({
               <motion.div
                 key="live-controls"
                 className="dock-body"
-                initial={{ opacity: 0, y: 8 }}
+                initial={reducedMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
+                exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={{ duration: reducedMotion ? 0 : 0.2 }}
               >
                 <div className="actions">
                   <ActionButton
@@ -470,7 +485,7 @@ export default function GameScreen({
                   />
                 </div>
 
-                <div className={'bet-panel' + (!canRaise ? ' is-disabled' : '')}>
+                <div className={'bet-panel' + (canTakeTurn && raiseAllowed ? '' : ' is-disabled')}>
                   <div className="bet-left">
                     <span className="bet-title">Aposta total </span>
                     <input
@@ -538,10 +553,10 @@ export default function GameScreen({
               <motion.div
                 key="settled-controls"
                 className="dock-end"
-                initial={{ opacity: 0, y: 8 }}
+                initial={reducedMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.22 }}
+                exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={{ duration: reducedMotion ? 0 : 0.22 }}
               >
                 {s.reveal && showdownRows.length > 0 ? (
                   <>

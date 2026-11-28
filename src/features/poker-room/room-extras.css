@@ -25,6 +25,16 @@
   margin-block: 0 8px;
 }
 
+@media (min-width: 1025px) and (min-height: 621px) {
+  .lobby-seats-card .lobby-grid {
+    overflow-y: auto;
+  }
+
+  .lobby-seats-card .lobby-footer {
+    flex: none;
+  }
+}
+
 .lobby-interest,
 .presence-label {
   color: #efbd76;
@@ -41,30 +51,59 @@
   font-size: 0.85rem;
 }
 
-.game-result-tools:not(:has(> button, > span, dialog[open])) {
-  display: none;
-}
-
-.pot-details-modal {
-  max-height: 85dvh;
-  overflow: auto;
-}
-
 .pot-breakdown {
   display: grid;
-  gap: 12px;
-  margin-block: 12px;
+  gap: 8px;
+  margin-block: 6px;
+}
+
+.dock .pot-breakdown {
+  max-block-size: min(24dvh, 13rem);
+  overflow: auto;
+  text-align: start;
 }
 
 .pot-breakdown section {
-  border-block-start: 1px solid rgba(255, 255, 255, 0.15);
-  padding-block-start: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
   overflow-wrap: anywhere;
 }
 
+.pot-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .pot-breakdown h3,
+.pot-breakdown p,
+.pot-breakdown ul {
+  margin: 0;
+  padding: 0;
+}
+
+.pot-breakdown h3,
+.pot-breakdown strong {
+  font-size: inherit;
+  font-weight: 700;
+}
+
 .pot-breakdown p {
-  margin: 0 0 4px;
+  font-size: 0.875em;
+  color: var(--muted);
+}
+
+.pot-breakdown strong {
+  color: #fde68a;
+}
+
+.pot-details-toggle {
+  white-space: nowrap;
 }
 
 .replay-controls {
@@ -100,5 +139,57 @@
   from {
     opacity: 0;
     transform: translateY(18px);
+  }
+}
+
+.brand-return {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+@media (min-width: 681px) {
+  header.game-topbar.has-stagebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+  }
+
+  .has-stagebar .header-right {
+    justify-self: end;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1220px) {
+  .has-stagebar .game-meta :is(.players-pill, .watching-pill) {
+    display: none;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 860px) {
+  .has-stagebar .stage-step {
+    padding-inline: 6px;
+  }
+
+  .has-stagebar .meta-pill.accent {
+    display: none;
+  }
+
+  .has-stagebar .blinds-next {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .showdown-head:has(.pot-details-toggle) {
+    flex-wrap: wrap;
+  }
+
+  .showdown-head:has(.pot-details-toggle) .showdown-headline {
+    flex-basis: 100%;
+  }
+
+  .showdown-head:has(.pot-details-toggle) .dock-head-right {
+    flex: 1;
+    justify-content: space-between;
   }
 }

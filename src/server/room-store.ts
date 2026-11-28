@@ -20,6 +20,13 @@ declare global {
   var pfMem: Map<string, RoomRow> | undefined;
 }
 
+export class RoomStoreUnavailable extends Error {
+  constructor(operation: 'read' | 'update', code: string) {
+    super('Não foi possível acessar a mesa agora.');
+    console.error('[room-store]', operation, code);
+  }
+}
+
 const memory = (globalThis.pfMem ??= new Map<string, RoomRow>());
 
 export function openRoomStore() {
@@ -43,8 +50,9 @@ export function openRoomStore() {
         .from('poker_rooms')
         .select('*')
         .eq('code', code)
-        .single();
-      return error ? null : data;
+        .maybeSingle();
+      if (error) throw new RoomStoreUnavailable('read', error.code);
+      return data;
     },
     // Remove salas sem atividade desde `cutoff` (ms). Devolve quantas foram apagadas.
     async deleteStale(cutoff: number) {
@@ -77,7 +85,8 @@ export function openRoomStore() {
         .eq('code', code)
         .eq('version', version)
         .select('version');
-      return !error && !!data?.length;
+      if (error) throw new RoomStoreUnavailable('update', error.code);
+      return !!data?.length;
     },
   };
 }

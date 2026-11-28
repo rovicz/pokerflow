@@ -9,6 +9,7 @@ import {
 } from '../src/auth/validation.ts';
 import {
   buildConfirmUrl,
+  appOrigin,
   classifyResendError,
   EmailDeliveryError,
   renderEmailHtml,
@@ -66,6 +67,31 @@ test('renderEmailHtml escapa HTML para prevenir XSS e buildConfirmUrl monta rota
   });
   assert.ok(!html.includes('<script>alert(1)</script>'));
   assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+});
+
+test('links de autenticação usam o domínio de produção antes do host de preview da Vercel', () => {
+  const original = {
+    appUrl: process.env.NEXT_PUBLIC_APP_URL,
+    productionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    deploymentUrl: process.env.VERCEL_URL,
+  };
+
+  try {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'pokerflow-theta.vercel.app';
+    process.env.VERCEL_URL = 'pokerflow-fstd4k5vf-rovicz-projects.vercel.app';
+    assert.equal(appOrigin(), 'https://pokerflow-theta.vercel.app');
+
+    process.env.NEXT_PUBLIC_APP_URL = 'https://pokerflow.example/';
+    assert.equal(appOrigin(), 'https://pokerflow.example');
+  } finally {
+    if (original.appUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+    else process.env.NEXT_PUBLIC_APP_URL = original.appUrl;
+    if (original.productionUrl === undefined) delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    else process.env.VERCEL_PROJECT_PRODUCTION_URL = original.productionUrl;
+    if (original.deploymentUrl === undefined) delete process.env.VERCEL_URL;
+    else process.env.VERCEL_URL = original.deploymentUrl;
+  }
 });
 
 test('view() nunca vaza player.userId no estado público e expõe apenas verified: true', () => {

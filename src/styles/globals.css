@@ -1231,7 +1231,8 @@ header.game-topbar {
 }
 
 .sd-card {
-  @apply flex items-center justify-between gap-[10px] p-[8px_12px] rounded-[7px];
+  @apply grid items-center gap-[10px] p-[8px_12px] rounded-[7px];
+  grid-template-columns: minmax(0, 1fr) auto;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.09);
 }
@@ -1245,11 +1246,16 @@ header.game-topbar {
   @apply flex items-center gap-[9px] min-w-[0];
 }
 
+.sd-who .avatar {
+  flex: none;
+}
+
 .sd-meta {
   @apply min-w-[0];
+  flex: 1;
 }
 .sd-who b {
-  @apply flex items-center gap-[6px] text-[13.5px] font-semibold text-poker-paper whitespace-nowrap;
+  @apply flex flex-wrap items-center gap-[6px] text-[13.5px] font-semibold text-poker-paper;
 }
 .sd-who small {
   @apply block text-[12px];
@@ -1264,6 +1270,7 @@ header.game-topbar {
 
 .sd-badge {
   @apply text-[11px] font-bold;
+  flex: none;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   @apply p-[1px_6px] rounded-[99px];

@@ -4,6 +4,13 @@ import { escapeHtml } from '../auth/validation.ts';
 export function appOrigin(): string {
   const env = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (env) return env.replace(/\/+$/, '');
+  const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (productionUrl) {
+    return `${productionUrl.startsWith('http') ? '' : 'https://'}${productionUrl}`.replace(
+      /\/+$/,
+      '',
+    );
+  }
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return 'http://localhost:3000';
 }

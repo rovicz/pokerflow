@@ -18,13 +18,11 @@ const MOODS = {
 };
 const SMILE =
   'M108.976 67.2828C98.02 78.1505 83.467 84.1108 68.0152 84.1108C52.562 84.1107 37.9854 78.1258 27.0547 67.2828L32.5988 61.6956C42.0481 71.069 54.6288 76.241 68.0152 76.241C81.4029 76.241 93.9591 71.092 103.432 61.6956L108.976 67.2828Z';
-const CHEERING_SMILE =
-  'M34 68C44 77 56 81 68 81C80 81 92 77 102 68C94 84 82 93 68 93C54 93 42 84 34 68Z';
 
 // look: {x,y} entre -1 e 1 (para onde os olhos apontam). mood: chave de MOODS.
 export default function Zake({ look, mood }: { look: { x: number; y: number }; mood: DealerMood }) {
   const reduced = useReducedMotion();
-  const tilt = reduced ? 0 : look.x * 7;
+  const surprised = mood === 'wow';
   const cheering = mood === 'cheer';
   const id = useId();
   const bodyFill = `url(#${id}-body)`;
@@ -70,13 +68,8 @@ export default function Zake({ look, mood }: { look: { x: number; y: number }; m
         />
 
         {/* CABEÇA: todas as animações acontecem exclusivamente aqui, com pivô no pescoço */}
-        <motion.g
-          animate={{ rotate: tilt, x: reduced ? 0 : look.x * 2 }}
-          transition={{ type: 'spring', stiffness: 105, damping: 14 }}
-          style={{ transformBox: 'view-box', transformOrigin: '68px 136px' }}
-        >
+        <motion.g>
           <motion.g
-            key={mood}
             animate={reduced ? undefined : MOODS[mood]}
             style={{ transformBox: 'view-box', transformOrigin: '68px 136px' }}
           >
@@ -108,7 +101,7 @@ export default function Zake({ look, mood }: { look: { x: number; y: number }; m
             {/* Olhos */}
             <motion.g
               animate={{ x: reduced ? 0 : look.x * 8, y: reduced ? 0 : look.y * 5 }}
-              transition={{ type: 'spring', stiffness: 150, damping: 15 }}
+              transition={{ type: 'spring', stiffness: 70, damping: 22 }}
             >
               {cheering ? (
                 <path
@@ -159,18 +152,10 @@ export default function Zake({ look, mood }: { look: { x: number; y: number }; m
               />
             )}
 
-            {/* O sorriso da comemoração tem seu próprio contorno no visor. */}
+            {/* O sorriso é a expressão padrão; só a surpresa abre a boca. */}
             <path
               fill="#FFFFFF"
-              d={
-                cheering
-                  ? CHEERING_SMILE
-                  : mood === 'timeout'
-                    ? 'M58 77h20v4H58z'
-                    : mood === 'wow'
-                      ? 'M68 69a9 10 0 1 0 0 20 9 10 0 1 0 0-20Z'
-                      : SMILE
-              }
+              d={surprised ? 'M68 69a9 10 0 1 0 0 20 9 10 0 1 0 0-20Z' : SMILE}
             />
           </motion.g>
         </motion.g>

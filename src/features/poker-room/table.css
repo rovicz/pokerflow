@@ -1254,3 +1254,13 @@
     0 12px 24px rgba(0, 0, 0, 0.55),
     0 0 0 2px rgba(102, 161, 255, 0.85);
 }
+
+/* Aviso do próprio assento (ALL-IN, vez perdida...) ao lado da placa: embaixo ele ficava atrás do dock */
+.seat.self .bubble-w {
+  top: 23px;
+  left: calc(100% + 10px);
+  right: auto;
+  transform: translateY(-50%);
+  justify-content: flex-start;
+  width: max-content;
+}

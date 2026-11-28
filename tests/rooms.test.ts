@@ -125,3 +125,14 @@ test('espectador vê as mãos no showdown só de quem não desistiu', () => {
   const v = view(s, 'w1');
   if (s.reveal) for (const p of v.players) assert.ok(p.fold || p.cards.every((c) => c >= 0));
 });
+
+test('bot com o prazo já vencido (aba parada) joga em vez de travar a mesa', () => {
+  const s = room(2);
+  const bot = s.players[s.turn];
+  bot.bot = { style: 'balanced', difficulty: 'medium' };
+  s.botActAt = Date.now() - 1;
+  s.deadline = Date.now() - 1;
+  const before = s.last?.seq ?? 0;
+  assert.equal(resolveDue(s), true);
+  assert.ok((s.last?.seq ?? 0) > before || s.phase !== 'preflop', 'o bot precisa ter agido');
+});

@@ -1,5 +1,5 @@
 import type { GameState } from '../src/poker/game-types.ts';
-import test from 'node:test';
+import { test } from '@jest/globals';
 import assert from 'node:assert/strict';
 import { start, act, view, rematch } from '../src/poker/engine.ts';
 import { resolveDue } from '../src/poker/timeouts.ts';

@@ -90,15 +90,28 @@ export default function Topbar({
   return (
     <>
       {/* Topbar: unificada no modo jogo e lobby, clássica na entrada */}
-      <header className={inApp ? 'game-topbar' : ''}>
+      <header className={inGame ? 'game-topbar has-stagebar' : inLobby ? 'game-topbar' : ''}>
         <div className="flex min-w-0 items-center gap-[14px]">
-          <a href="/" className="brand" aria-label="PokerFlow — página inicial">
-            <BrandLogo variant={inApp ? 'compact' : 'full'} />
-          </a>
+          {inApp ? (
+            <button
+              type="button"
+              className="brand brand-return"
+              onClick={onExit}
+              aria-label="Voltar ao menu"
+            >
+              <BrandLogo variant="compact" />
+            </button>
+          ) : (
+            <a href="/" className="brand" aria-label="PokerFlow — página inicial">
+              <BrandLogo variant="full" />
+            </a>
+          )}
 
           {inApp && (
             <div className="game-meta">
-              {s.role === 'spectator' && <span className="meta-pill">Assistindo</span>}
+              {s.role === 'spectator' && (
+                <span className="meta-pill watching-pill">Assistindo</span>
+              )}
               {inGame ? (
                 <span className="meta-pill accent">Mão {s.hand}</span>
               ) : (
@@ -125,7 +138,7 @@ export default function Topbar({
                   </small>
                 )}
               </span>
-              <span className="meta-pill hide-sm">
+              <span className="meta-pill hide-sm players-pill">
                 Jogadores <b>{s.players.length}/8</b>
                 {s.spectators.length > 0 && <> · {s.spectators.length} assistindo</>}
               </span>
@@ -144,6 +157,7 @@ export default function Topbar({
                 <span
                   className={'stage-step' + (isCurrent ? ' current' : '') + (isDone ? ' done' : '')}
                   key={id}
+                  aria-current={isCurrent ? 'step' : undefined}
                 >
                   {isCurrent && (
                     <motion.span

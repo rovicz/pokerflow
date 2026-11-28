@@ -35,7 +35,7 @@ type ActionAttempt = {
   type?: string;
   amount?: number;
 };
-export type ActionStatus = 'checking' | 'retry' | 'confirmed' | 'expired';
+export type ActionStatus = 'checking' | 'retry' | 'expired';
 const pendingActionKey = 'pf-pending-action';
 
 function savedAction(): ActionAttempt | null {
@@ -61,6 +61,7 @@ export function useRoom() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [pending, P] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [actionStatus, setActionStatus] = useState<ActionStatus | null>(null);
   const actionAttempt = useRef<ActionAttempt | null>(null);
   const resumeCode = useRef('');
@@ -69,6 +70,7 @@ export function useRoom() {
   const token = useRef('');
   const latest = useRef<Room | null>(null);
   const mutating = useRef(false);
+  const leavingRoom = useRef(false);
   const polling = useRef(false);
   const again = useRef(false);
   const epoch = useRef(0);
@@ -117,15 +119,12 @@ export function useRoom() {
     else sessionStorage.removeItem(pendingActionKey);
   }
 
-  function reconcileAction(room: Room, fromAction: boolean) {
+  function reconcileAction(room: Room) {
     const attempt = actionAttempt.current;
     if (!attempt) return;
-    if (attempt.code !== room.code) {
+    if (attempt.code !== room.code || room.myActionReceipts?.includes(attempt.actionId)) {
       saveAttempt(null);
       setActionStatus(null);
-    } else if (room.myActionReceipts?.includes(attempt.actionId)) {
-      saveAttempt(null);
-      setActionStatus(fromAction ? null : 'confirmed');
     } else if (room.turnKey !== attempt.turnKey) {
       saveAttempt(null);
       setActionStatus('expired');
@@ -157,6 +156,7 @@ export function useRoom() {
   ) {
     if (
       !token.current ||
+      leavingRoom.current ||
       mutating.current ||
       (quiet && (polling.current || Date.now() < coolUntil.current))
     )
@@ -239,7 +239,7 @@ export function useRoom() {
       resumeCode.current = '';
       latest.current = x;
       G(x);
-      reconcileAction(x, op === 'action');
+      reconcileAction(x);
       localStorage.setItem('pf-room', x.code);
       if (extra.name) localStorage.setItem('pf-name', extra.name);
       if (op === 'create' && location.search) history.replaceState(null, '', location.pathname);
@@ -340,34 +340,32 @@ export function useRoom() {
     }
   }
 
-  // Jogador ou espectador avisa o servidor ao sair (transfere anfitrião e libera o assento com segurança).
   async function leave() {
-    const cur = latest.current;
-    if (cur && token.current) {
-      try {
-        const response = await fetch('/api/game', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            op: 'leave',
-            token: token.current,
-            code: cur.code,
-            version: cur.version,
-          }),
-          signal: AbortSignal.timeout(6500),
-        });
-        if (!response.ok && response.status !== 403 && response.status !== 404) {
-          setError(
-            errorOf(await response.json().catch(() => null), 'Não foi possível sair da mesa.'),
-          );
-          void send('state', {}, true);
-          return;
-        }
-      } catch {
-        // Sai localmente mesmo sem rede
-      }
-    }
+    if (leavingRoom.current) return;
+    const code = latest.current?.code;
+    const session = token.current;
     exit();
+    if (!code || !session) return;
+
+    // Cancela a retomada local já no clique. A API confirma a saída em segundo plano.
+    leavingRoom.current = true;
+    setLeaving(true);
+    try {
+      const response = await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ op: 'leave', token: session, code }),
+        signal: AbortSignal.timeout(6500),
+        keepalive: true,
+      });
+      if (!response.ok && response.status !== 403 && response.status !== 404)
+        setNotice('Você voltou ao menu. O servidor ainda não confirmou a saída da mesa.');
+    } catch {
+      setNotice('Você voltou ao menu. O servidor ainda não confirmou a saída da mesa.');
+    } finally {
+      leavingRoom.current = false;
+      setLeaving(false);
+    }
   }
 
   return {
@@ -377,7 +375,7 @@ export function useRoom() {
     notice,
     setNotice,
     conn,
-    pending,
+    pending: pending || leaving,
     actionStatus,
     retryAction,
     now,

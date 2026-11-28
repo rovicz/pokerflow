@@ -1,6 +1,6 @@
 import type { GameState, Player, PublicState, Room } from '../../../src/poker/game-types.ts';
 
-import { openRoomStore } from '../../../src/server/room-store.ts';
+import { openRoomStore, RoomStoreUnavailable } from '../../../src/server/room-store.ts';
 import { notifyRoom, roomChannel } from '../../../src/server/room-notify.ts';
 import { allow } from '../../../src/server/rate-limit.ts';
 import { randomBytes } from 'node:crypto';
@@ -93,6 +93,54 @@ async function settleDue(store: Store, code: string, data: Row): Promise<Row> {
     return { ...data, version: data.version + 1 };
   }
   return (await store.read(code)) ?? data; // outra requisição resolveu primeiro
+}
+
+async function changeAttendance(
+  store: Store,
+  data: Row,
+  token: string,
+  op: 'ready' | 'leave',
+  active: boolean,
+): Promise<Response> {
+  let cur = data;
+  const code = data.code;
+
+  // Estes comandos descrevem um estado final. Reaplique apenas após reler a sala
+  // e confirmar que a sessão ainda ocupa o assento.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const s = cur.state;
+    const member = sessionSeat(s, token);
+    const watcher = s.spectators?.find((p) => p.id === token);
+    if (op === 'ready') {
+      if (!member) return reply({ error: 'Entre na mesa para confirmar presença.' }, 403);
+      if (s.phase !== 'waiting') return reply({ error: 'A partida já começou.' }, 400);
+      if (!!member.ready === active) return reply(ok(code, s, member.id, cur.version));
+      member.ready = active;
+    } else if (member) {
+      leaveTable(s, member.id);
+    } else if (watcher) {
+      s.spectators = s.spectators?.filter((p) => p !== watcher);
+    } else {
+      return reply({ left: true });
+    }
+
+    const deltas = computeHandStatDeltas(s);
+    s.touched = Date.now();
+    if (member && op === 'ready') member.lastSeenAt = s.touched;
+    if (await store.update(code, cur.version, s)) {
+      if (deltas.length) await persistHandStats(deltas);
+      await notifyRoom(code, cur.version + 1);
+      return reply(
+        op === 'leave' ? { left: true } : ok(code, s, member?.id ?? token, cur.version + 1),
+      );
+    }
+    if (attempt === 2) break;
+    const fresh = await store.read(code);
+    if (!fresh)
+      return op === 'leave' ? reply({ left: true }) : reply({ error: 'Sala não encontrada' }, 404);
+    cur = await settleDue(store, code, fresh);
+  }
+  return reply({ error: 'A sala mudou. Tente novamente.' }, 409);
 }
 
 export async function POST(req: Request) {
@@ -234,6 +282,9 @@ export async function POST(req: Request) {
       return reply({ error: 'Seu assento está em uso em outro dispositivo.', moved: true }, 403);
     }
     if (s.guided && !member) return reply({ error: 'Esta mesa é um treino individual.' }, 403);
+    if (b.op === 'ready' || b.op === 'leave')
+      return await changeAttendance(store, data, token, b.op, b.active === true);
+
     if (b.op === 'join' && !member && !watcher) {
       if (!name) throw Error('Informe seu nome');
       const auth = await readAuthProfile();
@@ -268,13 +319,11 @@ export async function POST(req: Request) {
         return reply(ok(code, s, id, version));
       }
       if (watcher && !member) {
-        if (b.op !== 'leave' && b.op !== 'sit' && b.op !== 'want_to_play')
+        if (b.op !== 'sit' && b.op !== 'want_to_play')
           return reply({ error: 'Espectadores só acompanham a partida.' }, 403);
         if (b.version !== data.version)
           return reply({ error: 'Estado atualizado; tente novamente' }, 409);
-        if (b.op === 'leave') {
-          s.spectators = s.spectators!.filter((p) => p.id !== id);
-        } else if (b.op === 'want_to_play') {
+        if (b.op === 'want_to_play') {
           watcher.wantsToPlay = b.active === true;
         } else {
           if (s.phase !== 'waiting' || s.players.length >= 8 || s.players.some((p) => p.id === id))
@@ -300,24 +349,7 @@ export async function POST(req: Request) {
           });
         }
       } else if (b.op === 'sit') throw Error('Comando inválido');
-      else if (b.op === 'leave') {
-        let cur: Row = data;
-        for (let attempt = 0; attempt < 2; attempt++) {
-          if (sessionSeat(cur.state, token)?.id !== id) return reply({ left: true });
-          leaveTable(cur.state, id);
-          const deltas = computeHandStatDeltas(cur.state);
-          cur.state.touched = Date.now();
-          if (await store.update(code, cur.version, cur.state)) {
-            if (deltas.length) await persistHandStats(deltas);
-            await notifyRoom(code, cur.version + 1);
-            return reply({ left: true });
-          }
-          const fresh = await store.read(code);
-          if (!fresh) return reply({ left: true });
-          cur = await settleDue(store, code, fresh);
-        }
-        return reply({ error: 'A sala mudou. Tente sair novamente.' }, 409);
-      } else if (b.op === 'emote') {
+      else if (b.op === 'emote') {
         if (s.phase === 'waiting') throw Error('As reações ficam disponíveis durante a partida');
         if (!isEmoteId(b.emote)) throw Error('Reação inválida');
         let cur: Row = data;
@@ -382,10 +414,7 @@ export async function POST(req: Request) {
         } else if (b.version !== data.version) {
           return reply({ error: 'Estado atualizado; tente novamente' }, 409);
         }
-        if (b.op === 'ready') {
-          if (s.phase !== 'waiting' || !member) throw Error('Confirme sua presença no lobby');
-          member.ready = b.active === true;
-        } else if (b.op === 'start') {
+        if (b.op === 'start') {
           if (s.host !== id) throw Error('Somente anfitrião');
           if (s.phase !== 'waiting') throw Error('A próxima mão começa automaticamente');
           start(s);
@@ -455,6 +484,7 @@ export async function POST(req: Request) {
     await notifyRoom(code, data.version + 1);
     return reply(ok(code, s, id, data.version + 1));
   } catch (e) {
+    if (e instanceof RoomStoreUnavailable) return reply({ error: e.message }, 503);
     return reply({ error: e instanceof Error ? e.message : 'Erro' }, 400);
   }
 }

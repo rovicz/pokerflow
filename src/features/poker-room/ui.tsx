@@ -39,34 +39,32 @@ export function ActionButton({
   label: string;
   sub: string;
   hotkey?: string;
-  desc: string;
+  desc?: string;
   kind: string;
   disabled: boolean;
   onClick: () => void;
 }) {
   return (
     <div className="action-wrap">
-      <Tip text={desc}>
-        <motion.button
-          type="button"
-          className={'action ' + kind}
-          disabled={disabled}
-          onClick={onClick}
-          whileHover={disabled ? undefined : { y: -2 }}
-          whileTap={disabled ? undefined : { scale: 0.97 }}
-          transition={{ type: 'spring', stiffness: 420, damping: 24 }}
-        >
-          <span className="action-main flex flex-col leading-[1.2]">
-            <strong>{label}</strong>
-            {sub && <small>{sub}</small>}
-          </span>
-          {hotkey && (
-            <kbd className="kbd" aria-hidden="true">
-              {hotkey}
-            </kbd>
-          )}
-        </motion.button>
-      </Tip>
+      <motion.button
+        type="button"
+        className={'action ' + kind}
+        disabled={disabled}
+        onClick={onClick}
+        whileHover={disabled ? undefined : { y: -2 }}
+        whileTap={disabled ? undefined : { scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+      >
+        <span className="action-main flex flex-col leading-[1.2]">
+          <strong>{label}</strong>
+          {sub && <small>{sub}</small>}
+        </span>
+        {hotkey && (
+          <kbd className="kbd" aria-hidden="true">
+            {hotkey}
+          </kbd>
+        )}
+      </motion.button>
     </div>
   );
 }

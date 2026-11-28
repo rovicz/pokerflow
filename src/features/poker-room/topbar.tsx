@@ -10,7 +10,6 @@ import Avatar from './avatar';
 import { useAuth } from '../auth/use-auth';
 import {
   CloseButton,
-  Tip,
   IconSoundOn,
   IconSoundOff,
   IconGuide,
@@ -88,20 +87,6 @@ export default function Topbar({
     inGame &&
     !!nextBlinds &&
     ((handsLeft != null && handsLeft <= 1) || (secsLeft != null && secsLeft <= 30));
-  const blindsTip = !blinds
-    ? 'Small blind e big blind: apostas obrigatórias iniciais.'
-    : !nextBlinds
-      ? `Modo Torneio · Nível máximo (${blinds.level}/${MAX_BLIND_LEVEL}).`
-      : `Modo Torneio · Nível ${blinds.level}/${MAX_BLIND_LEVEL}. Próximo nível: ${nextBlinds.sb}/${nextBlinds.bb}` +
-        (handsLeft != null
-          ? handsLeft === 1
-            ? ' na próxima mão.'
-            : ` em ${handsLeft} mãos.`
-          : secsLeft != null
-            ? secsLeft === 0
-              ? ' na próxima mão.'
-              : ` em ${fmtClock(secsLeft)}.`
-            : '.');
   return (
     <>
       {/* Topbar: unificada no modo jogo e lobby, clássica na entrada */}
@@ -124,24 +109,22 @@ export default function Topbar({
                   </span>
                 </>
               )}
-              <Tip text={blindsTip}>
-                <span className={'meta-pill' + (levelSoon ? ' is-level-soon' : '')}>
-                  {blinds ? `Nv.${blinds.level}` : 'Blinds'}{' '}
-                  <b>
-                    {s.sb}/{s.bb}
-                  </b>
-                  {inGame && nextBlinds && handsLeft != null && (
-                    <small className="blinds-next hide-xs">
-                      {handsLeft === 1 ? ' · próx. mão' : ` · ${handsLeft}m`}
-                    </small>
-                  )}
-                  {inGame && nextBlinds && secsLeft != null && (
-                    <small className="blinds-next hide-xs">
-                      {secsLeft === 0 ? ' · próx. mão' : ` · ${fmtClock(secsLeft)}`}
-                    </small>
-                  )}
-                </span>
-              </Tip>
+              <span className={'meta-pill' + (levelSoon ? ' is-level-soon' : '')}>
+                {blinds ? `Nv.${blinds.level}` : 'Blinds'}{' '}
+                <b>
+                  {s.sb}/{s.bb}
+                </b>
+                {inGame && nextBlinds && handsLeft != null && (
+                  <small className="blinds-next hide-xs">
+                    {handsLeft === 1 ? ' · próx. mão' : ` · ${handsLeft}m`}
+                  </small>
+                )}
+                {inGame && nextBlinds && secsLeft != null && (
+                  <small className="blinds-next hide-xs">
+                    {secsLeft === 0 ? ' · próx. mão' : ` · ${fmtClock(secsLeft)}`}
+                  </small>
+                )}
+              </span>
               <span className="meta-pill hide-sm">
                 Jogadores <b>{s.players.length}/8</b>
                 {s.spectators.length > 0 && <> · {s.spectators.length} assistindo</>}

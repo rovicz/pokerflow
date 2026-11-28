@@ -15,7 +15,44 @@ import Avatar from './avatar';
 import BanVoteBanner from './ban-vote-banner';
 import { fmt } from './table';
 
-const mkSeeds = () => Array.from({ length: 8 }, () => Math.random().toString(36).slice(2, 8));
+const svg = {
+  width: 14,
+  height: 14,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2.2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+} as const;
+const IconVolume = () => (
+  <svg {...svg}>
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+  </svg>
+);
+const IconVolumeOff = () => (
+  <svg {...svg}>
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <line x1="22" y1="9" x2="16" y2="15" />
+    <line x1="16" y1="9" x2="22" y2="15" />
+  </svg>
+);
+const IconClose = () => (
+  <svg {...svg}>
+    <line x1="6" y1="6" x2="18" y2="18" />
+    <line x1="18" y1="6" x2="6" y2="18" />
+  </svg>
+);
+const IconBan = () => (
+  <svg {...svg}>
+    <circle cx="12" cy="12" r="9" />
+    <line x1="5.6" y1="5.6" x2="18.4" y2="18.4" />
+  </svg>
+);
+
+const mkSeeds = () => Array.from({ length: 12 }, () => Math.random().toString(36).slice(2, 8));
 
 type Props = {
   s: PublicState;
@@ -215,7 +252,8 @@ export default function LobbyScreen({
                     <button
                       type="button"
                       className={
-                        'outline seat-mini-btn' + (mutedUids.has(q.uid) ? ' is-muted' : '')
+                        'outline seat-mini-btn seat-icon-btn' +
+                        (mutedUids.has(q.uid) ? ' is-muted' : '')
                       }
                       aria-label={
                         (mutedUids.has(q.uid) ? 'Reativar emotes de ' : 'Silenciar emotes de ') +
@@ -228,22 +266,23 @@ export default function LobbyScreen({
                       }
                       onClick={() => onTogglePlayerMute(q.uid)}
                     >
-                      {mutedUids.has(q.uid) ? 'Silenciado' : 'Silenciar'}
+                      {mutedUids.has(q.uid) ? <IconVolumeOff /> : <IconVolume />}
                     </button>
                     {s.host ? (
                       <button
                         type="button"
-                        className="outline remove-player"
+                        className="outline remove-player seat-icon-btn"
                         aria-label={'Remover ' + q.name}
                         disabled={pending}
+                        title={'Remover ' + q.name + ' da sala'}
                         onClick={() => send('remove', { seat: i, version })}
                       >
-                        Remover
+                        <IconClose />
                       </button>
                     ) : !watching && !q.bot && !q.isHost ? (
                       <button
                         type="button"
-                        className="outline remove-player"
+                        className="outline remove-player seat-icon-btn"
                         aria-label={'Votar para expulsar ' + q.name}
                         disabled={pending || humanCount < 3 || !!s.banVote}
                         title={
@@ -255,7 +294,7 @@ export default function LobbyScreen({
                         }
                         onClick={() => send('vote_kick', { targetUid: q.uid, vote: 'yes' })}
                       >
-                        Votar expulsão
+                        <IconBan />
                       </button>
                     ) : null}
                   </div>

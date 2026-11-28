@@ -4664,62 +4664,6 @@ main.ranking-page {
   padding-inline: 20px;
 }
 
-/* Lobby em telas de notebook: assento em duas colunas (avatar | dados) para caber sem estourar o cartão */
-@media (min-width: 1025px) and (max-height: 820px) {
-  .lobby-seat {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      'av name'
-      'av sub'
-      'act act';
-    align-items: center;
-    column-gap: 10px;
-    row-gap: 3px;
-    text-align: left;
-    padding: 8px 10px;
-  }
-  .lobby-seat {
-    grid-template-rows: auto auto auto;
-    align-content: center;
-    row-gap: 4px;
-  }
-  .lobby-seat > .avatar,
-  .lobby-seat > .vacant-av {
-    grid-area: av;
-    width: 44px;
-    height: 44px;
-    align-self: center;
-  }
-  .lobby-seat > .add-bot-btn {
-    justify-self: stretch;
-  }
-  .lobby-seat > b {
-    grid-area: name;
-    justify-content: flex-start;
-  }
-  .lobby-seat > small {
-    grid-area: sub;
-  }
-  .lobby-seat > .add-bot-btn {
-    padding-inline: 8px;
-    font-size: 11.5px;
-  }
-  .lobby-seat > .lobby-seat-actions,
-  .lobby-seat > .add-bot-btn {
-    grid-area: act;
-    justify-content: flex-start;
-    margin-top: 2px;
-  }
-}
-.lobby-seat .add-bot-btn {
-  white-space: nowrap;
-}
-.lobby-avatar-card .seg button {
-  padding-inline: 8px;
-  font-size: 12.5px;
-}
-
 /* Dock compacto em telas baixas: mais altura para a mesa */
 @media (min-width: 1025px) and (max-height: 760px) {
   .dock {
@@ -4872,5 +4816,149 @@ main.profile-page {
 @media (min-width: 901px) and (max-height: 600px) {
   .landing .hero-cards {
     display: none;
+  }
+}
+
+/* ==========================================================================
+   Lobby v2: ritmo de espaçamento em múltiplos de 4/8 (8 · 12 · 16 · 24)
+   Esquerda = quem está na mesa (lista de linhas); direita = seu avatar (grade quadrada).
+   ========================================================================== */
+.lobby-arena {
+  --sp-2: 12px;
+  --sp-3: 16px;
+  --sp-4: 24px;
+  padding: var(--sp-4);
+  gap: var(--sp-4);
+}
+@media (max-height: 760px) {
+  .lobby-arena {
+    --sp-3: 12px;
+    --sp-4: 16px;
+  }
+}
+@media (min-width: 1025px) {
+  .lobby-arena {
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+  }
+}
+.lobby-card {
+  padding: var(--sp-4);
+  gap: var(--sp-3);
+}
+.lobby-card-head {
+  align-items: center;
+}
+.lobby-card-head h2,
+.lobby-card-head h3 {
+  margin: 2px 0 4px;
+}
+.lobby-blinds-bar {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+}
+
+/* Assentos: uma linha por jogador (avatar | nome e fichas | ações), duas colunas */
+.lobby-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* as quatro linhas dividem a altura disponível por igual; o avatar e o texto crescem junto (dvh) */
+  grid-template-rows: repeat(4, minmax(clamp(52px, 9dvh, 72px), 1fr));
+  gap: var(--sp-2);
+  align-content: stretch;
+}
+.lobby-seat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'av name act'
+    'av sub act';
+  align-items: center;
+  column-gap: var(--sp-2);
+  row-gap: 2px;
+  text-align: left;
+  padding: 0 var(--sp-2);
+}
+.lobby-seat > .avatar,
+.lobby-seat > .vacant-av {
+  grid-area: av;
+  width: clamp(36px, 5.8dvh, 64px);
+  height: clamp(36px, 5.8dvh, 64px);
+}
+.lobby-seat > b {
+  grid-area: name;
+  align-self: end;
+  justify-content: flex-start;
+  font-size: clamp(14px, 1.9dvh, 16px);
+  line-height: 1.25;
+}
+.lobby-seat > small {
+  grid-area: sub;
+  align-self: start;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lobby-seat > .lobby-seat-actions,
+.lobby-seat > .add-bot-btn {
+  grid-area: act;
+  justify-self: end;
+  margin: 0;
+  flex-wrap: nowrap;
+}
+.lobby-seat .add-bot-btn {
+  white-space: nowrap;
+}
+.lobby-seat .seat-icon-btn,
+.lobby-seat-actions .seat-icon-btn {
+  width: var(--h-xs);
+  min-width: var(--h-xs);
+  padding: 0;
+}
+.seat-icon-btn svg {
+  flex: none;
+}
+.lobby-footer {
+  margin-top: auto;
+  padding-top: var(--sp-3);
+}
+.lobby-footer .outline,
+.lobby-footer .start-btn {
+  min-height: var(--h-lg);
+}
+
+/* Coluna do avatar: cabeçalho, prévia, estilos e grade quadrada de 4 × 3 */
+.lobby-avatar-card {
+  gap: var(--sp-3);
+}
+.my-preview {
+  padding: var(--sp-2) var(--sp-3);
+}
+.lobby-avatar-card .seg {
+  margin: 0;
+}
+.lobby-avatar-card .seg button {
+  padding-inline: 8px;
+  font-size: 12.5px;
+}
+.choices {
+  flex: 0 0 auto;
+  gap: var(--sp-2);
+}
+.choice {
+  padding: 6px;
+}
+.choice .avatar {
+  max-width: none;
+  max-height: none;
+}
+@media (max-height: 760px) {
+  .choice:nth-child(n + 9) {
+    display: none;
+  }
+}
+@media (max-width: 680px) {
+  .lobby-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: 56px;
   }
 }
